@@ -10,6 +10,7 @@ members = [
     "rustml/quant",
     "rustml/gguf",
     "rustml/cli",
+    "rustml/daemon",
     "rustml/swets",
     # AudioLearn (umbrella: audiolearn/)
     "audiolearn/app",
@@ -71,6 +72,7 @@ rustml-tokenizer = { path = "rustml/tokenizer" }
 rustml-quant = { path = "rustml/quant" }
 rustml-gguf = { path = "rustml/gguf" }
 rustml-swets = { path = "rustml/swets" }
+swellmd = { path = "rustml/daemon" }
 # Shared deps for quant/gguf crates
 bytemuck = { version = "1", features = ["extern_crate_alloc"] }
 half = { version = "2.3", features = ["bytemuck"] }
@@ -82,6 +84,7 @@ smallvec = { version = "1.11", features = ["const_generics"] }
 safetensors = "0.3"
 tokenizers = "0.21"
 components = { path = "components" }
+swe-readline = { path = "../swebash/swe-readline" }
 
 [profile.release]
 lto = "thin"
