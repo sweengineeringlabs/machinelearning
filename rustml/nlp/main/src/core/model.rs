@@ -256,7 +256,7 @@ impl LlmModel {
 
         Ok(Self {
             token_embedding,
-            pos_embedding,
+            pos_embedding: None,
             embd_norm: None,
             ple_tables: Vec::new(),
             layers,
@@ -549,7 +549,7 @@ impl LlmModel {
 
         Ok(Self {
             token_embedding,
-            pos_embedding,
+            pos_embedding: None,
             embd_norm: None,
             ple_tables: Vec::new(),
             layers,
@@ -691,7 +691,7 @@ impl LlmModel {
 
         Ok(Self {
             token_embedding,
-            pos_embedding,
+            pos_embedding: None,
             embd_norm: None,
             ple_tables: Vec::new(),
             layers,
@@ -875,7 +875,7 @@ impl LlmModel {
 
         Ok(Self {
             token_embedding,
-            pos_embedding,
+            pos_embedding: None,
             embd_norm: None,
             ple_tables: Vec::new(),
             layers,
@@ -926,11 +926,11 @@ impl LlmModel {
         let token_embedding = Embedding::from_weights(get_tensor("token_embedding.weight")?)?;
 
         let mut ple_tables = Vec::with_capacity(num_layers);
-        if let Some(hidden_size_ple) = config.hidden_size_per_layer_input {
+        if let Some(_hidden_size_ple) = config.hidden_size_per_layer_input {
+            let ple_emb_weight = get_tensor("ple_shared_embedding.weight")?;
             for i in 0..num_layers {
-                let ple_weight = get_tensor(&format!("layers.{}.ple.embedding.weight", i))?;
                 let ple_proj = get_weight(&format!("layers.{}.ple.projection.weight", i))?;
-                ple_tables.push(PerLayerEmbedding::from_weights(ple_weight, ple_proj)?);
+                ple_tables.push(PerLayerEmbedding::from_weights(ple_emb_weight.clone(), ple_proj)?);
             }
         }
 
@@ -1042,21 +1042,24 @@ impl LlmModel {
             eps,
             offset,
         ));
-        let output = Linear::from_weights(get_weight("output.weight")?, None)?;
+
+        // Gemma 4 uses tied embeddings: output weight = token_embedding weight
+        let output = if let Ok(w) = get_weight("output.weight") {
+            Linear::from_weights(w, None)?
+        } else {
+            Linear::from_weights(token_embedding.weight.clone(), None)?
+        };
 
         Ok(Self {
             token_embedding,
-            pos_embedding,
+            pos_embedding: None,
             embd_norm: None,
-            ple_tables: Vec::new(),
+            ple_tables,
             layers,
             norm,
             output,
             config: config.clone(),
         })
-    }
-
-
     }
 
     /// Construct BERT encoder model from weights (already remapped to internal names).
@@ -1185,7 +1188,7 @@ impl LlmModel {
         Ok(Self {
             token_embedding,
             pos_embedding,
-            embd_norm: None,
+            embd_norm,
             ple_tables: Vec::new(),
             layers,
             norm,
@@ -1311,7 +1314,7 @@ impl LlmModel {
         Ok(Self {
             token_embedding,
             pos_embedding,
-            embd_norm: None,
+            embd_norm,
             ple_tables: Vec::new(),
             layers,
             norm,

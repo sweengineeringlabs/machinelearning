@@ -348,21 +348,99 @@ impl WeightMap {
     /// - Per-Layer Embeddings (PLE): layers.{i}.ple.embedding.weight,
     ///   layers.{i}.ple.projection.weight
     pub fn gemma4(n_layers: usize) -> Self {
-        let mut base = Self::gemma3(n_layers);
+        let mut mapping = HashMap::new();
+
+        // Global
+        mapping.insert(
+            "model.language_model.embed_tokens.weight".into(),
+            "token_embedding.weight".into(),
+        );
+        mapping.insert(
+            "model.language_model.norm.weight".into(),
+            "norm.weight".into(),
+        );
+        mapping.insert(
+            "model.language_model.lm_head.weight".into(),
+            "output.weight".into(),
+        );
+        
+        // Shared PLE Embedding (if used by all layers)
+        mapping.insert(
+            "model.language_model.embed_tokens_per_layer.weight".into(),
+            "ple_shared_embedding.weight".into(),
+        );
 
         for i in 0..n_layers {
-            // Per-Layer Embedding (PLE)
-            base.mapping.insert(
-                format!("model.layers.{}.ple.embedding.weight", i),
-                format!("layers.{}.ple.embedding.weight", i),
+            // Attention Norms
+            mapping.insert(
+                format!("model.language_model.layers.{}.input_layernorm.weight", i),
+                format!("layers.{}.attention_norm.weight", i),
             );
-            base.mapping.insert(
-                format!("model.layers.{}.ple.projection.weight", i),
+            mapping.insert(
+                format!("model.language_model.layers.{}.post_attention_layernorm.weight", i),
+                format!("layers.{}.post_attention_norm.weight", i),
+            );
+            
+            // FFN Norms
+            mapping.insert(
+                format!("model.language_model.layers.{}.pre_feedforward_layernorm.weight", i),
+                format!("layers.{}.ffn_norm.weight", i),
+            );
+            mapping.insert(
+                format!("model.language_model.layers.{}.post_feedforward_layernorm.weight", i),
+                format!("layers.{}.post_ffn_norm.weight", i),
+            );
+
+            // Attention Projections
+            mapping.insert(
+                format!("model.language_model.layers.{}.self_attn.q_proj.weight", i),
+                format!("layers.{}.attention.q_proj.weight", i),
+            );
+            mapping.insert(
+                format!("model.language_model.layers.{}.self_attn.k_proj.weight", i),
+                format!("layers.{}.attention.k_proj.weight", i),
+            );
+            mapping.insert(
+                format!("model.language_model.layers.{}.self_attn.v_proj.weight", i),
+                format!("layers.{}.attention.v_proj.weight", i),
+            );
+            mapping.insert(
+                format!("model.language_model.layers.{}.self_attn.o_proj.weight", i),
+                format!("layers.{}.attention.out_proj.weight", i),
+            );
+
+            // QK normalization (Gemma 4 specific)
+            mapping.insert(
+                format!("model.language_model.layers.{}.self_attn.q_norm.weight", i),
+                format!("layers.{}.attention.q_norm.weight", i),
+            );
+            mapping.insert(
+                format!("model.language_model.layers.{}.self_attn.k_norm.weight", i),
+                format!("layers.{}.attention.k_norm.weight", i),
+            );
+
+            // FFN Projections (GeGLU)
+            mapping.insert(
+                format!("model.language_model.layers.{}.mlp.gate_proj.weight", i),
+                format!("layers.{}.feed_forward.gate_proj.weight", i),
+            );
+            mapping.insert(
+                format!("model.language_model.layers.{}.mlp.up_proj.weight", i),
+                format!("layers.{}.feed_forward.up_proj.weight", i),
+            );
+            mapping.insert(
+                format!("model.language_model.layers.{}.mlp.down_proj.weight", i),
+                format!("layers.{}.feed_forward.down_proj.weight", i),
+            );
+
+            // Per-Layer Projection (unique per layer)
+            mapping.insert(
+                format!("model.language_model.layers.{}.per_layer_projection.weight", i),
                 format!("layers.{}.ple.projection.weight", i),
             );
         }
 
-        base
+        Self { mapping }
     }
 
     /// Remap HuggingFace weight names to internal names.
@@ -532,9 +610,11 @@ mod tests {
     #[test]
     fn test_gemma4_weight_map() {
         let wm = WeightMap::gemma4(2);
-        // gemma3: 3 global + 13*2 per-layer = 29
-        // gemma4: + 2 PLE per layer = 29 + 4 = 33
-        assert_eq!(wm.len(), 33);
+        // global: 3 (embed, norm, output)
+        // per-layer: 14 * 2 = 28
+        // shared: 1 (embed_tokens_per_layer)
+        // total: 3 + 28 + 1 = 32
+        assert_eq!(wm.len(), 32);
 
         let mut hf_weights = HashMap::new();
         hf_weights.insert(
