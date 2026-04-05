@@ -84,9 +84,12 @@ unsafe fn rope_apply_neon(
 /// Precomputed cos/sin tables for Rotary Position Encoding.
 #[derive(Clone)]
 pub struct RoPEFreqs {
-    cos_table: Vec<f32>, // [max_seq_len, head_dim/2]
-    sin_table: Vec<f32>, // [max_seq_len, head_dim/2]
-    half_dim: usize,
+    cos_table: Vec<f32>, // [max_seq_len, half_dim]
+    sin_table: Vec<f32>, // [max_seq_len, half_dim]
+    half_dim: usize,     // head_dim / 2
+    /// Fraction of head_dim to apply rotation to (Gemma 4).
+    /// If Some(0.25), only the first 25% of dims are rotated.
+    partial_rotary_factor: Option<f32>,
 }
 
 impl RoPEFreqs {
@@ -105,14 +108,10 @@ impl RoPEFreqs {
             }
         }
 
-        Self { cos_table, sin_table, half_dim }
+        Self { cos_table, sin_table, half_dim, partial_rotary_factor: None }
     }
 
     /// Build cos/sin tables with linear frequency scaling (Gemma 3 long-context).
-    ///
-    /// Each base frequency is divided by `scaling_factor`, effectively extending
-    /// the context window by that factor. A `scaling_factor` of 1.0 is equivalent
-    /// to the standard `new()` constructor.
     pub fn with_scaling(head_dim: usize, max_seq_len: usize, theta: f32, scaling_factor: f32) -> Self {
         let half_dim = head_dim / 2;
         let mut cos_table = Vec::with_capacity(max_seq_len * half_dim);
@@ -127,11 +126,43 @@ impl RoPEFreqs {
             }
         }
 
-        Self { cos_table, sin_table, half_dim }
+        Self { cos_table, sin_table, half_dim, partial_rotary_factor: None }
+    }
+
+    /// Build RoPE tables with partial rotation (Gemma 4).
+    ///
+    /// Only the first `factor * head_dim` dimensions are rotated.
+    /// Tables are sized for the *rotated* part (`rotated_head_dim / 2`).
+    pub fn with_partial_rotation(
+        head_dim: usize,
+        max_seq_len: usize,
+        theta: f32,
+        factor: f32,
+    ) -> Self {
+        let rotated_head_dim = (head_dim as f32 * factor) as usize;
+        let half_dim = rotated_head_dim / 2;
+        let mut cos_table = Vec::with_capacity(max_seq_len * half_dim);
+        let mut sin_table = Vec::with_capacity(max_seq_len * half_dim);
+
+        for pos in 0..max_seq_len {
+            for i in 0..half_dim {
+                // Frequencies are computed based on the *rotated* dimension
+                let freq = 1.0 / theta.powf(2.0 * i as f32 / rotated_head_dim as f32);
+                let angle = pos as f32 * freq;
+                cos_table.push(angle.cos());
+                sin_table.push(angle.sin());
+            }
+        }
+
+        Self {
+            cos_table,
+            sin_table,
+            half_dim,
+            partial_rotary_factor: Some(factor),
+        }
     }
 
     /// Apply RoPE to tensor [B, H, S, D] starting from position `start_pos`.
-    /// SIMD-accelerated on x86_64 (AVX2) and aarch64 (NEON).
     pub fn apply(&self, x: &Tensor, start_pos: usize) -> NnResult<Tensor> {
         let _t = if log::log_enabled!(log::Level::Trace) { Some(Instant::now()) } else { None };
         let shape = x.shape();
@@ -147,7 +178,6 @@ impl RoPEFreqs {
         let seq_len = shape[2];
         let head_dim = shape[3];
 
-        // Ensure contiguous layout for element access
         let x = if x.is_contiguous() { x.clone() } else { x.contiguous()? };
         let data = x.as_slice_f32()?;
         let mut out = vec![0.0f32; data.len()];
@@ -164,8 +194,9 @@ impl RoPEFreqs {
                     let base = (b * heads * seq_len + h * seq_len + s) * head_dim;
                     let table_offset = pos * self.half_dim;
 
+                    // Rotated part
                     let x1 = &data[base..base + self.half_dim];
-                    let x2 = &data[base + self.half_dim..base + head_dim];
+                    let x2 = &data[base + self.half_dim..base + 2 * self.half_dim];
                     let cos_slice = &self.cos_table[table_offset..table_offset + self.half_dim];
                     let sin_slice = &self.sin_table[table_offset..table_offset + self.half_dim];
                     let out_slice = &mut out[base..base + head_dim];
@@ -175,7 +206,12 @@ impl RoPEFreqs {
                         unsafe {
                             rope_apply_avx2(x1, x2, cos_slice, sin_slice, out_slice, self.half_dim);
                         }
-                        continue;
+                    } else {
+                        // Scalar fallback for rotated part
+                        for i in 0..self.half_dim {
+                            out_slice[i] = x1[i] * cos_slice[i] - x2[i] * sin_slice[i];
+                            out_slice[self.half_dim + i] = x1[i] * sin_slice[i] + x2[i] * cos_slice[i];
+                        }
                     }
 
                     #[cfg(target_arch = "aarch64")]
@@ -183,13 +219,23 @@ impl RoPEFreqs {
                         unsafe {
                             rope_apply_neon(x1, x2, cos_slice, sin_slice, out_slice, self.half_dim);
                         }
-                        continue;
+                    } else {
+                        for i in 0..self.half_dim {
+                            out_slice[i] = x1[i] * cos_slice[i] - x2[i] * sin_slice[i];
+                            out_slice[self.half_dim + i] = x1[i] * sin_slice[i] + x2[i] * cos_slice[i];
+                        }
                     }
 
-                    // Scalar fallback
+                    #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
                     for i in 0..self.half_dim {
                         out_slice[i] = x1[i] * cos_slice[i] - x2[i] * sin_slice[i];
                         out_slice[self.half_dim + i] = x1[i] * sin_slice[i] + x2[i] * cos_slice[i];
+                    }
+
+                    // Copy unrotated part if any
+                    let rotated_dim = 2 * self.half_dim;
+                    if rotated_dim < head_dim {
+                        out_slice[rotated_dim..head_dim].copy_from_slice(&data[base + rotated_dim..base + head_dim]);
                     }
                 }
             }
@@ -280,6 +326,28 @@ mod tests {
         let d2 = y_identity.as_slice_f32().unwrap();
         for i in 0..d1.len() {
             assert!((d1[i] - d2[i]).abs() < 1e-5, "mismatch at {}", i);
+        }
+    }
+
+    #[test]
+    fn test_partial_rope() {
+        let head_dim = 64;
+        let factor = 0.25; // rotate 16 dims (8 pairs)
+        let rope = RoPEFreqs::with_partial_rotation(head_dim, 128, 10000.0, factor);
+        
+        let x_data = vec![1.0f32; head_dim];
+        let x = Tensor::new(f32_vec_to_bytes(x_data), vec![1, 1, 1, head_dim], DType::F32);
+        
+        let y = rope.apply(&x, 1).unwrap();
+        let y_data = y.as_slice_f32().unwrap();
+        
+        // First 16 dims should be rotated (not 1.0 anymore)
+        for i in 0..16 {
+            assert!((y_data[i] - 1.0).abs() > 1e-5, "dim {} should be rotated", i);
+        }
+        // Remaining 48 dims should be exactly 1.0
+        for i in 16..64 {
+            assert!((y_data[i] - 1.0).abs() < 1e-5, "dim {} should NOT be rotated", i);
         }
     }
 

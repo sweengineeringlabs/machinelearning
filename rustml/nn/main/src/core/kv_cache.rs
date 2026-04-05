@@ -9,22 +9,21 @@ use rustml_core::Tensor;
 
 /// KV Cache storing past keys and values for each layer.
 pub struct KVCache {
-    past_keys: Vec<Tensor>,
-    past_values: Vec<Tensor>,
+    past_keys: Vec<Tensor>,   // [num_slots, B, H_kv, S_max, D_head]
+    past_values: Vec<Tensor>, // [num_slots, B, H_kv, S_max, D_head]
+    /// Mapping from layer index to cache slot index (Gemma 4).
+    /// If None, layer_idx == slot_idx.
+    layer_to_slot: Option<Vec<usize>>,
     max_seq_len: usize,
     pub current_len: usize,
     head_dim: usize,
     num_kv_heads: usize,
     /// Raw token history for models without native KV cache support.
-    /// Models that don't use the K/V buffers (e.g. GptModel) accumulate
-    /// tokens here so they can re-run full-context forward each step.
     pub token_history: Vec<u32>,
 }
 
 impl KVCache {
     /// Create a new KV cache.
-    ///
-    /// Pre-allocates [1, num_kv_heads, max_seq_len, head_dim] buffers per layer.
     pub fn new(
         num_layers: usize,
         max_seq_len: usize,
@@ -44,6 +43,38 @@ impl KVCache {
         Self {
             past_keys,
             past_values,
+            layer_to_slot: None,
+            max_seq_len,
+            current_len: 0,
+            head_dim,
+            num_kv_heads,
+            token_history: Vec::new(),
+        }
+    }
+
+    /// Create a KV cache with layer sharing (Gemma 4).
+    pub fn with_kv_sharing(
+        num_layers: usize,
+        num_slots: usize,
+        layer_to_slot: Vec<usize>,
+        max_seq_len: usize,
+        head_dim: usize,
+        num_kv_heads: usize,
+    ) -> Self {
+        let key_shape = vec![1, num_kv_heads, max_seq_len, head_dim];
+        let val_shape = vec![1, num_kv_heads, max_seq_len, head_dim];
+
+        let past_keys = (0..num_slots)
+            .map(|_| Tensor::zeros(key_shape.clone()))
+            .collect();
+        let past_values = (0..num_slots)
+            .map(|_| Tensor::zeros(val_shape.clone()))
+            .collect();
+
+        Self {
+            past_keys,
+            past_values,
+            layer_to_slot: Some(layer_to_slot),
             max_seq_len,
             current_len: 0,
             head_dim,
@@ -73,6 +104,7 @@ impl KVCache {
         Self {
             past_keys,
             past_values,
+            layer_to_slot: None,
             max_seq_len,
             current_len: 0,
             head_dim,
@@ -93,9 +125,31 @@ impl KVCache {
         self.num_kv_heads
     }
 
-    /// Number of layers in this cache.
-    pub fn num_layers(&self) -> usize {
+    /// Number of actual K/V storage slots in this cache.
+    pub fn num_slots(&self) -> usize {
         self.past_keys.len()
+    }
+
+    /// Number of virtual layers supported by this cache.
+    pub fn num_layers(&self) -> usize {
+        self.layer_to_slot.as_ref().map(|m| m.len()).unwrap_or(self.past_keys.len())
+    }
+
+    pub fn get_slot_idx(&self, layer_idx: usize) -> usize {
+        self.layer_to_slot.as_ref().map(|m| m[layer_idx]).unwrap_or(layer_idx)
+    }
+
+    /// Returns true if this layer is the first one to use its assigned cache slot (Gemma 4).
+    /// Shared layers (which appear later in the layer_to_slot map) return false.
+    pub fn is_slot_owner(&self, layer_idx: usize) -> bool {
+        match self.layer_to_slot.as_ref() {
+            Some(map) => {
+                let slot = map[layer_idx];
+                // First occurrence of this slot index in the map is the owner
+                map.iter().position(|&s| s == slot) == Some(layer_idx)
+            }
+            None => true, // No sharing -> everyone owns their slot
+        }
     }
 
     /// Total bytes allocated for all K/V buffers.
@@ -111,11 +165,12 @@ impl KVCache {
     /// Get a view of cached K/V for `0..len` on the sequence dimension.
     pub fn get_view(&self, layer_idx: usize, len: usize) -> NnResult<(Tensor, Tensor)> {
         let _t = if log::log_enabled!(log::Level::Trace) { Some(Instant::now()) } else { None };
-        let k = self.past_keys[layer_idx].slice_sequence(0, len)?;
-        let v = self.past_values[layer_idx].slice_sequence(0, len)?;
+        let slot_idx = self.get_slot_idx(layer_idx);
+        let k = self.past_keys[slot_idx].slice_sequence(0, len)?;
+        let v = self.past_values[slot_idx].slice_sequence(0, len)?;
         if let Some(t) = _t {
-            log::trace!("[perf] kv_cache::get_view layer={} len={} {:.3}ms",
-                layer_idx, len, t.elapsed().as_secs_f64() * 1000.0);
+            log::trace!("[perf] kv_cache::get_view layer={} slot={} len={} {:.3}ms",
+                layer_idx, slot_idx, len, t.elapsed().as_secs_f64() * 1000.0);
         }
         Ok((k, v))
     }
@@ -131,11 +186,12 @@ impl KVCache {
                 self.current_len + seq_len,
             )));
         }
-        self.past_keys[layer_idx].slice_assign_sequence(self.current_len, &key)?;
-        self.past_values[layer_idx].slice_assign_sequence(self.current_len, &value)?;
+        let slot_idx = self.get_slot_idx(layer_idx);
+        self.past_keys[slot_idx].slice_assign_sequence(self.current_len, &key)?;
+        self.past_values[slot_idx].slice_assign_sequence(self.current_len, &value)?;
         if let Some(t) = _t {
-            log::trace!("[perf] kv_cache::update layer={} pos={} {:.3}ms",
-                layer_idx, self.current_len, t.elapsed().as_secs_f64() * 1000.0);
+            log::trace!("[perf] kv_cache::update layer={} slot={} pos={} {:.3}ms",
+                layer_idx, slot_idx, self.current_len, t.elapsed().as_secs_f64() * 1000.0);
         }
         Ok(())
     }
@@ -161,7 +217,8 @@ impl KVCache {
     pub fn restore_from(&self, snapshot: &KVCache) -> NnResult<Self> {
         if snapshot.head_dim != self.head_dim
             || snapshot.num_kv_heads != self.num_kv_heads
-            || snapshot.past_keys.len() != self.past_keys.len()
+            || snapshot.num_slots() != self.num_slots()
+            || snapshot.num_layers() != self.num_layers()
         {
             return Err(NnError::InvalidConfig(
                 "prefix snapshot dimensions do not match this cache".into(),
@@ -200,6 +257,7 @@ impl KVCache {
         Ok(Self {
             past_keys,
             past_values,
+            layer_to_slot: self.layer_to_slot.clone(),
             max_seq_len: self.max_seq_len,
             current_len: self.current_len,
             head_dim: self.head_dim,
@@ -250,6 +308,37 @@ mod tests {
 
         let clone = cache.deep_clone().unwrap();
         assert_eq!(clone.current_len, 3);
+    }
+
+    #[test]
+    fn test_kv_sharing() {
+        let num_layers = 4;
+        let num_slots = 2;
+        let layer_to_slot = vec![0, 1, 0, 1]; // L0, L2 use slot 0; L1, L3 use slot 1
+        let mut cache = KVCache::with_kv_sharing(num_layers, num_slots, layer_to_slot, 16, 8, 2);
+        
+        assert_eq!(cache.num_layers(), 4);
+        assert_eq!(cache.num_slots(), 2);
+        
+        // Write to L0
+        let k0 = Tensor::randn(vec![1, 2, 1, 8]);
+        let v0 = Tensor::randn(vec![1, 2, 1, 8]);
+        cache.update(0, k0.clone(), v0.clone()).unwrap();
+        
+        // L2 should now have the same data
+        let (k2, _v2) = cache.get_view(2, 1).unwrap();
+        let d0 = k0.as_slice_f32().unwrap();
+        let d2 = k2.as_slice_f32().unwrap();
+        assert_eq!(d0, d2);
+        
+        // Write to L1 (slot 1)
+        let k1 = Tensor::randn(vec![1, 2, 1, 8]);
+        let v1 = Tensor::randn(vec![1, 2, 1, 8]);
+        cache.update(1, k1.clone(), v1.clone()).unwrap();
+        
+        // L3 should have the data from L1
+        let (k3, _v3) = cache.get_view(3, 1).unwrap();
+        assert_eq!(k1.as_slice_f32().unwrap(), k3.as_slice_f32().unwrap());
     }
 
     #[test]

@@ -469,23 +469,37 @@ impl MultiHeadAttention {
         let batch_size = input.shape()[0];
         let seq_len = input.shape()[1];
         let start_pos = cache.current_len;
+        let is_owner = cache.is_slot_owner(layer_idx);
 
         // Project
         let t_proj = if trace { Some(Instant::now()) } else { None };
-        let (q, k, v) = if let Some(ref fused) = self.fused_qkv {
+        
+        let q = if let Some(ref fused) = self.fused_qkv {
             let fused_out = fused.forward(input)?;
             let q_end = self.fused_q_dim;
-            let k_end = q_end + self.fused_kv_dim;
-            let v_end = k_end + self.fused_kv_dim;
-            let q = fused_out.slice(-1, 0, q_end)?.contiguous()?;
-            let k = fused_out.slice(-1, q_end, k_end)?.contiguous()?;
-            let v = fused_out.slice(-1, k_end, v_end)?.contiguous()?;
-            (q, k, v)
+            fused_out.slice(-1, 0, q_end)?.contiguous()?
         } else {
-            let q = self.q_proj.forward(input)?;
-            let k = self.k_proj.forward(input)?;
-            let v = self.v_proj.forward(input)?;
-            (q, k, v)
+            self.q_proj.forward(input)?
+        };
+
+        // Project K/V only if this layer owns the slot
+        let (mut k, mut v) = if is_owner {
+            if let Some(ref fused) = self.fused_qkv {
+                let fused_out = fused.forward(input)?; // Re-run or cache fused_out? Fused is rare during decode.
+                let q_end = self.fused_q_dim;
+                let k_end = q_end + self.fused_kv_dim;
+                let v_end = k_end + self.fused_kv_dim;
+                let k = fused_out.slice(-1, q_end, k_end)?.contiguous()?;
+                let v = fused_out.slice(-1, k_end, v_end)?.contiguous()?;
+                (k, v)
+            } else {
+                let k = self.k_proj.forward(input)?;
+                let v = self.v_proj.forward(input)?;
+                (k, v)
+            }
+        } else {
+            // Dummy K/V, won't be used for cache update
+            (Tensor::zeros(vec![1]), Tensor::zeros(vec![1]))
         };
         let proj_ms = t_proj.map(|t| t.elapsed().as_secs_f64() * 1000.0);
 
@@ -494,33 +508,39 @@ impl MultiHeadAttention {
             .reshape(&[batch_size, seq_len, self.num_heads, self.head_dim])?
             .transpose(1, 2)?;
 
-        // Reshape K/V: [B, S, num_kv_heads, D] -> [B, num_kv_heads, S, D]
-        let k = k
-            .reshape(&[batch_size, seq_len, self.num_kv_heads, self.head_dim])?
-            .transpose(1, 2)?;
-        let v = v
-            .reshape(&[batch_size, seq_len, self.num_kv_heads, self.head_dim])?
-            .transpose(1, 2)?;
-
-        // QK normalization (Gemma 3)
+        // QK normalization (Gemma 3) - Q only if not owner
         let t_norm = if trace { Some(Instant::now()) } else { None };
         let q = if let Some(ref qn) = self.q_norm { qn.forward(&q)? } else { q };
-        let k = if let Some(ref kn) = self.k_norm { kn.forward(&k)? } else { k };
+        
+        if is_owner {
+            // Reshape and Norm K/V
+            k = k.reshape(&[batch_size, seq_len, self.num_kv_heads, self.head_dim])?
+                 .transpose(1, 2)?;
+            v = v.reshape(&[batch_size, seq_len, self.num_kv_heads, self.head_dim])?
+                 .transpose(1, 2)?;
+            
+            if let Some(ref kn) = self.k_norm { k = kn.forward(&k)? }
+        }
         let norm_ms = t_norm.map(|t| t.elapsed().as_secs_f64() * 1000.0);
 
-        // Apply RoPE before cache update
+        // Apply RoPE
         let t_rope = if trace { Some(Instant::now()) } else { None };
-        let (q, k) = if let Some(ref rope) = self.rope_freqs {
-            (rope.apply(&q, start_pos)?, rope.apply(&k, start_pos)?)
+        let q = if let Some(ref rope) = self.rope_freqs {
+            rope.apply(&q, start_pos)?
         } else {
-            (q, k)
+            q
         };
+        
+        if is_owner {
+            if let Some(ref rope) = self.rope_freqs {
+                k = rope.apply(&k, start_pos)?;
+            }
+            // Update cache only for owner
+            cache.update(layer_idx, k, v)?;
+        }
         let rope_ms = t_rope.map(|t| t.elapsed().as_secs_f64() * 1000.0);
 
-        // Update cache
-        cache.update(layer_idx, k.clone(), v.clone())?;
-
-        // Get full K/V history
+        // Get full K/V history (redirects to shared slot if needed)
         let total_len = cache.current_len + seq_len;
         let (k_full, v_full) = cache.get_view(layer_idx, total_len)?;
 

@@ -10,7 +10,7 @@ use crate::core::weight_map::WeightMap;
 use rustml_core::{DType, RuntimeConfig, Tensor, f32_vec_to_bytes};
 use rustml_nn::{
     Activation, Embedding, FeedForward, KVCache, LayerNorm, Linear, MoeLayer, MultiHeadAttention,
-    NormLayer, PoolingStrategy, PositionEncoding, RMSNorm, RoPEFreqs, TransformerBlock,
+    NormLayer, PerLayerEmbedding, PoolingStrategy, PositionEncoding, RMSNorm, RoPEFreqs, TransformerBlock,
 };
 use std::collections::HashMap;
 use std::time::Instant;
@@ -21,6 +21,8 @@ pub struct LlmModel {
     pub pos_embedding: Option<Embedding>,
     /// Embedding LayerNorm (BERT: applied after token + position embedding sum).
     pub embd_norm: Option<NormLayer>,
+    /// Per-Layer Embeddings (Gemma 4). 35 tables for E2B.
+    pub ple_tables: Vec<PerLayerEmbedding>,
     pub layers: Vec<TransformerBlock>,
     pub norm: NormLayer,
     pub output: Linear,
@@ -64,16 +66,26 @@ impl LlmModel {
             None
         };
 
+        let mut ple_tables = Vec::new();
+        if let Some(hidden_size_ple) = config.hidden_size_per_layer_input {
+            let vocab_size_ple = config.vocab_size_per_layer_input.unwrap_or(vocab_size);
+            for _ in 0..num_layers {
+                ple_tables.push(PerLayerEmbedding::new(vocab_size_ple, hidden_size_ple, d_model));
+            }
+        }
+
         Ok(Self {
             token_embedding: Embedding::new(vocab_size, d_model),
             pos_embedding,
             embd_norm: None,
+            ple_tables,
             layers,
             norm: NormLayer::LayerNorm(LayerNorm::with_eps(d_model, eps)),
             output: Linear::new_no_bias(d_model, vocab_size),
             config: config.clone(),
         })
     }
+
 
     /// Construct from pre-loaded GGUF/Llama weights (already remapped to internal names).
     ///
@@ -246,12 +258,14 @@ impl LlmModel {
             token_embedding,
             pos_embedding,
             embd_norm: None,
+            ple_tables: Vec::new(),
             layers,
             norm,
             output,
             config: config.clone(),
         })
     }
+
 
     /// Construct GPT-2 model from weights (already remapped to internal names).
     ///
@@ -392,6 +406,7 @@ impl LlmModel {
             token_embedding,
             pos_embedding,
             embd_norm: None,
+            ple_tables: Vec::new(),
             layers,
             norm,
             output,
@@ -399,7 +414,9 @@ impl LlmModel {
         })
     }
 
-    /// Construct Falcon model from weights (already remapped to internal names).
+
+            /// Construct Falcon model from weights (already remapped to internal names).
+
     ///
     /// Handles Falcon specifics:
     /// - Fused QKV split with separate Q/KV dimensions for MQA/GQA
@@ -532,14 +549,17 @@ impl LlmModel {
 
         Ok(Self {
             token_embedding,
-            pos_embedding: None,
+            pos_embedding,
             embd_norm: None,
+            ple_tables: Vec::new(),
             layers,
             norm,
             output,
             config: config.clone(),
         })
     }
+
+
 
     /// Construct Mixtral MoE model from weights (already remapped to internal names).
     ///
@@ -671,14 +691,17 @@ impl LlmModel {
 
         Ok(Self {
             token_embedding,
-            pos_embedding: None,
+            pos_embedding,
             embd_norm: None,
+            ple_tables: Vec::new(),
             layers,
             norm,
             output,
             config: config.clone(),
         })
     }
+
+
 
     /// Construct Gemma 3 model from weights (already remapped to internal names).
     ///
@@ -852,13 +875,188 @@ impl LlmModel {
 
         Ok(Self {
             token_embedding,
-            pos_embedding: None,
+            pos_embedding,
             embd_norm: None,
+            ple_tables: Vec::new(),
             layers,
             norm,
             output,
             config: config.clone(),
         })
+    }
+
+
+
+    /// Construct Gemma 4 model from weights (already remapped to internal names).
+    ///
+    /// Gemma 4 E2B specifics:
+    /// - Per-Layer Embeddings (PLE): 35 tables, one per layer
+    /// - KV Sharing: many layers reuse KV states from earlier layers
+    /// - Proportional RoPE: partial rotation factor
+    /// - GeGLU activation
+    /// - RMSNorm with offset=1.0, embedding scale=sqrt(dim)
+    pub fn from_pretrained_gemma4(
+        config: &ModelConfig,
+        weights: HashMap<String, Tensor>,
+    ) -> NlpResult<Self> {
+        let d_model = config.dim;
+        let num_heads = config.n_heads;
+        let num_layers = config.n_layers;
+        let max_seq_len = config.max_seq_len;
+        let eps = config.norm_eps;
+        let causal = config.causal;
+
+        let get_tensor = |key: &str| -> NlpResult<Tensor> {
+            weights
+                .get(key)
+                .ok_or_else(|| NlpError::ModelError(format!("Missing weight: {}", key)))
+                .and_then(|t| Ok(t.to_f32()?))
+        };
+
+        let get_weight = |key: &str| -> NlpResult<Tensor> {
+            weights
+                .get(key)
+                .ok_or_else(|| NlpError::ModelError(format!("Missing weight: {}", key)))
+                .and_then(|t| match t.dtype() {
+                    DType::Q4_0 | DType::Q4_1 | DType::Q8_0 | DType::F32 => Ok(t.clone()),
+                    _ => Ok(t.to_f32()?),
+                })
+        };
+
+        let token_embedding = Embedding::from_weights(get_tensor("token_embedding.weight")?)?;
+
+        let mut ple_tables = Vec::with_capacity(num_layers);
+        if let Some(hidden_size_ple) = config.hidden_size_per_layer_input {
+            for i in 0..num_layers {
+                let ple_weight = get_tensor(&format!("layers.{}.ple.embedding.weight", i))?;
+                let ple_proj = get_weight(&format!("layers.{}.ple.projection.weight", i))?;
+                ple_tables.push(PerLayerEmbedding::from_weights(ple_weight, ple_proj)?);
+            }
+        }
+
+        let offset = config.rms_norm_offset.unwrap_or(1.0);
+        let layer_types = config.layer_types.as_ref();
+        let rope_params_map = config.rope_parameters.as_ref();
+
+        let mut layers = Vec::with_capacity(num_layers);
+        for i in 0..num_layers {
+            let layer_type = layer_types.and_then(|lt| lt.get(i % lt.len())).map(|s| s.as_str());
+            
+            // Build RoPE for this layer type
+            let rope = if let (Some(lt), Some(map)) = (layer_type, rope_params_map) {
+                if let Some(params) = map.get(lt) {
+                    let head_dim = config.head_dim.unwrap_or(d_model / num_heads);
+                    if let Some(factor) = params.partial_rotary_factor {
+                        Some(RoPEFreqs::with_partial_rotation(head_dim, max_seq_len, params.rope_theta, factor))
+                    } else {
+                        Some(RoPEFreqs::new(head_dim, max_seq_len, params.rope_theta))
+                    }
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+
+            let q_proj = Linear::from_weights(
+                get_weight(&format!("layers.{}.attention.q_proj.weight", i))?,
+                None,
+            )?;
+            let k_proj = Linear::from_weights(
+                get_weight(&format!("layers.{}.attention.k_proj.weight", i))?,
+                None,
+            )?;
+            let v_proj = Linear::from_weights(
+                get_weight(&format!("layers.{}.attention.v_proj.weight", i))?,
+                None,
+            )?;
+            let out_proj = Linear::from_weights(
+                get_weight(&format!("layers.{}.attention.out_proj.weight", i))?,
+                None,
+            )?;
+
+            let head_dim = config.head_dim.unwrap_or(d_model / num_heads);
+            let mut attention = MultiHeadAttention::from_weights_with_head_dim(
+                d_model,
+                num_heads,
+                config.n_kv_heads,
+                head_dim,
+                q_proj,
+                k_proj,
+                v_proj,
+                out_proj,
+                causal,
+                rope,
+                None,
+            )?;
+
+            // GeGLU FFN
+            let up_proj = Linear::from_weights(
+                get_weight(&format!("layers.{}.feed_forward.up_proj.weight", i))?,
+                None,
+            )?;
+            let gate_proj = Linear::from_weights(
+                get_weight(&format!("layers.{}.feed_forward.gate_proj.weight", i))?,
+                None,
+            )?;
+            let down_proj = Linear::from_weights(
+                get_weight(&format!("layers.{}.feed_forward.down_proj.weight", i))?,
+                None,
+            )?;
+            let feed_forward = FeedForward::from_weights_geglu(up_proj, gate_proj, down_proj);
+
+            // 4 RMSNorms (Gemma style)
+            let attention_norm = RMSNorm::from_weight_with_offset(
+                get_tensor(&format!("layers.{}.attention_norm.weight", i))?,
+                eps,
+                offset,
+            );
+            let ffn_norm = RMSNorm::from_weight_with_offset(
+                get_tensor(&format!("layers.{}.ffn_norm.weight", i))?,
+                eps,
+                offset,
+            );
+            let post_attention_norm = RMSNorm::from_weight_with_offset(
+                get_tensor(&format!("layers.{}.post_attention_norm.weight", i))?,
+                eps,
+                offset,
+            );
+            let post_ffn_norm = RMSNorm::from_weight_with_offset(
+                get_tensor(&format!("layers.{}.post_ffn_norm.weight", i))?,
+                eps,
+                offset,
+            );
+
+            layers.push(TransformerBlock::from_weights_rms_4norm(
+                attention,
+                feed_forward,
+                attention_norm,
+                post_attention_norm,
+                ffn_norm,
+                post_ffn_norm,
+            ));
+        }
+
+        let norm = NormLayer::RMSNorm(RMSNorm::from_weight_with_offset(
+            get_tensor("norm.weight")?,
+            eps,
+            offset,
+        ));
+        let output = Linear::from_weights(get_weight("output.weight")?, None)?;
+
+        Ok(Self {
+            token_embedding,
+            pos_embedding,
+            embd_norm: None,
+            ple_tables: Vec::new(),
+            layers,
+            norm,
+            output,
+            config: config.clone(),
+        })
+    }
+
+
     }
 
     /// Construct BERT encoder model from weights (already remapped to internal names).
@@ -970,7 +1168,7 @@ impl LlmModel {
                 eps,
             )?;
 
-            layers.push(TransformerBlock::from_weights_post_norm(
+            layers.push(TransformerBlock::from_weights(
                 attention,
                 feed_forward,
                 attention_norm,
@@ -987,13 +1185,16 @@ impl LlmModel {
         Ok(Self {
             token_embedding,
             pos_embedding,
-            embd_norm,
+            embd_norm: None,
+            ple_tables: Vec::new(),
             layers,
             norm,
             output,
             config: config.clone(),
         })
     }
+
+
 
     /// Construct from Nomic-BERT GGUF weights (already remapped to internal names).
     ///
@@ -1093,7 +1294,7 @@ impl LlmModel {
                 eps,
             )?;
 
-            layers.push(TransformerBlock::from_weights_post_norm(
+            layers.push(TransformerBlock::from_weights(
                 attention,
                 feed_forward,
                 attention_norm,
@@ -1110,13 +1311,15 @@ impl LlmModel {
         Ok(Self {
             token_embedding,
             pos_embedding,
-            embd_norm,
+            embd_norm: None,
+            ple_tables: Vec::new(),
             layers,
             norm,
             output,
             config: config.clone(),
         })
     }
+
 
     /// Encode input tokens to hidden states `[B, S, dim]` without the LM head projection.
     ///
@@ -1343,7 +1546,12 @@ impl LlmModel {
             x = embd_norm.forward(&x)?;
         }
 
-        for layer in &self.layers {
+        for (i, layer) in self.layers.iter().enumerate() {
+            // Apply Per-Layer Embedding (PLE) if present
+            if let Some(ple) = self.ple_tables.get(i) {
+                let ple_emb = ple.forward(input_ids)?;
+                x = x.add(&ple_emb)?;
+            }
             x = layer.forward(&x)?;
         }
 
@@ -1423,6 +1631,13 @@ impl LlmModel {
             } else {
                 None
             };
+
+            // Apply Per-Layer Embedding (PLE) if present
+            if let Some(ple) = self.ple_tables.get(i) {
+                let ple_emb = ple.forward(input_ids)?;
+                x = x.add(&ple_emb)?;
+            }
+
             x = layer.forward_with_cache(&x, None, cache, i)?;
             if let Some(t) = _t_layer {
                 log::debug!(
@@ -1485,6 +1700,14 @@ impl LlmModel {
             let (t, f) = embd_norm.parameter_count();
             total += t;
             frozen += f;
+        }
+
+        for ple in &self.ple_tables {
+            total += ple.embedding.weight.numel();
+            total += ple.projection.weight.numel();
+            if let Some(ref b) = ple.projection.bias {
+                total += b.numel() as usize;
+            }
         }
 
         for layer in &self.layers {
@@ -1740,6 +1963,11 @@ pub fn build_safetensors_model(
             let weights = wm.remap(weights);
             LlmModel::from_pretrained_gemma3(config, weights)
         }
+        "gemma4" | "gemma4_text" => {
+            let wm = WeightMap::gemma4(config.n_layers);
+            let weights = wm.remap(weights);
+            LlmModel::from_pretrained_gemma4(config, weights)
+        }
         "falcon" => {
             let wm = WeightMap::falcon(config.n_layers);
             let weights = wm.remap(weights);
@@ -1775,7 +2003,6 @@ mod tests {
             use_bias: Some(false),
             position_encoding: PositionEncoding::Learned,
             causal: true,
-            pooling_strategy: None,
             rope_theta: 10000.0,
             bos_token_id: None,
             eos_token_id: None,
@@ -1793,6 +2020,14 @@ mod tests {
             query_pre_attn_scalar: None,
             rope_local_base_freq: None,
             rope_scaling_factor: None,
+            pooling_strategy: None,
+            layer_types: None,
+            global_head_dim: None,
+            num_kv_shared_layers: None,
+            hidden_size_per_layer_input: None,
+            vocab_size_per_layer_input: None,
+            use_double_wide_mlp: None,
+            rope_parameters: None,
         }
     }
 
@@ -2215,6 +2450,13 @@ mod tests {
             query_pre_attn_scalar: Some(32.0),
             rope_local_base_freq: Some(10000.0),
             rope_scaling_factor: Some(8.0),
+            layer_types: None,
+            global_head_dim: None,
+            num_kv_shared_layers: None,
+            hidden_size_per_layer_input: None,
+            vocab_size_per_layer_input: None,
+            use_double_wide_mlp: None,
+            rope_parameters: None,
         };
 
         let q_dim = num_heads * head_dim;
@@ -2407,7 +2649,6 @@ mod tests {
             use_bias: Some(false),
             position_encoding: PositionEncoding::Learned,
             causal: true,
-            pooling_strategy: None,
             rope_theta: 10000.0,
             bos_token_id: None,
             eos_token_id: None,
@@ -2425,6 +2666,14 @@ mod tests {
             query_pre_attn_scalar: None,
             rope_local_base_freq: None,
             rope_scaling_factor: None,
+            pooling_strategy: None,
+            layer_types: None,
+            global_head_dim: None,
+            num_kv_shared_layers: None,
+            hidden_size_per_layer_input: None,
+            vocab_size_per_layer_input: None,
+            use_double_wide_mlp: None,
+            rope_parameters: None,
         }
     }
 

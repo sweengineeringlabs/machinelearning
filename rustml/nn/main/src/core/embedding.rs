@@ -84,9 +84,54 @@ impl Embedding {
     }
 }
 
+use crate::core::linear::Linear;
+
+/// Per-Layer Embedding (PLE) for Gemma 4.
+///
+/// Wraps a lookup table and a projection layer that maps the lookup
+/// output to the model's hidden dimension.
+#[derive(Debug, Clone)]
+pub struct PerLayerEmbedding {
+    pub embedding: Embedding,
+    pub projection: Linear,
+}
+
+impl PerLayerEmbedding {
+    pub fn new(vocab_size: usize, ple_dim: usize, model_dim: usize) -> Self {
+        Self {
+            embedding: Embedding::new(vocab_size, ple_dim),
+            projection: Linear::new(ple_dim, model_dim),
+        }
+    }
+
+    pub fn from_weights(embedding_weight: Tensor, projection_weight: Tensor) -> NnResult<Self> {
+        Ok(Self {
+            embedding: Embedding::from_weights(embedding_weight)?,
+            projection: Linear::from_weights(projection_weight, None)?,
+        })
+    }
+
+    /// Forward pass: lookup then project.
+    ///
+    /// Input: [B, S] (indices)
+    /// Output: [B, S, model_dim]
+    pub fn forward(&self, indices: &Tensor) -> NnResult<Tensor> {
+        let lookup = self.embedding.forward(indices)?;
+        self.projection.forward(&lookup)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_ple_lookup() {
+        let ple = PerLayerEmbedding::new(100, 16, 64);
+        let indices = Tensor::from_vec(vec![0.0, 1.0, 2.0], vec![1, 3]).unwrap();
+        let output = ple.forward(&indices).unwrap();
+        assert_eq!(output.shape(), &[1, 3, 64]);
+    }
 
     #[test]
     fn test_embedding_forward() {

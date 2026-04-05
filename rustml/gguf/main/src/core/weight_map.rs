@@ -160,6 +160,27 @@ pub fn gguf_gemma3_weight_map(n_layers: usize) -> WeightMap {
     WeightMap::from_mapping(mapping)
 }
 
+/// Build a weight mapping for GGUF Gemma 4 tensor names.
+///
+/// Extends Gemma 3 naming with:
+/// - Per-Layer Embeddings (PLE): `blk.{i}.ple_embd`, `blk.{i}.ple_proj`
+pub fn gguf_gemma4_weight_map(n_layers: usize) -> WeightMap {
+    let mut wm = gguf_gemma3_weight_map(n_layers);
+
+    for i in 0..n_layers {
+        wm.mapping.insert(
+            format!("blk.{}.ple_embd.weight", i),
+            format!("layers.{}.ple.embedding.weight", i),
+        );
+        wm.mapping.insert(
+            format!("blk.{}.ple_proj.weight", i),
+            format!("layers.{}.ple.projection.weight", i),
+        );
+    }
+
+    wm
+}
+
 /// Build a weight mapping for GGUF BERT-style tensor names.
 ///
 /// BERT models use different naming conventions from Llama:
@@ -393,6 +414,23 @@ mod tests {
         assert!(!remapped.contains_key("token_embd.weight"));
         assert!(remapped.contains_key("token_embedding.weight"));
         assert_eq!(remapped.len(), 16);
+    }
+
+    #[test]
+    fn test_gguf_gemma4_weight_map() {
+        let wm = gguf_gemma4_weight_map(2);
+
+        let mut tensors = HashMap::new();
+        tensors.insert("token_embd.weight".to_string(), "tok");
+        tensors.insert("blk.0.ple_embd.weight".to_string(), "ple_e0");
+        tensors.insert("blk.0.ple_proj.weight".to_string(), "ple_p0");
+        tensors.insert("blk.1.attn_q.weight".to_string(), "q1");
+
+        let remapped = wm.remap(tensors);
+        assert!(remapped.contains_key("token_embedding.weight"));
+        assert!(remapped.contains_key("layers.0.ple.embedding.weight"));
+        assert!(remapped.contains_key("layers.0.ple.projection.weight"));
+        assert!(remapped.contains_key("layers.1.attention.q_proj.weight"));
     }
 
     #[test]

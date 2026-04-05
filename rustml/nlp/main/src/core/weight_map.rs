@@ -342,6 +342,29 @@ impl WeightMap {
         Self { mapping }
     }
 
+    /// Build a weight mapping for Gemma 4 models.
+    ///
+    /// Extends Gemma 3 naming with:
+    /// - Per-Layer Embeddings (PLE): layers.{i}.ple.embedding.weight,
+    ///   layers.{i}.ple.projection.weight
+    pub fn gemma4(n_layers: usize) -> Self {
+        let mut base = Self::gemma3(n_layers);
+
+        for i in 0..n_layers {
+            // Per-Layer Embedding (PLE)
+            base.mapping.insert(
+                format!("model.layers.{}.ple.embedding.weight", i),
+                format!("layers.{}.ple.embedding.weight", i),
+            );
+            base.mapping.insert(
+                format!("model.layers.{}.ple.projection.weight", i),
+                format!("layers.{}.ple.projection.weight", i),
+            );
+        }
+
+        base
+    }
+
     /// Remap HuggingFace weight names to internal names.
     /// Unmapped keys are skipped with a warning to stderr.
     pub fn remap(&self, hf_weights: HashMap<String, Tensor>) -> HashMap<String, Tensor> {
@@ -504,6 +527,28 @@ mod tests {
         assert!(remapped.contains_key("layers.0.attention.q_norm.weight"));
         assert!(remapped.contains_key("layers.0.ffn_norm.weight"));
         assert!(remapped.contains_key("layers.0.post_ffn_norm.weight"));
+    }
+
+    #[test]
+    fn test_gemma4_weight_map() {
+        let wm = WeightMap::gemma4(2);
+        // gemma3: 3 global + 13*2 per-layer = 29
+        // gemma4: + 2 PLE per layer = 29 + 4 = 33
+        assert_eq!(wm.len(), 33);
+
+        let mut hf_weights = HashMap::new();
+        hf_weights.insert(
+            "model.layers.0.ple.embedding.weight".into(),
+            Tensor::randn(vec![100, 16]),
+        );
+        hf_weights.insert(
+            "model.layers.0.ple.projection.weight".into(),
+            Tensor::randn(vec![64, 16]),
+        );
+
+        let remapped = wm.remap(hf_weights);
+        assert!(remapped.contains_key("layers.0.ple.embedding.weight"));
+        assert!(remapped.contains_key("layers.0.ple.projection.weight"));
     }
 
     #[test]

@@ -871,6 +871,14 @@ mod tests {
             query_pre_attn_scalar: None,
             rope_local_base_freq: None,
             rope_scaling_factor: None,
+            pooling_strategy: None,
+            layer_types: None,
+            global_head_dim: None,
+            num_kv_shared_layers: None,
+            hidden_size_per_layer_input: None,
+            vocab_size_per_layer_input: None,
+            use_double_wide_mlp: None,
+            rope_parameters: None,
         };
         LlmModel::new(&config).unwrap()
     }

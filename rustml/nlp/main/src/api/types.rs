@@ -2,7 +2,17 @@
 
 use crate::api::error::{NlpError, NlpResult};
 use rustml_core::Tensor;
-use rustml_nn::{KVCache, PositionEncoding};
+pub use rustml_nn::{KVCache, PositionEncoding, PoolingStrategy};
+use std::collections::HashMap;
+
+/// Rotary parameters for a specific layer type (Gemma 4).
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct RopeParameters {
+    pub rope_type: String,
+    pub rope_theta: f32,
+    #[serde(default)]
+    pub partial_rotary_factor: Option<f32>,
+}
 
 /// GPT-2 Model Configuration
 ///
@@ -296,6 +306,30 @@ pub struct ModelConfig {
     /// RoPE linear scaling factor (Gemma 3: 8.0 for long context)
     #[serde(default)]
     pub rope_scaling_factor: Option<f32>,
+    /// Pooling strategy for sequence-to-vector conversion
+    #[serde(default)]
+    pub pooling_strategy: Option<PoolingStrategy>,
+    /// Explicit layer types (Gemma 4: "sliding_attention" or "full_attention")
+    #[serde(default)]
+    pub layer_types: Option<Vec<String>>,
+    /// Global head dimension (Gemma 4)
+    #[serde(default)]
+    pub global_head_dim: Option<usize>,
+    /// Number of KV shared layers (Gemma 4: Layers that share KV with earlier layers)
+    #[serde(default)]
+    pub num_kv_shared_layers: Option<usize>,
+    /// Hidden size per layer input (Gemma 4: for PLE)
+    #[serde(default)]
+    pub hidden_size_per_layer_input: Option<usize>,
+    /// Vocab size per layer input (Gemma 4: for PLE)
+    #[serde(default)]
+    pub vocab_size_per_layer_input: Option<usize>,
+    /// Use double-wide MLP (Gemma 4: GeGLU with expanded intermediate)
+    #[serde(default)]
+    pub use_double_wide_mlp: Option<bool>,
+    /// RoPE parameters per layer type (Gemma 4)
+    #[serde(default)]
+    pub rope_parameters: Option<HashMap<String, RopeParameters>>,
 }
 
 fn default_position_encoding() -> PositionEncoding { PositionEncoding::Learned }
@@ -333,7 +367,17 @@ impl Default for ModelConfig {
             query_pre_attn_scalar: None,
             rope_local_base_freq: None,
             rope_scaling_factor: None,
-        }
+            rope_scaling_factor: None,
+            pooling_strategy: None,
+            layer_types: None,
+            global_head_dim: None,
+            num_kv_shared_layers: None,
+            hidden_size_per_layer_input: None,
+            vocab_size_per_layer_input: None,
+            use_double_wide_mlp: None,
+            rope_parameters: None,
+            };
+
     }
 }
 
@@ -459,6 +503,33 @@ struct HFRopeScaling {
     factor: Option<f32>,
 }
 
+/// HuggingFace Gemma 4 config.json format (internal).
+#[derive(serde::Deserialize)]
+struct HFGemma4Config {
+    hidden_size: usize,
+    intermediate_size: usize,
+    num_hidden_layers: usize,
+    num_attention_heads: usize,
+    num_key_value_heads: Option<usize>,
+    vocab_size: usize,
+    rms_norm_eps: f32,
+    max_position_embeddings: usize,
+    #[serde(default)]
+    layer_types: Option<Vec<String>>,
+    #[serde(default)]
+    global_head_dim: Option<usize>,
+    #[serde(default)]
+    num_kv_shared_layers: Option<usize>,
+    #[serde(default)]
+    hidden_size_per_layer_input: Option<usize>,
+    #[serde(default)]
+    vocab_size_per_layer_input: Option<usize>,
+    #[serde(default)]
+    use_double_wide_mlp: Option<bool>,
+    #[serde(default)]
+    rope_parameters: Option<HashMap<String, RopeParameters>>,
+}
+
 /// HuggingFace GPT-2 config.json format (internal).
 #[derive(serde::Deserialize)]
 struct HFGpt2Config {
@@ -508,7 +579,17 @@ impl ModelConfig {
             query_pre_attn_scalar: None,
             rope_local_base_freq: None,
             rope_scaling_factor: None,
-        };
+            rope_scaling_factor: None,
+            pooling_strategy: None,
+            layer_types: None,
+            global_head_dim: None,
+            num_kv_shared_layers: None,
+            hidden_size_per_layer_input: None,
+            vocab_size_per_layer_input: None,
+            use_double_wide_mlp: None,
+            rope_parameters: None,
+            };
+
         config.validate()?;
         Ok(config)
     }
@@ -549,7 +630,17 @@ impl ModelConfig {
             query_pre_attn_scalar: None,
             rope_local_base_freq: None,
             rope_scaling_factor: None,
-        };
+            rope_scaling_factor: None,
+            pooling_strategy: None,
+            layer_types: None,
+            global_head_dim: None,
+            num_kv_shared_layers: None,
+            hidden_size_per_layer_input: None,
+            vocab_size_per_layer_input: None,
+            use_double_wide_mlp: None,
+            rope_parameters: None,
+            };
+
         config.validate()?;
         Ok(config)
     }
@@ -591,7 +682,17 @@ impl ModelConfig {
                     query_pre_attn_scalar: None,
                     rope_local_base_freq: None,
                     rope_scaling_factor: None,
-                };
+                    rope_scaling_factor: None,
+                    pooling_strategy: None,
+                    layer_types: None,
+                    global_head_dim: None,
+                    num_kv_shared_layers: None,
+                    hidden_size_per_layer_input: None,
+                    vocab_size_per_layer_input: None,
+                    use_double_wide_mlp: None,
+                    rope_parameters: None,
+                    };
+
                 c.validate()?;
                 Ok(c)
             }
@@ -627,7 +728,17 @@ impl ModelConfig {
                     query_pre_attn_scalar: None,
                     rope_local_base_freq: None,
                     rope_scaling_factor: None,
-                };
+                    rope_scaling_factor: None,
+                    pooling_strategy: None,
+                    layer_types: None,
+                    global_head_dim: None,
+                    num_kv_shared_layers: None,
+                    hidden_size_per_layer_input: None,
+                    vocab_size_per_layer_input: None,
+                    use_double_wide_mlp: None,
+                    rope_parameters: None,
+                    };
+
                 c.validate()?;
                 Ok(c)
             }
@@ -663,7 +774,17 @@ impl ModelConfig {
                     query_pre_attn_scalar: None,
                     rope_local_base_freq: None,
                     rope_scaling_factor: None,
-                };
+                    rope_scaling_factor: None,
+                    pooling_strategy: None,
+                    layer_types: None,
+                    global_head_dim: None,
+                    num_kv_shared_layers: None,
+                    hidden_size_per_layer_input: None,
+                    vocab_size_per_layer_input: None,
+                    use_double_wide_mlp: None,
+                    rope_parameters: None,
+                    };
+
                 c.validate()?;
                 Ok(c)
             }
@@ -699,7 +820,59 @@ impl ModelConfig {
                     sliding_window_pattern: hf.sliding_window_pattern,
                     query_pre_attn_scalar: hf.query_pre_attn_scalar,
                     rope_local_base_freq: hf.rope_local_base_freq,
-                    rope_scaling_factor: scaling_factor,
+                    rope_scaling_factor: None,
+                    pooling_strategy: None,
+                    layer_types: None,
+                    global_head_dim: None,
+                    num_kv_shared_layers: None,
+                    hidden_size_per_layer_input: None,
+                    vocab_size_per_layer_input: None,
+                    use_double_wide_mlp: None,
+                    rope_parameters: None,
+                    };
+
+                c.validate()?;
+                Ok(c)
+            }
+            "gemma4" | "gemma4_text" => {
+                let hf: HFGemma4Config = serde_json::from_value(config.clone())
+                    .map_err(|e| NlpError::ModelError(format!("Invalid Gemma-4 config: {}", e)))?;
+                let c = Self {
+                    dim: hf.hidden_size,
+                    hidden_dim: hf.intermediate_size,
+                    n_layers: hf.num_hidden_layers,
+                    n_heads: hf.num_attention_heads,
+                    n_kv_heads: hf.num_key_value_heads,
+                    vocab_size: hf.vocab_size,
+                    norm_eps: hf.rms_norm_eps,
+                    max_seq_len: hf.max_position_embeddings,
+                    use_bias: Some(false),
+                    position_encoding: PositionEncoding::RoPE,
+                    causal: true,
+                    rope_theta: 1000000.0, // Default for Gemma 4
+                    bos_token_id: Some(2),
+                    eos_token_id: Some(1),
+                    chat_template: None,
+                    sliding_window: None,
+                    attn_logit_cap: None,
+                    embedding_scale: Some((hf.hidden_size as f32).sqrt()),
+                    rms_norm_offset: Some(1.0),
+                    attention_bias: None,
+                    parallel_residual: None,
+                    num_local_experts: None,
+                    num_experts_per_tok: None,
+                    head_dim: None,
+                    sliding_window_pattern: None,
+                    query_pre_attn_scalar: None,
+                    rope_local_base_freq: None,
+                    rope_scaling_factor: None,
+                    layer_types: hf.layer_types,
+                    global_head_dim: hf.global_head_dim,
+                    num_kv_shared_layers: hf.num_kv_shared_layers,
+                    hidden_size_per_layer_input: hf.hidden_size_per_layer_input,
+                    vocab_size_per_layer_input: hf.vocab_size_per_layer_input,
+                    use_double_wide_mlp: hf.use_double_wide_mlp,
+                    rope_parameters: hf.rope_parameters,
                 };
                 c.validate()?;
                 Ok(c)
@@ -737,7 +910,17 @@ impl ModelConfig {
                     query_pre_attn_scalar: None,
                     rope_local_base_freq: None,
                     rope_scaling_factor: None,
-                };
+                    rope_scaling_factor: None,
+                    pooling_strategy: None,
+                    layer_types: None,
+                    global_head_dim: None,
+                    num_kv_shared_layers: None,
+                    hidden_size_per_layer_input: None,
+                    vocab_size_per_layer_input: None,
+                    use_double_wide_mlp: None,
+                    rope_parameters: None,
+                    };
+
                 c.validate()?;
                 Ok(c)
             }
@@ -773,7 +956,17 @@ impl ModelConfig {
                     query_pre_attn_scalar: None,
                     rope_local_base_freq: None,
                     rope_scaling_factor: None,
-                };
+                    rope_scaling_factor: None,
+                    pooling_strategy: None,
+                    layer_types: None,
+                    global_head_dim: None,
+                    num_kv_shared_layers: None,
+                    hidden_size_per_layer_input: None,
+                    vocab_size_per_layer_input: None,
+                    use_double_wide_mlp: None,
+                    rope_parameters: None,
+                    };
+
                 c.validate()?;
                 Ok(c)
             }
@@ -810,7 +1003,17 @@ impl ModelConfig {
                     query_pre_attn_scalar: None,
                     rope_local_base_freq: None,
                     rope_scaling_factor: None,
-                };
+                    rope_scaling_factor: None,
+                    pooling_strategy: None,
+                    layer_types: None,
+                    global_head_dim: None,
+                    num_kv_shared_layers: None,
+                    hidden_size_per_layer_input: None,
+                    vocab_size_per_layer_input: None,
+                    use_double_wide_mlp: None,
+                    rope_parameters: None,
+                    };
+
                 c.validate()?;
                 Ok(c)
             }
@@ -1050,6 +1253,47 @@ mod tests {
         assert_eq!(c.position_encoding, PositionEncoding::ALiBi);
         assert_eq!(c.parallel_residual, Some(true));
         assert_eq!(c.use_bias, Some(true));
+    }
+
+    #[test]
+    fn test_gemma4_config_from_json() {
+        let json = serde_json::json!({
+            "model_type": "gemma4_text",
+            "hidden_size": 2048,
+            "intermediate_size": 16384,
+            "num_hidden_layers": 35,
+            "num_attention_heads": 16,
+            "num_key_value_heads": 8,
+            "vocab_size": 256000,
+            "rms_norm_eps": 1e-6,
+            "max_position_embeddings": 8192,
+            "layer_types": ["sliding_attention", "full_attention"],
+            "global_head_dim": 256,
+            "num_kv_shared_layers": 15,
+            "hidden_size_per_layer_input": 512,
+            "vocab_size_per_layer_input": 128,
+            "use_double_wide_mlp": true,
+            "rope_parameters": {
+                "sliding_attention": {
+                    "rope_type": "default",
+                    "rope_theta": 10000.0
+                },
+                "full_attention": {
+                    "rope_type": "proportional",
+                    "rope_theta": 1000000.0,
+                    "partial_rotary_factor": 0.25
+                }
+            }
+        });
+        let c = ModelConfig::from_json_value(&json).unwrap();
+        assert_eq!(c.dim, 2048);
+        assert_eq!(c.n_layers, 35);
+        assert_eq!(c.num_kv_shared_layers, Some(15));
+        assert_eq!(c.use_double_wide_mlp, Some(true));
+        let rope_params = c.rope_parameters.as_ref().unwrap();
+        assert_eq!(rope_params.get("sliding_attention").unwrap().rope_type, "default");
+        assert_eq!(rope_params.get("full_attention").unwrap().rope_type, "proportional");
+        assert_eq!(rope_params.get("full_attention").unwrap().partial_rotary_factor, Some(0.25));
     }
 
     #[test]
