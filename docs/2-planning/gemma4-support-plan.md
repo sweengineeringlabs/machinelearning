@@ -1,8 +1,8 @@
 # Gemma 4 E2B Support — Implementation Plan
 
-**Status:** Proposed (pending review)
-**Date:** 2026-04-04
-**Effort:** ~10 working days
+**Status:** In Progress (~75% complete)
+**Date:** 2026-04-04 (updated 2026-04-06)
+**Effort:** ~10 working days (6 elapsed, ~3 remaining)
 **Risk:** Medium
 
 ---
@@ -200,7 +200,7 @@ Text-only inference covers the primary use case for swellmd chat completions.
 |-----------|-----------|-------|
 | RMSNorm with offset | Yes | Same implementation |
 | GeGLU FFN | Yes | Same structure, different size |
-| QK normalization | Check | Verify if Gemma 4 still uses it |
+| QK normalization | Yes | Gemma 4 uses it — loading NOT yet implemented |
 | Sliding window attention | Yes | Same mechanism, config-driven |
 | Logit softcapping | Yes | `final_logit_softcapping: 30.0` still present |
 | Dual RoPE structure | Partially | Need partial rotation, p-RoPE |
@@ -211,91 +211,95 @@ Text-only inference covers the primary use case for swellmd chat completions.
 
 ## Implementation Phases
 
-### Phase 1: Config Parsing + Layer Types (Day 1)
+### Phase 1: Config Parsing + Layer Types (Day 1) — DONE
 
 **Goal:** Parse `gemma4_text` config into `ModelConfig`.
 
 **Tasks:**
-- [ ] Add `layer_types: Option<Vec<String>>` to `ModelConfig`
-- [ ] Parse `rope_parameters` map (per-layer-type RoPE configs)
-- [ ] Parse `global_head_dim`, `num_kv_shared_layers`, `hidden_size_per_layer_input`, `vocab_size_per_layer_input`
-- [ ] Parse `use_double_wide_mlp`
-- [ ] Add `"gemma4" | "gemma4_text"` match arm in `ModelConfig::from_json_value()`
-- [ ] Unit tests for config parsing
+- [x] Add `layer_types: Option<Vec<String>>` to `ModelConfig`
+- [x] Parse `rope_parameters` map (per-layer-type RoPE configs)
+- [x] Parse `global_head_dim`, `num_kv_shared_layers`, `hidden_size_per_layer_input`, `vocab_size_per_layer_input`
+- [x] Parse `use_double_wide_mlp`
+- [x] Add `"gemma4" | "gemma4_text"` match arm in `ModelConfig::from_json_value()`
+- [x] Merge `text_config` for multimodal wrapper configs
+- [x] Unit tests for config parsing (`test_gemma4_config_from_json`)
 
 **Files:**
-- `rustml/nlp/main/src/api/types.rs`
+- `rustml/nlp/main/src/api/types.rs` (lines 219-231, 512-554, 680-714)
 
-### Phase 2: Partial RoPE + Dual Head Dim (Days 2-3)
+### Phase 2: Partial RoPE + Dual Head Dim (Days 2-3) — PARTIAL
 
 **Goal:** Support `partial_rotary_factor` and per-layer head dimensions.
 
 **Tasks:**
-- [ ] `RoPEFreqs::with_partial_rotation(head_dim, partial_factor, ...)` — only compute frequencies for first `head_dim * factor` dimensions
-- [ ] `RoPEFreqs::apply()` — rotate partial dims, pass through remaining dims unchanged
-- [ ] `MultiHeadAttention` — accept `head_dim` per instance (already does, verify)
+- [x] `RoPEFreqs::with_partial_rotation(head_dim, partial_factor, ...)` — only compute frequencies for first `head_dim * factor` dimensions
+- [x] `RoPEFreqs::apply()` — rotate partial dims, pass through remaining dims unchanged
+- [x] SIMD optimizations (AVX2/NEON) for rope_apply
+- [x] Unit test: `test_partial_rope` (rope.rs:333-352)
+- [ ] **GAP: Per-layer head dimensions not wired up** — `global_head_dim` parsed but attention built with uniform `head_dim`. Sliding layers (head_dim=256) and global layers (head_dim=512) must use different Q/K/V projection sizes.
 - [ ] Verify Q projection output size matches per-layer head_dim
-- [ ] Unit tests: partial RoPE output matches reference, different head dims per layer
 
 **Files:**
-- `rustml/nn/main/src/core/rope.rs`
+- `rustml/nn/main/src/core/rope.rs` (lines 136-163)
 - `rustml/nn/main/src/core/attention.rs`
 
-### Phase 3: KV Sharing (Days 3-5)
+### Phase 3: KV Sharing (Days 3-5) — PARTIAL
 
 **Goal:** Last N layers reuse KV states from earlier layers.
 
 **Tasks:**
-- [ ] `KVCache` — add `shared_layer_map: Option<Vec<Option<usize>>>` mapping `layer_i → source_layer_i`
-- [ ] `KVCache::get_kv(layer)` — if shared, return source layer's KV
-- [ ] `MultiHeadAttention::forward_with_cache()` — skip K/V projection when layer is shared, only compute Q
-- [ ] `TransformerBlock` — flag for shared-KV mode (no K/V linear layers loaded)
-- [ ] Validate: shared layer head_dim must match source layer head_dim
+- [x] `KVCache` — `with_kv_sharing()` constructor with `layer_to_slot` mapping
+- [x] `KVCache::get_slot_idx(layer_idx)` — maps virtual layer to physical slot
+- [x] `KVCache::is_slot_owner(layer_idx)` — detects first writer to cache slot
+- [x] `KVCache::get_view(layer_idx, len)` — retrieve cached KV for attention
+- [x] `KVCache::update(layer_idx, key, value)` — store new KV in cache
+- [ ] **GAP: No auto-setup from config** — no helper to generate `layer_to_slot` from `config.num_kv_shared_layers`. Users must manually call `with_kv_sharing()`.
+- [ ] **GAP: Forward pass doesn't skip K/V projection for shared layers** — `forward_with_cache_pass` computes K/V for all layers regardless of sharing.
 - [ ] Unit tests: verify KV reuse produces correct attention output
 
 **Files:**
-- `rustml/nn/main/src/core/kv_cache.rs`
+- `rustml/nn/main/src/core/kv_cache.rs` (lines 1-213)
 - `rustml/nn/main/src/core/attention.rs`
 - `rustml/nn/main/src/core/transformer_block.rs`
 
-### Phase 4: Per-Layer Embeddings (Days 5-6)
+### Phase 4: Per-Layer Embeddings (Days 5-6) — DONE
 
 **Goal:** Each layer adds a per-layer embedding lookup to the hidden state.
 
 **Tasks:**
-- [ ] `PerLayerEmbedding` struct — wraps `Embedding` [vocab, ple_dim] + `Linear` [ple_dim, hidden_size]
-- [ ] `PerLayerEmbedding::forward(token_ids)` — lookup + project + return
-- [ ] `LlmModel` — store `Vec<PerLayerEmbedding>` (one per layer)
-- [ ] Forward pass — add PLE output to hidden state before each transformer block
-- [ ] Verify PLE tables load correctly (large tensors — memory management)
-- [ ] Unit tests: PLE lookup + projection shapes
+- [x] `PerLayerEmbedding` struct — wraps `Embedding` [vocab, ple_dim] + `Linear` [ple_dim, hidden_size]
+- [x] `PerLayerEmbedding::forward(token_ids)` — lookup + project + return
+- [x] `LlmModel` — store `ple_tables: Vec<PerLayerEmbedding>` (one per layer)
+- [x] Forward pass — add PLE output to hidden state before each transformer block
+- [x] Unit test: `test_ple_lookup` (embedding.rs:129-133)
 
 **Files:**
-- `rustml/nn/main/src/core/embedding.rs` (new `PerLayerEmbedding`)
-- `rustml/nlp/main/src/core/model.rs`
+- `rustml/nn/main/src/core/embedding.rs` (lines 89-122)
+- `rustml/nlp/main/src/core/model.rs` (lines 1553-1557, 1638-1642)
 
-### Phase 5: Weight Loading + Constructor (Days 6-8)
+### Phase 5: Weight Loading + Constructor (Days 6-8) — PARTIAL
 
 **Goal:** Load Gemma 4 weights from GGUF and SafeTensors.
 
 **Tasks:**
-- [ ] `WeightMap::gemma4(n_layers)` — map internal names to Gemma 4 tensor names
-- [ ] Handle PLE tensor naming: `layers.{i}.per_layer_input.weight` (or whatever HF/GGUF uses)
-- [ ] Handle missing K/V weights for shared layers (not an error)
-- [ ] `LlmModel::from_pretrained_gemma4(config, weights)` constructor
-- [ ] Wire into `build_safetensors_model()` with `"gemma4" | "gemma4_text"` dispatch
-- [ ] GGUF: add `"gemma4"` branch in `gguf_config_to_model_config()` and loader
+- [x] `WeightMap::gemma4(n_layers)` — map internal names to Gemma 4 tensor names
+- [x] Handle PLE tensor naming (HF: `model.language_model.layers.{i}.per_layer_projection.weight`)
+- [x] `LlmModel::from_pretrained_gemma4(config, weights)` constructor
+- [x] Wire into `build_safetensors_model()` with `"gemma4" | "gemma4_text"` dispatch
+- [x] GGUF weight mapping: `gguf_gemma4_weight_map()` (extends gemma3 map with PLE entries)
+- [ ] **GAP: QK normalization not loaded** — Gemma 3 constructor loads QK norms (model.rs:800-806) but `from_pretrained_gemma4` omits them entirely. Must load `q_norm.weight` and `k_norm.weight` per layer.
+- [ ] **GAP: `use_double_wide_mlp` not wired** — config field parsed but never applied. FFN intermediate size should be doubled when `use_double_wide_mlp == true`.
+- [ ] **GAP: GGUF config bridge missing Gemma 4** — `gguf_config_to_model_config()` in `gguf_bridge.rs` only branches for Gemma 3. Gemma 4 fields (layer_types, global_head_dim, num_kv_shared_layers, PLE dims) not extracted from GGUF metadata.
+- [ ] **GAP: GGUF tensor names unverified** — `blk.{i}.ple_embd.weight` / `blk.{i}.ple_proj.weight` assumed but not confirmed against actual GGUF files from llama.cpp.
 - [ ] `swellmd` loader: add gemma4 branch alongside gemma3/nomic-bert
-- [ ] Double-wide MLP: apply `intermediate_size * 2` when `use_double_wide_mlp`
 
 **Files:**
-- `rustml/nlp/main/src/core/weight_map.rs`
-- `rustml/nlp/main/src/core/model.rs`
-- `rustml/nlp/main/src/core/gguf_bridge.rs`
-- `rustml/gguf/main/src/core/weight_map.rs`
-- `rustml/daemon/main/src/core/loader.rs`
+- `rustml/nlp/main/src/core/weight_map.rs` (lines 350-444)
+- `rustml/nlp/main/src/core/model.rs` (lines 898-1063, 1969-1973)
+- `rustml/nlp/main/src/core/gguf_bridge.rs` (lines 46-111 — needs update)
+- `rustml/gguf/main/src/core/weight_map.rs` (lines 167-182)
 
-### Phase 6: Validation + Testing (Days 8-10)
+### Phase 6: Validation + Testing (Days 8-10) — NOT STARTED
 
 **Goal:** Verify correctness and measure performance.
 
@@ -307,6 +311,14 @@ Text-only inference covers the primary use case for swellmd chat completions.
 - [ ] Profile PLE lookup overhead
 - [ ] Verify KV sharing memory savings vs Gemma 3
 - [ ] Update docs: add Gemma 4 to supported models in deployment guide, operations guide, user manual
+
+**Integration tests needed (currently missing):**
+- [ ] `test_gemma4_model_construction` — build model from config + random weights
+- [ ] `test_gemma4_forward_pass_shapes` — verify output shape through full forward
+- [ ] `test_gemma4_forward_with_cache` — verify cached inference path
+- [ ] `test_gemma4_kv_sharing_correctness` — shared layers produce same KV as source
+- [ ] `test_gemma4_ple_integration` — PLE modifies hidden state at each layer
+- [ ] `test_gemma4_gguf_config_bridge` — GGUF metadata → ModelConfig round-trip
 
 **Acceptance Criteria:**
 - [ ] `swellmd --safetensors google/gemma-4-E2B-it` starts and serves chat completions
