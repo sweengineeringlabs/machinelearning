@@ -1498,13 +1498,14 @@ impl LlmModel {
         fn try_q(l: &mut Linear, target: QuantTarget, c: &mut usize, min_dim: usize) {
             if target == QuantTarget::None { return; }
             if l.in_features.max(l.out_features) < min_dim { return; }
-            let was = l.is_quantized();
+            let orig_dtype = l.weight.dtype();
             let ok = match target {
                 QuantTarget::Q8_0 => l.quantize_weight_q8().is_ok(),
+                QuantTarget::F16 => l.convert_weight_f16().is_ok(),
                 QuantTarget::Q4_0 => false, // TODO: implement Q4_0 quantization path
                 QuantTarget::None => false,
             };
-            if ok && !was && l.is_quantized() {
+            if ok && l.weight.dtype() != orig_dtype {
                 *c += 1;
             }
         }

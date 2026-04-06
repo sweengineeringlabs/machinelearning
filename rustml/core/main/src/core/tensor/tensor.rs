@@ -644,6 +644,20 @@ impl Tensor {
         }
     }
 
+    /// Convert F32 tensor to F16 for reduced memory (2 bytes/param, lossless for most weights).
+    pub fn to_f16(&self) -> TensorResult<Tensor> {
+        if self.dtype == DType::F16 {
+            return Ok(self.clone());
+        }
+        let f32_tensor = self.to_f32()?;
+        let f32_data = f32_tensor.data()?;
+        let f16_bytes: Vec<u8> = f32_data
+            .iter()
+            .flat_map(|&v| f16::from_f32(v).to_le_bytes())
+            .collect();
+        Ok(Tensor::new(f16_bytes, self.shape_sv.clone(), DType::F16))
+    }
+
     /// Extract owned byte storage, if uniquely owned.
     pub fn into_bytes(self) -> Option<Vec<u8>> {
         match Arc::try_unwrap(self.data) {

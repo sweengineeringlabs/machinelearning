@@ -178,6 +178,8 @@ impl OptProfile {
 pub enum QuantTarget {
     /// Keep in F32 (no quantization).
     None,
+    /// Half-precision float16 — lossless for BF16 models, 2 bytes/param.
+    F16,
     /// Block-quantized 8-bit (default for most layers).
     Q8_0,
     /// Block-quantized 4-bit (aggressive compression).
@@ -251,6 +253,19 @@ impl QuantStrategy {
         Self {
             output: QuantTarget::None,
             ..Self::default()
+        }
+    }
+
+    /// All layers in F16 — half memory of F32, no quantization noise.
+    /// ~same size as original BF16 weights.
+    pub fn f16_all() -> Self {
+        Self {
+            attention: QuantTarget::F16,
+            feed_forward: QuantTarget::F16,
+            output: QuantTarget::F16,
+            moe: QuantTarget::F16,
+            gate: QuantTarget::F16,
+            min_dim: 0,
         }
     }
 

@@ -98,6 +98,16 @@ impl Linear {
         self.use_native_q4 = enabled;
     }
 
+    /// Convert F32 weight to F16 for reduced memory (2 bytes/param).
+    /// No-op if weight is not F32.
+    pub fn convert_weight_f16(&mut self) -> NnResult<()> {
+        if self.weight.dtype() != DType::F32 {
+            return Ok(());
+        }
+        self.weight = self.weight.to_f16()?;
+        Ok(())
+    }
+
     /// Quantize F32 weight to Q8_0 for reduced memory bandwidth.
     /// Requires in_features divisible by 32 (Q8_0 block size).
     /// No-op if weight is already quantized or alignment is not met.

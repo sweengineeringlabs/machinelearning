@@ -1,0 +1,7 @@
+[quantization]
+attention = "f16"
+feed_forward = "f16"
+output = "f16"
+gate = "f16"
+moe = "f16"
+min_dim = 0
