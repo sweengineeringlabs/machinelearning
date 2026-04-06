@@ -7,3 +7,4 @@ pub use crate::core::shape::Shape;
 pub use crate::core::arena::TensorPool;
 pub use crate::core::runtime::RuntimeConfig;
 pub use crate::core::runtime::OptProfile;
+pub use crate::core::runtime::{QuantStrategy, QuantTarget};

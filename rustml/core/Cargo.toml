@@ -20,6 +20,8 @@ smallvec.workspace = true
 memmap2.workspace = true
 faer = "0.20"
 log.workspace = true
+serde.workspace = true
+toml = "0.8"
 
 [dev-dependencies]
 approx.workspace = true

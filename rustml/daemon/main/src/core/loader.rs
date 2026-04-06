@@ -129,8 +129,11 @@ pub fn load_safetensors(model_id: &str, profile: OptProfile) -> Result<ModelBund
     model.set_optimization_profile(profile);
 
     if !model.output.is_quantized() {
-        match model.quantize_all_weights(None) {
-            Ok(n) if n > 0 => log::info!("  Quantized {} linear layers F32 -> Q8_0", n),
+        let strategy = rustml_core::QuantStrategy::from_toml_file(
+            std::path::Path::new("quantization.toml"),
+        );
+        match model.quantize_with_strategy(&strategy) {
+            Ok(n) if n > 0 => log::info!("  Quantized {} linear layers ({:?})", n, strategy.attention),
             Ok(_) => {}
             Err(e) => log::warn!("  Weight quantization failed: {}", e),
         }
