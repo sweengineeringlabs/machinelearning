@@ -6521,8 +6521,10 @@ dependencies = [
  "rand 0.8.5",
  "rayon",
  "rustml-quant",
+ "serde",
  "smallvec",
  "thiserror 2.0.17",
+ "toml 0.8.2",
 ]
 
 [[package]]
