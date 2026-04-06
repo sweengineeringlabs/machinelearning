@@ -192,6 +192,11 @@ impl Linear {
             let mut out_shape: Vec<usize> = x.shape().to_vec();
             *out_shape.last_mut().unwrap() = out_features;
             Tensor::from_vec(result_data, out_shape)?
+        } else if self.weight.dtype() == DType::F16 || self.weight.dtype() == DType::BF16 {
+            // Dequantize half-precision weights to F32, then matmul
+            let weight_f32 = self.weight.to_f32()?;
+            let weight_t = weight_f32.t()?;
+            x.matmul(&weight_t)?
         } else {
             let weight_t = self.weight.t()?;
             x.matmul(&weight_t)?
