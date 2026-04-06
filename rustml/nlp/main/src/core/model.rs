@@ -1658,31 +1658,11 @@ impl LlmModel {
             None
         };
 
-        // DEBUG: check hidden state health
-        if log::log_enabled!(log::Level::Info) {
-            let data = x.as_slice_f32().unwrap_or(&[]);
-            let sample: Vec<f32> = data.iter().take(5).copied().collect();
-            let has_nan = data.iter().any(|v| v.is_nan());
-            let has_inf = data.iter().any(|v| v.is_infinite());
-            eprintln!("[DEBUG] post-emb: first5={:?} nan={} inf={} len={}", sample, has_nan, has_inf, data.len());
-        }
-
         for (i, layer) in self.layers.iter().enumerate() {
             if let (Some(ple), Some(pli)) = (&self.ple, &ple_inputs) {
                 x = ple.inject_prepared(pli, &x, i)?;
             }
             x = layer.forward(&x)?;
-
-            // DEBUG: check per-layer health
-            if i < 3 || i == self.layers.len() - 1 {
-                if log::log_enabled!(log::Level::Info) {
-                    let data = x.as_slice_f32().unwrap_or(&[]);
-                    let sample: Vec<f32> = data.iter().take(5).copied().collect();
-                    let has_nan = data.iter().any(|v| v.is_nan());
-                    let max_abs = data.iter().map(|v| v.abs()).fold(0.0f32, f32::max);
-                    eprintln!("[DEBUG] layer {}: first5={:?} nan={} max_abs={:.2}", i, sample, has_nan, max_abs);
-                }
-            }
         }
 
         let x = self.norm.forward(&x)?;
@@ -1764,15 +1744,6 @@ impl LlmModel {
             None
         };
 
-        // DEBUG: check hidden state health in cached path
-        {
-            let data = x.as_slice_f32().unwrap_or(&[]);
-            let sample: Vec<f32> = data.iter().take(5).copied().collect();
-            let has_nan = data.iter().any(|v| v.is_nan());
-            let max_abs = data.iter().map(|v| v.abs()).fold(0.0f32, f32::max);
-            eprintln!("[DEBUG-CACHE] post-emb: first5={:?} nan={} max_abs={:.2} shape={:?}", sample, has_nan, max_abs, x.shape());
-        }
-
         let _t_layers = if log::log_enabled!(log::Level::Debug) {
             Some(Instant::now())
         } else {
@@ -1791,16 +1762,6 @@ impl LlmModel {
             }
 
             x = layer.forward_with_cache(&x, None, cache, i)?;
-
-            // DEBUG: per-layer health check (first 3 + last)
-            if i < 3 || i == self.layers.len() - 1 {
-                let data = x.as_slice_f32().unwrap_or(&[]);
-                let has_nan = data.iter().any(|v| v.is_nan());
-                let max_abs = data.iter().map(|v| v.abs()).fold(0.0f32, f32::max);
-                let sample: Vec<f32> = data.iter().take(3).copied().collect();
-                eprintln!("[DEBUG-CACHE] layer {}: first3={:?} nan={} max_abs={:.2}", i, sample, has_nan, max_abs);
-            }
-
             if let Some(t) = _t_layer {
                 log::debug!(
                     "[perf] model::forward layer={} total={:.3}ms",
@@ -1828,14 +1789,6 @@ impl LlmModel {
         } else {
             None
         };
-        // DEBUG: post-norm values
-        {
-            let data = x.as_slice_f32().unwrap_or(&[]);
-            let max_abs = data.iter().map(|v| v.abs()).fold(0.0f32, f32::max);
-            let sample: Vec<f32> = data.iter().take(5).copied().collect();
-            eprintln!("[DEBUG-CACHE] post-norm: first5={:?} max_abs={:.2}", sample, max_abs);
-        }
-
         let out = self.output.forward(&x)?;
 
         // Final logit softcapping: cap * tanh(logits / cap)
@@ -1844,20 +1797,6 @@ impl LlmModel {
         } else {
             out
         };
-
-        // DEBUG: output logits
-        {
-            let data = out.as_slice_f32().unwrap_or(&[]);
-            let max_abs = data.iter().map(|v| v.abs()).fold(0.0f32, f32::max);
-            let argmax = data.iter().enumerate().max_by(|a, b| a.1.total_cmp(b.1)).map(|(i, v)| (i, *v));
-            let top5: Vec<(usize, f32)> = {
-                let mut indexed: Vec<(usize, f32)> = data.iter().enumerate().map(|(i, &v)| (i, v)).collect();
-                indexed.sort_by(|a, b| b.1.total_cmp(&a.1));
-                indexed.truncate(5);
-                indexed
-            };
-            eprintln!("[DEBUG-CACHE] logits: max_abs={:.2} argmax={:?} top5={:?}", max_abs, argmax, top5);
-        }
 
         let proj_ms = _t_proj
             .map(|t| t.elapsed().as_secs_f64() * 1000.0)
