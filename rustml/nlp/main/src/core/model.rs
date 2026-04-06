@@ -970,7 +970,11 @@ impl LlmModel {
 
         let default_head_dim = config.head_dim.unwrap_or(d_model / num_heads);
         let global_head_dim = config.global_head_dim.unwrap_or(default_head_dim);
-        let attn_scale = config.query_pre_attn_scalar.map(|s| 1.0 / s.sqrt());
+        // Gemma 4 uses scaling=1.0 (no attention score scaling).
+        // query_pre_attn_scalar from config overrides if present.
+        let attn_scale = Some(config.query_pre_attn_scalar
+            .map(|s| s.sqrt())
+            .unwrap_or(1.0));
 
         let mut layers = Vec::with_capacity(num_layers);
         for i in 0..num_layers {
@@ -1654,15 +1658,42 @@ impl LlmModel {
             None
         };
 
+        // DEBUG: check hidden state health
+        if log::log_enabled!(log::Level::Info) {
+            let data = x.as_slice_f32().unwrap_or(&[]);
+            let sample: Vec<f32> = data.iter().take(5).copied().collect();
+            let has_nan = data.iter().any(|v| v.is_nan());
+            let has_inf = data.iter().any(|v| v.is_infinite());
+            eprintln!("[DEBUG] post-emb: first5={:?} nan={} inf={} len={}", sample, has_nan, has_inf, data.len());
+        }
+
         for (i, layer) in self.layers.iter().enumerate() {
             if let (Some(ple), Some(pli)) = (&self.ple, &ple_inputs) {
                 x = ple.inject_prepared(pli, &x, i)?;
             }
             x = layer.forward(&x)?;
+
+            // DEBUG: check per-layer health
+            if i < 3 || i == self.layers.len() - 1 {
+                if log::log_enabled!(log::Level::Info) {
+                    let data = x.as_slice_f32().unwrap_or(&[]);
+                    let sample: Vec<f32> = data.iter().take(5).copied().collect();
+                    let has_nan = data.iter().any(|v| v.is_nan());
+                    let max_abs = data.iter().map(|v| v.abs()).fold(0.0f32, f32::max);
+                    eprintln!("[DEBUG] layer {}: first5={:?} nan={} max_abs={:.2}", i, sample, has_nan, max_abs);
+                }
+            }
         }
 
         let x = self.norm.forward(&x)?;
-        Ok(self.output.forward(&x)?)
+        let out = self.output.forward(&x)?;
+        // Final logit softcapping: cap * tanh(logits / cap)
+        let out = if let Some(cap) = self.config.final_logit_softcapping {
+            out.mul_scalar(1.0 / cap).tanh().mul_scalar(cap)
+        } else {
+            out
+        };
+        Ok(out)
     }
 
     /// Forward pass with KV cache for autoregressive decoding.
@@ -1733,6 +1764,15 @@ impl LlmModel {
             None
         };
 
+        // DEBUG: check hidden state health in cached path
+        {
+            let data = x.as_slice_f32().unwrap_or(&[]);
+            let sample: Vec<f32> = data.iter().take(5).copied().collect();
+            let has_nan = data.iter().any(|v| v.is_nan());
+            let max_abs = data.iter().map(|v| v.abs()).fold(0.0f32, f32::max);
+            eprintln!("[DEBUG-CACHE] post-emb: first5={:?} nan={} max_abs={:.2} shape={:?}", sample, has_nan, max_abs, x.shape());
+        }
+
         let _t_layers = if log::log_enabled!(log::Level::Debug) {
             Some(Instant::now())
         } else {
@@ -1751,6 +1791,16 @@ impl LlmModel {
             }
 
             x = layer.forward_with_cache(&x, None, cache, i)?;
+
+            // DEBUG: per-layer health check (first 3 + last)
+            if i < 3 || i == self.layers.len() - 1 {
+                let data = x.as_slice_f32().unwrap_or(&[]);
+                let has_nan = data.iter().any(|v| v.is_nan());
+                let max_abs = data.iter().map(|v| v.abs()).fold(0.0f32, f32::max);
+                let sample: Vec<f32> = data.iter().take(3).copied().collect();
+                eprintln!("[DEBUG-CACHE] layer {}: first3={:?} nan={} max_abs={:.2}", i, sample, has_nan, max_abs);
+            }
+
             if let Some(t) = _t_layer {
                 log::debug!(
                     "[perf] model::forward layer={} total={:.3}ms",
@@ -1778,7 +1828,37 @@ impl LlmModel {
         } else {
             None
         };
+        // DEBUG: post-norm values
+        {
+            let data = x.as_slice_f32().unwrap_or(&[]);
+            let max_abs = data.iter().map(|v| v.abs()).fold(0.0f32, f32::max);
+            let sample: Vec<f32> = data.iter().take(5).copied().collect();
+            eprintln!("[DEBUG-CACHE] post-norm: first5={:?} max_abs={:.2}", sample, max_abs);
+        }
+
         let out = self.output.forward(&x)?;
+
+        // Final logit softcapping: cap * tanh(logits / cap)
+        let out = if let Some(cap) = self.config.final_logit_softcapping {
+            out.mul_scalar(1.0 / cap).tanh().mul_scalar(cap)
+        } else {
+            out
+        };
+
+        // DEBUG: output logits
+        {
+            let data = out.as_slice_f32().unwrap_or(&[]);
+            let max_abs = data.iter().map(|v| v.abs()).fold(0.0f32, f32::max);
+            let argmax = data.iter().enumerate().max_by(|a, b| a.1.total_cmp(b.1)).map(|(i, v)| (i, *v));
+            let top5: Vec<(usize, f32)> = {
+                let mut indexed: Vec<(usize, f32)> = data.iter().enumerate().map(|(i, &v)| (i, v)).collect();
+                indexed.sort_by(|a, b| b.1.total_cmp(&a.1));
+                indexed.truncate(5);
+                indexed
+            };
+            eprintln!("[DEBUG-CACHE] logits: max_abs={:.2} argmax={:?} top5={:?}", max_abs, argmax, top5);
+        }
+
         let proj_ms = _t_proj
             .map(|t| t.elapsed().as_secs_f64() * 1000.0)
             .unwrap_or(0.0);
@@ -2134,6 +2214,7 @@ mod tests {
             chat_template: None,
             sliding_window: None,
             attn_logit_cap: None,
+            final_logit_softcapping: None,
             embedding_scale: None,
             rms_norm_offset: None,
             attention_bias: None,
@@ -2564,6 +2645,7 @@ mod tests {
             chat_template: None,
             sliding_window: Some(16),
             attn_logit_cap: None,
+            final_logit_softcapping: None,
             embedding_scale: Some((d as f32).sqrt()),
             rms_norm_offset: Some(1.0),
             attention_bias: None,
@@ -2780,6 +2862,7 @@ mod tests {
             chat_template: None,
             sliding_window: None,
             attn_logit_cap: None,
+            final_logit_softcapping: None,
             embedding_scale: None,
             rms_norm_offset: None,
             attention_bias: None,

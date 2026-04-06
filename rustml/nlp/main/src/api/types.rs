@@ -192,6 +192,8 @@ pub struct ModelConfig {
     #[serde(default)]
     pub attn_logit_cap: Option<f32>,
     #[serde(default)]
+    pub final_logit_softcapping: Option<f32>,
+    #[serde(default)]
     pub embedding_scale: Option<f32>,
     #[serde(default)]
     pub rms_norm_offset: Option<f32>,
@@ -255,6 +257,7 @@ impl Default for ModelConfig {
             chat_template: None,
             sliding_window: None,
             attn_logit_cap: None,
+            final_logit_softcapping: None,
             embedding_scale: None,
             rms_norm_offset: None,
             attention_bias: None,
@@ -549,9 +552,9 @@ impl ModelConfig {
                     rope_theta: 1000000.0,
                     head_dim: hf.head_dim,
                     sliding_window: hf.sliding_window,
-                    // final_logit_softcapping applies to output logits, not attention scores.
                     // Gemma 4 does NOT use attention logit capping.
                     attn_logit_cap: None,
+                    final_logit_softcapping: hf.final_logit_softcapping,
                     query_pre_attn_scalar: hf.query_pre_attn_scalar,
                     layer_types: hf.layer_types,
                     global_head_dim: hf.global_head_dim,

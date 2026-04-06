@@ -891,6 +891,7 @@ mod tests {
             chat_template: None,
             sliding_window: None,
             attn_logit_cap: None,
+            final_logit_softcapping: None,
             embedding_scale: None,
             rms_norm_offset: None,
             attention_bias: None,

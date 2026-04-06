@@ -76,6 +76,7 @@ pub fn gguf_config_to_model_config(gc: &GgufModelConfig) -> NlpResult<ModelConfi
         chat_template: gc.chat_template.clone(),
         sliding_window: gc.sliding_window,
         attn_logit_cap: None,
+        final_logit_softcapping: None,
         embedding_scale: if is_gemma3 {
             Some((gc.dim as f32).sqrt())
         } else {
