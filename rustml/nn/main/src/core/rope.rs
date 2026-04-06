@@ -133,6 +133,11 @@ impl RoPEFreqs {
     ///
     /// Only the first `factor * head_dim` dimensions are rotated.
     /// Tables are sized for the *rotated* part (`rotated_head_dim / 2`).
+    /// Proportional RoPE with partial rotation (Gemma 4 global layers).
+    ///
+    /// Unlike standard partial RoPE, frequencies are computed over the full
+    /// `head_dim` (not the rotated subset). Only the first `head_dim * factor`
+    /// dimensions are rotated; the rest pass through unchanged.
     pub fn with_partial_rotation(
         head_dim: usize,
         max_seq_len: usize,
@@ -146,8 +151,8 @@ impl RoPEFreqs {
 
         for pos in 0..max_seq_len {
             for i in 0..half_dim {
-                // Frequencies are computed based on the *rotated* dimension
-                let freq = 1.0 / theta.powf(2.0 * i as f32 / rotated_head_dim as f32);
+                // Frequencies use full head_dim as denominator (proportional RoPE)
+                let freq = 1.0 / theta.powf(2.0 * i as f32 / head_dim as f32);
                 let angle = pos as f32 * freq;
                 cos_table.push(angle.cos());
                 sin_table.push(angle.sin());

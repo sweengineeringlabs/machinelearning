@@ -549,7 +549,9 @@ impl ModelConfig {
                     rope_theta: 1000000.0,
                     head_dim: hf.head_dim,
                     sliding_window: hf.sliding_window,
-                    attn_logit_cap: hf.final_logit_softcapping,
+                    // final_logit_softcapping applies to output logits, not attention scores.
+                    // Gemma 4 does NOT use attention logit capping.
+                    attn_logit_cap: None,
                     query_pre_attn_scalar: hf.query_pre_attn_scalar,
                     layer_types: hf.layer_types,
                     global_head_dim: hf.global_head_dim,
