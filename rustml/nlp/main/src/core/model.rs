@@ -10,7 +10,8 @@ use crate::core::weight_map::WeightMap;
 use rustml_core::{DType, RuntimeConfig, Tensor, f32_vec_to_bytes};
 use rustml_nn::{
     Activation, Embedding, FeedForward, KVCache, LayerNorm, Linear, MoeLayer, MultiHeadAttention,
-    NormLayer, PerLayerEmbedding, PoolingStrategy, PositionEncoding, RMSNorm, RoPEFreqs, TransformerBlock,
+    NormLayer, PerLayerEmbedding, PerLayerInput, PoolingStrategy, PositionEncoding, RMSNorm, RoPEFreqs,
+    TransformerBlock,
 };
 use std::collections::HashMap;
 use std::time::Instant;
@@ -21,8 +22,8 @@ pub struct LlmModel {
     pub pos_embedding: Option<Embedding>,
     /// Embedding LayerNorm (BERT: applied after token + position embedding sum).
     pub embd_norm: Option<NormLayer>,
-    /// Per-Layer Embeddings (Gemma 4). 35 tables for E2B.
-    pub ple_tables: Vec<PerLayerEmbedding>,
+    /// Per-Layer Input injection (Gemma 4 PLE).
+    pub ple: Option<PerLayerEmbedding>,
     pub layers: Vec<TransformerBlock>,
     pub norm: NormLayer,
     pub output: Linear,
@@ -66,19 +67,26 @@ impl LlmModel {
             None
         };
 
-        let mut ple_tables = Vec::new();
-        if let Some(hidden_size_ple) = config.hidden_size_per_layer_input {
+        let ple = if let Some(ple_dim) = config.hidden_size_per_layer_input {
             let vocab_size_ple = config.vocab_size_per_layer_input.unwrap_or(vocab_size);
-            for _ in 0..num_layers {
-                ple_tables.push(PerLayerEmbedding::new(vocab_size_ple, hidden_size_ple, d_model));
-            }
-        }
+            let shared = Embedding::new(vocab_size_ple, num_layers * ple_dim);
+            let model_proj = Linear::new(d_model, num_layers * ple_dim);
+            let proj_norm = RMSNorm::new(ple_dim, eps);
+            let gates = (0..num_layers).map(|_| Linear::new(d_model, ple_dim)).collect();
+            let projs = (0..num_layers).map(|_| Linear::new(ple_dim, d_model)).collect();
+            let norms = (0..num_layers).map(|_| RMSNorm::new(d_model, eps)).collect();
+            Some(PerLayerEmbedding::from_weights(
+                shared, ple_dim, d_model, model_proj, proj_norm, gates, projs, norms,
+            )?)
+        } else {
+            None
+        };
 
         Ok(Self {
             token_embedding: Embedding::new(vocab_size, d_model),
             pos_embedding,
             embd_norm: None,
-            ple_tables,
+            ple,
             layers,
             norm: NormLayer::LayerNorm(LayerNorm::with_eps(d_model, eps)),
             output: Linear::new_no_bias(d_model, vocab_size),
@@ -258,7 +266,7 @@ impl LlmModel {
             token_embedding,
             pos_embedding: None,
             embd_norm: None,
-            ple_tables: Vec::new(),
+            ple: None,
             layers,
             norm,
             output,
@@ -406,7 +414,7 @@ impl LlmModel {
             token_embedding,
             pos_embedding,
             embd_norm: None,
-            ple_tables: Vec::new(),
+            ple: None,
             layers,
             norm,
             output,
@@ -551,7 +559,7 @@ impl LlmModel {
             token_embedding,
             pos_embedding: None,
             embd_norm: None,
-            ple_tables: Vec::new(),
+            ple: None,
             layers,
             norm,
             output,
@@ -693,7 +701,7 @@ impl LlmModel {
             token_embedding,
             pos_embedding: None,
             embd_norm: None,
-            ple_tables: Vec::new(),
+            ple: None,
             layers,
             norm,
             output,
@@ -877,7 +885,7 @@ impl LlmModel {
             token_embedding,
             pos_embedding: None,
             embd_norm: None,
-            ple_tables: Vec::new(),
+            ple: None,
             layers,
             norm,
             output,
@@ -925,27 +933,56 @@ impl LlmModel {
 
         let token_embedding = Embedding::from_weights(get_tensor("token_embedding.weight")?)?;
 
-        let mut ple_tables = Vec::with_capacity(num_layers);
-        if let Some(_hidden_size_ple) = config.hidden_size_per_layer_input {
-            let ple_emb_weight = get_tensor("ple_shared_embedding.weight")?;
+        let ple = if let Some(ple_dim) = config.hidden_size_per_layer_input {
+            let shared_emb = Embedding::from_weights(get_tensor("ple_shared_embedding.weight")?)?;
+            let model_proj = Linear::from_weights(
+                get_weight("ple_model_projection.weight")?, None,
+            )?;
+            let proj_norm = RMSNorm::from_weight_with_offset(
+                get_tensor("ple_projection_norm.weight")?, eps, config.rms_norm_offset.unwrap_or(1.0),
+            );
+            let mut gates = Vec::with_capacity(num_layers);
+            let mut projections = Vec::with_capacity(num_layers);
+            let mut post_norms = Vec::with_capacity(num_layers);
             for i in 0..num_layers {
-                let ple_proj = get_weight(&format!("layers.{}.ple.projection.weight", i))?;
-                ple_tables.push(PerLayerEmbedding::from_weights(ple_emb_weight.clone(), ple_proj)?);
+                gates.push(Linear::from_weights(
+                    get_weight(&format!("layers.{}.ple.gate.weight", i))?, None,
+                )?);
+                projections.push(Linear::from_weights(
+                    get_weight(&format!("layers.{}.ple.projection.weight", i))?, None,
+                )?);
+                post_norms.push(RMSNorm::from_weight_with_offset(
+                    get_tensor(&format!("layers.{}.post_ple_norm.weight", i))?,
+                    eps,
+                    config.rms_norm_offset.unwrap_or(1.0),
+                ));
             }
-        }
+            Some(PerLayerEmbedding::from_weights(
+                shared_emb, ple_dim, d_model, model_proj, proj_norm, gates, projections, post_norms,
+            )?)
+        } else {
+            None
+        };
 
         let offset = config.rms_norm_offset.unwrap_or(1.0);
         let layer_types = config.layer_types.as_ref();
         let rope_params_map = config.rope_parameters.as_ref();
 
+        let default_head_dim = config.head_dim.unwrap_or(d_model / num_heads);
+        let global_head_dim = config.global_head_dim.unwrap_or(default_head_dim);
+        let attn_scale = config.query_pre_attn_scalar.map(|s| 1.0 / s.sqrt());
+
         let mut layers = Vec::with_capacity(num_layers);
         for i in 0..num_layers {
             let layer_type = layer_types.and_then(|lt| lt.get(i % lt.len())).map(|s| s.as_str());
-            
-            // Build RoPE for this layer type
+            let is_global = layer_type == Some("full_attention");
+
+            // Per-layer head dimension: global layers use global_head_dim
+            let head_dim = if is_global { global_head_dim } else { default_head_dim };
+
+            // Build RoPE for this layer type with correct head_dim
             let rope = if let (Some(lt), Some(map)) = (layer_type, rope_params_map) {
                 if let Some(params) = map.get(lt) {
-                    let head_dim = config.head_dim.unwrap_or(d_model / num_heads);
                     if let Some(factor) = params.partial_rotary_factor {
                         Some(RoPEFreqs::with_partial_rotation(head_dim, max_seq_len, params.rope_theta, factor))
                     } else {
@@ -975,7 +1012,6 @@ impl LlmModel {
                 None,
             )?;
 
-            let head_dim = config.head_dim.unwrap_or(d_model / num_heads);
             let mut attention = MultiHeadAttention::from_weights_with_head_dim(
                 d_model,
                 num_heads,
@@ -987,8 +1023,30 @@ impl LlmModel {
                 out_proj,
                 causal,
                 rope,
-                None,
+                attn_scale,
             )?;
+
+            // QK normalization
+            let q_norm_key = format!("layers.{}.attention.q_norm.weight", i);
+            let k_norm_key = format!("layers.{}.attention.k_norm.weight", i);
+            if let (Ok(qn_w), Ok(kn_w)) = (get_tensor(&q_norm_key), get_tensor(&k_norm_key)) {
+                attention.set_qk_norms(
+                    RMSNorm::from_weight_with_offset(qn_w, eps, offset),
+                    RMSNorm::from_weight_with_offset(kn_w, eps, offset),
+                );
+            }
+
+            // Sliding window on local layers only
+            if !is_global {
+                if let Some(w) = config.sliding_window {
+                    attention.set_window_size(w);
+                }
+            }
+
+            // Logit soft-capping
+            if let Some(cap) = config.attn_logit_cap {
+                attention.set_attn_logit_cap(cap);
+            }
 
             // GeGLU FFN
             let up_proj = Linear::from_weights(
@@ -1054,7 +1112,7 @@ impl LlmModel {
             token_embedding,
             pos_embedding: None,
             embd_norm: None,
-            ple_tables,
+            ple,
             layers,
             norm,
             output,
@@ -1189,7 +1247,7 @@ impl LlmModel {
             token_embedding,
             pos_embedding,
             embd_norm,
-            ple_tables: Vec::new(),
+            ple: None,
             layers,
             norm,
             output,
@@ -1315,7 +1373,7 @@ impl LlmModel {
             token_embedding,
             pos_embedding,
             embd_norm,
-            ple_tables: Vec::new(),
+            ple: None,
             layers,
             norm,
             output,
@@ -1491,16 +1549,56 @@ impl LlmModel {
     /// Call after quantize_all_weights() and fuse_gate_up_weights().
     ///
     /// Also warms up the rayon thread pool to reduce jitter on first operations.
+    /// Build a KV cache sized for this model.
+    ///
+    /// Handles per-layer head dimensions (Gemma 4) and KV sharing automatically.
+    pub fn build_kv_cache(&self, max_seq_len: usize) -> KVCache {
+        let n_kv_heads = self.config.n_kv_heads.unwrap_or(self.config.n_heads);
+        let default_hd = self.config.head_dim.unwrap_or(self.config.dim / self.config.n_heads);
+        let global_hd = self.config.global_head_dim.unwrap_or(default_hd);
+        let n_layers = self.config.n_layers;
+
+        let has_mixed_head_dims = global_hd != default_hd && self.config.layer_types.is_some();
+
+        if has_mixed_head_dims {
+            let layer_types = self.config.layer_types.as_ref().unwrap();
+
+            // Build per-layer head_dim list
+            let layer_head_dims: Vec<usize> = (0..n_layers)
+                .map(|i| {
+                    let lt = layer_types.get(i).map(|s| s.as_str()).unwrap_or("sliding_attention");
+                    if lt == "full_attention" { global_hd } else { default_hd }
+                })
+                .collect();
+
+            // Determine unique slots (deduplicate by KV sharing)
+            if let Some(num_shared) = self.config.num_kv_shared_layers {
+                let num_owner = n_layers - num_shared;
+                let layer_to_slot: Vec<usize> = (0..n_layers)
+                    .map(|i| if i < num_owner { i } else { (i - num_owner) % num_owner })
+                    .collect();
+                let slot_head_dims: Vec<usize> = (0..num_owner)
+                    .map(|i| layer_head_dims[i])
+                    .collect();
+                KVCache::with_per_slot_head_dims(
+                    Some(layer_to_slot), slot_head_dims, max_seq_len, n_kv_heads,
+                )
+            } else {
+                KVCache::with_per_slot_head_dims(
+                    None, layer_head_dims, max_seq_len, n_kv_heads,
+                )
+            }
+        } else {
+            let head_dim = default_hd.max(global_hd);
+            KVCache::new(n_layers, max_seq_len, head_dim, n_kv_heads)
+        }
+    }
+
     pub fn warmup_decode(&self) -> NlpResult<()> {
         // First, warm up the rayon thread pool to reduce scheduling jitter
         RuntimeConfig::warmup_thread_pool();
 
-        let n_kv_heads = self.config.n_kv_heads.unwrap_or(self.config.n_heads);
-        let head_dim = self
-            .config
-            .head_dim
-            .unwrap_or(self.config.dim / self.config.n_heads);
-        let mut cache = KVCache::new(self.config.n_layers, 4, head_dim, n_kv_heads);
+        let mut cache = self.build_kv_cache(4);
 
         let dummy_bytes = 0.0f32.to_ne_bytes().to_vec();
         let input = Tensor::new(dummy_bytes, vec![1, 1], DType::F32);
@@ -1549,11 +1647,16 @@ impl LlmModel {
             x = embd_norm.forward(&x)?;
         }
 
+        // Pre-compute PLE inputs once (before layer loop)
+        let ple_inputs = if let Some(ref ple) = self.ple {
+            Some(ple.prepare(input_ids, &x)?)
+        } else {
+            None
+        };
+
         for (i, layer) in self.layers.iter().enumerate() {
-            // Apply Per-Layer Embedding (PLE) if present
-            if let Some(ple) = self.ple_tables.get(i) {
-                let ple_emb = ple.forward(input_ids)?;
-                x = x.add(&ple_emb)?;
+            if let (Some(ple), Some(pli)) = (&self.ple, &ple_inputs) {
+                x = ple.inject_prepared(pli, &x, i)?;
             }
             x = layer.forward(&x)?;
         }
@@ -1623,6 +1726,13 @@ impl LlmModel {
             x = embd_norm.forward(&x)?;
         }
 
+        // Pre-compute PLE inputs once (before layer loop)
+        let ple_inputs = if let Some(ref ple) = self.ple {
+            Some(ple.prepare(input_ids, &x)?)
+        } else {
+            None
+        };
+
         let _t_layers = if log::log_enabled!(log::Level::Debug) {
             Some(Instant::now())
         } else {
@@ -1635,10 +1745,9 @@ impl LlmModel {
                 None
             };
 
-            // Apply Per-Layer Embedding (PLE) if present
-            if let Some(ple) = self.ple_tables.get(i) {
-                let ple_emb = ple.forward(input_ids)?;
-                x = x.add(&ple_emb)?;
+            // Apply Per-Layer Input injection (PLE) if present
+            if let (Some(ple), Some(pli)) = (&self.ple, &ple_inputs) {
+                x = ple.inject_prepared(pli, &x, i)?;
             }
 
             x = layer.forward_with_cache(&x, None, cache, i)?;
@@ -1705,11 +1814,18 @@ impl LlmModel {
             frozen += f;
         }
 
-        for ple in &self.ple_tables {
-            total += ple.embedding.weight.numel();
-            total += ple.projection.weight.numel();
-            if let Some(ref b) = ple.projection.bias {
-                total += b.numel() as usize;
+        if let Some(ref ple) = self.ple {
+            total += ple.shared_embedding.weight.numel();
+            total += ple.model_projection.weight.numel();
+            total += ple.projection_norm.weight.numel();
+            for gate in &ple.gates {
+                total += gate.weight.numel();
+            }
+            for proj in &ple.projections {
+                total += proj.weight.numel();
+            }
+            for norm in &ple.post_norms {
+                total += norm.weight.numel();
             }
         }
 
@@ -1761,9 +1877,15 @@ impl LanguageModel for LlmModel {
     }
 
     fn head_dim(&self) -> usize {
-        self.config
-            .head_dim
-            .unwrap_or(self.config.dim / self.config.n_heads)
+        // Return the max head_dim across layer types so KV cache is sized correctly.
+        // Gemma 4: sliding layers use head_dim (256), global layers use global_head_dim (512).
+        let default = self.config.head_dim.unwrap_or(self.config.dim / self.config.n_heads);
+        let global = self.config.global_head_dim.unwrap_or(default);
+        default.max(global)
+    }
+
+    fn build_kv_cache(&self, max_seq_len: usize) -> KVCache {
+        self.build_kv_cache(max_seq_len)
     }
 }
 

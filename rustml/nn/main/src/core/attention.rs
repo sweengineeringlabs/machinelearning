@@ -458,11 +458,12 @@ impl MultiHeadAttention {
     ) -> NnResult<Tensor> {
         let trace = log::log_enabled!(log::Level::Trace);
 
-        if cache.head_dim() != self.head_dim {
+        if cache.head_dim_for_layer(layer_idx) != self.head_dim {
             return Err(NnError::InvalidConfig(format!(
-                "KVCache head_dim ({}) does not match attention head_dim ({})",
-                cache.head_dim(),
-                self.head_dim
+                "KVCache slot head_dim ({}) does not match attention head_dim ({}) at layer {}",
+                cache.head_dim_for_layer(layer_idx),
+                self.head_dim,
+                layer_idx,
             )));
         }
 

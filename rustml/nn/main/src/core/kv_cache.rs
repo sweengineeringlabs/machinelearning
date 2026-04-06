@@ -16,7 +16,8 @@ pub struct KVCache {
     layer_to_slot: Option<Vec<usize>>,
     max_seq_len: usize,
     pub current_len: usize,
-    head_dim: usize,
+    /// Per-slot head dimensions (supports mixed head_dim models like Gemma 4).
+    slot_head_dims: Vec<usize>,
     num_kv_heads: usize,
     /// Raw token history for models without native KV cache support.
     pub token_history: Vec<u32>,
@@ -30,26 +31,8 @@ impl KVCache {
         head_dim: usize,
         num_kv_heads: usize,
     ) -> Self {
-        let key_shape = vec![1, num_kv_heads, max_seq_len, head_dim];
-        let val_shape = vec![1, num_kv_heads, max_seq_len, head_dim];
-
-        let past_keys = (0..num_layers)
-            .map(|_| Tensor::zeros(key_shape.clone()))
-            .collect();
-        let past_values = (0..num_layers)
-            .map(|_| Tensor::zeros(val_shape.clone()))
-            .collect();
-
-        Self {
-            past_keys,
-            past_values,
-            layer_to_slot: None,
-            max_seq_len,
-            current_len: 0,
-            head_dim,
-            num_kv_heads,
-            token_history: Vec::new(),
-        }
+        let slot_head_dims = vec![head_dim; num_layers];
+        Self::from_slot_dims(num_layers, None, slot_head_dims, max_seq_len, num_kv_heads, 1)
     }
 
     /// Create a KV cache with layer sharing (Gemma 4).
@@ -61,26 +44,22 @@ impl KVCache {
         head_dim: usize,
         num_kv_heads: usize,
     ) -> Self {
-        let key_shape = vec![1, num_kv_heads, max_seq_len, head_dim];
-        let val_shape = vec![1, num_kv_heads, max_seq_len, head_dim];
+        let slot_head_dims = vec![head_dim; num_slots];
+        Self::from_slot_dims(num_slots, Some(layer_to_slot), slot_head_dims, max_seq_len, num_kv_heads, 1)
+    }
 
-        let past_keys = (0..num_slots)
-            .map(|_| Tensor::zeros(key_shape.clone()))
-            .collect();
-        let past_values = (0..num_slots)
-            .map(|_| Tensor::zeros(val_shape.clone()))
-            .collect();
-
-        Self {
-            past_keys,
-            past_values,
-            layer_to_slot: Some(layer_to_slot),
-            max_seq_len,
-            current_len: 0,
-            head_dim,
-            num_kv_heads,
-            token_history: Vec::new(),
-        }
+    /// Create a KV cache with per-slot head dimensions and optional layer sharing.
+    ///
+    /// Use this for models with mixed head dimensions (e.g. Gemma 4 where
+    /// sliding layers use 256 and global layers use 512).
+    pub fn with_per_slot_head_dims(
+        layer_to_slot: Option<Vec<usize>>,
+        slot_head_dims: Vec<usize>,
+        max_seq_len: usize,
+        num_kv_heads: usize,
+    ) -> Self {
+        let num_slots = slot_head_dims.len();
+        Self::from_slot_dims(num_slots, layer_to_slot, slot_head_dims, max_seq_len, num_kv_heads, 1)
     }
 
     /// Create a KV cache with a parameterized batch size (for batched inference).
@@ -91,30 +70,47 @@ impl KVCache {
         num_kv_heads: usize,
         batch_size: usize,
     ) -> Self {
-        let key_shape = vec![batch_size, num_kv_heads, max_seq_len, head_dim];
-        let val_shape = vec![batch_size, num_kv_heads, max_seq_len, head_dim];
+        let slot_head_dims = vec![head_dim; num_layers];
+        Self::from_slot_dims(num_layers, None, slot_head_dims, max_seq_len, num_kv_heads, batch_size)
+    }
 
-        let past_keys = (0..num_layers)
-            .map(|_| Tensor::zeros(key_shape.clone()))
+    /// Internal constructor that pre-allocates buffers with per-slot head dimensions.
+    fn from_slot_dims(
+        num_slots: usize,
+        layer_to_slot: Option<Vec<usize>>,
+        slot_head_dims: Vec<usize>,
+        max_seq_len: usize,
+        num_kv_heads: usize,
+        batch_size: usize,
+    ) -> Self {
+        let past_keys = slot_head_dims.iter()
+            .map(|&hd| Tensor::zeros(vec![batch_size, num_kv_heads, max_seq_len, hd]))
             .collect();
-        let past_values = (0..num_layers)
-            .map(|_| Tensor::zeros(val_shape.clone()))
+        let past_values = slot_head_dims.iter()
+            .map(|&hd| Tensor::zeros(vec![batch_size, num_kv_heads, max_seq_len, hd]))
             .collect();
 
         Self {
             past_keys,
             past_values,
-            layer_to_slot: None,
+            layer_to_slot,
             max_seq_len,
             current_len: 0,
-            head_dim,
+            slot_head_dims,
             num_kv_heads,
             token_history: Vec::new(),
         }
     }
 
+    /// Maximum head dimension across all slots.
     pub fn head_dim(&self) -> usize {
-        self.head_dim
+        self.slot_head_dims.iter().copied().max().unwrap_or(0)
+    }
+
+    /// Head dimension for a specific layer's cache slot.
+    pub fn head_dim_for_layer(&self, layer_idx: usize) -> usize {
+        let slot = self.get_slot_idx(layer_idx);
+        self.slot_head_dims[slot]
     }
 
     pub fn max_seq_len(&self) -> usize {
@@ -215,7 +211,7 @@ impl KVCache {
     /// `current_len` to match, so the next generation starts right after the
     /// prefix without re-running prefill.
     pub fn restore_from(&self, snapshot: &KVCache) -> NnResult<Self> {
-        if snapshot.head_dim != self.head_dim
+        if snapshot.slot_head_dims != self.slot_head_dims
             || snapshot.num_kv_heads != self.num_kv_heads
             || snapshot.num_slots() != self.num_slots()
             || snapshot.num_layers() != self.num_layers()
@@ -260,7 +256,7 @@ impl KVCache {
             layer_to_slot: self.layer_to_slot.clone(),
             max_seq_len: self.max_seq_len,
             current_len: self.current_len,
-            head_dim: self.head_dim,
+            slot_head_dims: self.slot_head_dims.clone(),
             num_kv_heads: self.num_kv_heads,
             token_history: self.token_history.clone(),
         })

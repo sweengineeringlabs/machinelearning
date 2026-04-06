@@ -364,10 +364,18 @@ impl WeightMap {
             "output.weight".into(),
         );
         
-        // Shared PLE Embedding (if used by all layers)
+        // PLE: shared embedding, model projection, projection norm
         mapping.insert(
             "model.language_model.embed_tokens_per_layer.weight".into(),
             "ple_shared_embedding.weight".into(),
+        );
+        mapping.insert(
+            "model.language_model.per_layer_model_projection.weight".into(),
+            "ple_model_projection.weight".into(),
+        );
+        mapping.insert(
+            "model.language_model.per_layer_projection_norm.weight".into(),
+            "ple_projection_norm.weight".into(),
         );
 
         for i in 0..n_layers {
@@ -433,10 +441,18 @@ impl WeightMap {
                 format!("layers.{}.feed_forward.down_proj.weight", i),
             );
 
-            // Per-Layer Projection (unique per layer)
+            // Per-Layer Embedding: gate, projection, post-norm
+            mapping.insert(
+                format!("model.language_model.layers.{}.per_layer_input_gate.weight", i),
+                format!("layers.{}.ple.gate.weight", i),
+            );
             mapping.insert(
                 format!("model.language_model.layers.{}.per_layer_projection.weight", i),
                 format!("layers.{}.ple.projection.weight", i),
+            );
+            mapping.insert(
+                format!("model.language_model.layers.{}.post_per_layer_input_norm.weight", i),
+                format!("layers.{}.post_ple_norm.weight", i),
             );
         }
 
@@ -610,25 +626,25 @@ mod tests {
     #[test]
     fn test_gemma4_weight_map() {
         let wm = WeightMap::gemma4(2);
-        // global: 3 (embed, norm, output)
-        // per-layer: 14 * 2 = 28
-        // shared: 1 (embed_tokens_per_layer)
-        // total: 3 + 28 + 1 = 32
-        assert_eq!(wm.len(), 32);
+        // global: 3 (embed, norm, output) + 3 (ple_shared_emb, ple_model_proj, ple_proj_norm) = 6
+        // per-layer: 16 * 2 = 32 (4 norms + 4 attn + 2 qk_norm + 3 ffn + 1 ple_gate + 1 ple_proj + 1 post_ple_norm)
+        // total: 6 + 32 = 38
+        assert_eq!(wm.len(), 38);
 
         let mut hf_weights = HashMap::new();
+        // Use actual HF tensor names that match the weight map
         hf_weights.insert(
-            "model.layers.0.ple.embedding.weight".into(),
-            Tensor::randn(vec![100, 16]),
+            "model.language_model.layers.0.per_layer_projection.weight".into(),
+            Tensor::randn(vec![64, 16]),
         );
         hf_weights.insert(
-            "model.layers.0.ple.projection.weight".into(),
-            Tensor::randn(vec![64, 16]),
+            "model.language_model.embed_tokens_per_layer.weight".into(),
+            Tensor::randn(vec![100, 16]),
         );
 
         let remapped = wm.remap(hf_weights);
-        assert!(remapped.contains_key("layers.0.ple.embedding.weight"));
         assert!(remapped.contains_key("layers.0.ple.projection.weight"));
+        assert!(remapped.contains_key("ple_shared_embedding.weight"));
     }
 
     #[test]

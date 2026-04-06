@@ -404,6 +404,14 @@ struct HFGemma4Config {
     rms_norm_eps: Option<f32>,
     max_position_embeddings: Option<usize>,
     #[serde(default)]
+    head_dim: Option<usize>,
+    #[serde(default)]
+    sliding_window: Option<usize>,
+    #[serde(default)]
+    final_logit_softcapping: Option<f32>,
+    #[serde(default)]
+    query_pre_attn_scalar: Option<f32>,
+    #[serde(default)]
     layer_types: Option<Vec<String>>,
     #[serde(default)]
     global_head_dim: Option<usize>,
@@ -539,6 +547,10 @@ impl ModelConfig {
                     position_encoding: PositionEncoding::RoPE,
                     causal: true,
                     rope_theta: 1000000.0,
+                    head_dim: hf.head_dim,
+                    sliding_window: hf.sliding_window,
+                    attn_logit_cap: hf.final_logit_softcapping,
+                    query_pre_attn_scalar: hf.query_pre_attn_scalar,
                     layer_types: hf.layer_types,
                     global_head_dim: hf.global_head_dim,
                     num_kv_shared_layers: hf.num_kv_shared_layers,
@@ -549,7 +561,8 @@ impl ModelConfig {
                     embedding_scale: Some((dim as f32).sqrt()),
                     rms_norm_offset: Some(1.0),
                     bos_token_id: Some(2),
-                    eos_token_id: Some(1),
+                    eos_token_id: Some(106), // <turn|> is the primary stop token
+                    chat_template: Some("<|turn>".to_string()),
                     ..Default::default()
                 })
             }
@@ -624,6 +637,14 @@ pub trait LanguageModel {
     fn num_layers(&self) -> usize;
     fn num_kv_heads(&self) -> usize;
     fn head_dim(&self) -> usize;
+
+    /// Build a KV cache appropriate for this model.
+    ///
+    /// Default creates a uniform cache. Models with per-layer head dimensions
+    /// (e.g. Gemma 4) override this to allocate per-slot dimensions.
+    fn build_kv_cache(&self, max_seq_len: usize) -> KVCache {
+        KVCache::new(self.num_layers(), max_seq_len, self.head_dim(), self.num_kv_heads())
+    }
 }
 
 #[cfg(test)]

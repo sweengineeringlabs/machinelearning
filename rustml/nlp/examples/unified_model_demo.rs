@@ -46,6 +46,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         query_pre_attn_scalar: None,
         rope_local_base_freq: None,
         rope_scaling_factor: None,
+        pooling_strategy: None,
+        layer_types: None,
+        global_head_dim: None,
+        num_kv_shared_layers: None,
+        hidden_size_per_layer_input: None,
+        vocab_size_per_layer_input: None,
+        use_double_wide_mlp: None,
+        rope_parameters: None,
     };
 
     let gpt2_model = LlmModel::new(&gpt2_config)?;
@@ -92,6 +100,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         query_pre_attn_scalar: None,
         rope_local_base_freq: None,
         rope_scaling_factor: None,
+        pooling_strategy: None,
+        layer_types: None,
+        global_head_dim: None,
+        num_kv_shared_layers: None,
+        hidden_size_per_layer_input: None,
+        vocab_size_per_layer_input: None,
+        use_double_wide_mlp: None,
+        rope_parameters: None,
     };
 
     let llama_model = LlmModel::new(&llama_config)?;

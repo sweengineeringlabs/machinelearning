@@ -13,10 +13,12 @@ use rayon::prelude::*;
 use rustml_core::{DType, Tensor, f32_vec_to_bytes};
 use rustml_nn::KVCache;
 
-/// A segment of a chat template: either a special token (looked up by name)
-/// or plain text (encoded normally by the tokenizer).
+/// A segment of a chat template: either a special token (looked up by name),
+/// a special token with a known ID, or plain text (encoded normally by the tokenizer).
 enum TemplateSegment {
     Special(String),
+    /// Special token with a known ID (bypasses tokenizer lookup).
+    SpecialId(u32),
     Text(String),
 }
 
@@ -60,6 +62,18 @@ fn build_template_segments(prompt: &str, template: &str) -> Vec<TemplateSegment>
         ];
     }
 
+    // Gemma 4 format: <|turn>user\n{msg}<turn|>\n<|turn>model\n
+    if template.contains("<|turn>") {
+        return vec![
+            TemplateSegment::SpecialId(105), // <|turn>
+            TemplateSegment::Text(format!("user\n{}", prompt)),
+            TemplateSegment::SpecialId(106), // <turn|>
+            TemplateSegment::Text("\n".into()),
+            TemplateSegment::SpecialId(105), // <|turn>
+            TemplateSegment::Text("model\n".into()),
+        ];
+    }
+
     // Unknown template — encode the prompt as plain text
     eprintln!("[warn] unrecognized chat template format, falling back to plain text encoding");
     vec![TemplateSegment::Text(prompt.to_string())]
@@ -70,7 +84,21 @@ fn build_template_segments(prompt: &str, template: &str) -> Vec<TemplateSegment>
 fn build_multi_turn_segments(messages: &[(&str, &str)], template: &str) -> Vec<TemplateSegment> {
     let mut segments = Vec::new();
 
-    // Gemma format: <start_of_turn>user\n{msg}<end_of_turn>\n<start_of_turn>model\n
+    // Gemma 4 format: <|turn>user\n{msg}<turn|>\n<|turn>model\n
+    if template.contains("<|turn>") {
+        for &(role, content) in messages {
+            let model_role = if role == "assistant" { "model" } else { role };
+            segments.push(TemplateSegment::SpecialId(105)); // <|turn>
+            segments.push(TemplateSegment::Text(format!("{}\n{}", model_role, content)));
+            segments.push(TemplateSegment::SpecialId(106)); // <turn|>
+            segments.push(TemplateSegment::Text("\n".into()));
+        }
+        segments.push(TemplateSegment::SpecialId(105)); // <|turn>
+        segments.push(TemplateSegment::Text("model\n".into()));
+        return segments;
+    }
+
+    // Gemma 3 format: <start_of_turn>user\n{msg}<end_of_turn>\n<start_of_turn>model\n
     if template.contains("<start_of_turn>") {
         for &(role, content) in messages {
             let model_role = if role == "assistant" { "model" } else { role };
@@ -270,6 +298,9 @@ impl<'a> Generator<'a> {
                         break;
                     }
                 }
+                TemplateSegment::SpecialId(id) => {
+                    token_ids.push(*id);
+                }
                 TemplateSegment::Text(text) => {
                     if !text.is_empty() {
                         let ids = self.tokenizer.encode(text)?;
@@ -288,6 +319,7 @@ impl<'a> Generator<'a> {
             .iter()
             .map(|seg| match seg {
                 TemplateSegment::Special(s) => s.as_str(),
+                TemplateSegment::SpecialId(_) => "",
                 TemplateSegment::Text(t) => t.as_str(),
             })
             .collect();
@@ -358,12 +390,7 @@ impl<'a> Generator<'a> {
             Some(n) => n.min(max_seq),
             None => max_seq,
         };
-        KVCache::new(
-            self.model.num_layers(),
-            effective,
-            self.model.head_dim(),
-            self.model.num_kv_heads(),
-        )
+        self.model.build_kv_cache(effective)
     }
 
     fn prefill(&self, tokens: &[u32], cache: &mut KVCache) -> NlpResult<Vec<f32>> {
@@ -709,6 +736,9 @@ impl<'a> Generator<'a> {
                         break;
                     }
                 }
+                TemplateSegment::SpecialId(id) => {
+                    token_ids.push(*id);
+                }
                 TemplateSegment::Text(text) => {
                     if !text.is_empty() {
                         let ids = self.tokenizer.encode(text)?;
@@ -727,6 +757,7 @@ impl<'a> Generator<'a> {
             .iter()
             .map(|seg| match seg {
                 TemplateSegment::Special(s) => s.as_str(),
+                TemplateSegment::SpecialId(_) => "",
                 TemplateSegment::Text(t) => t.as_str(),
             })
             .collect();
