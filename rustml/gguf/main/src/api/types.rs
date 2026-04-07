@@ -20,6 +20,10 @@ pub enum GGMLType {
 }
 
 impl GGMLType {
+    pub fn to_u32(self) -> u32 {
+        self as u32
+    }
+
     pub fn from_u32(v: u32) -> Option<Self> {
         match v {
             0 => Some(GGMLType::F32),
@@ -226,4 +230,18 @@ pub struct GgufModelConfig {
     pub head_dim: Option<usize>,
     /// Sliding window size
     pub sliding_window: Option<usize>,
+    /// Global head dimension for mixed-head-dim models (Gemma 4)
+    pub global_head_dim: Option<usize>,
+    /// Layer type pattern (e.g. ["sliding_attention", "full_attention", ...])
+    pub layer_types: Option<Vec<String>>,
+    /// Number of KV shared layers (Gemma 4)
+    pub num_kv_shared_layers: Option<usize>,
+    /// Final logit softcapping value
+    pub final_logit_softcapping: Option<f32>,
+    /// Hidden size for per-layer input (Gemma 4 PLE)
+    pub hidden_size_per_layer_input: Option<usize>,
+    /// Use double-wide MLP (Gemma 4)
+    pub use_double_wide_mlp: Option<bool>,
+    /// Per-layer-type RoPE parameters (Gemma 4): key=layer_type, value=(theta, partial_rotary_factor)
+    pub rope_parameters: Option<HashMap<String, (f32, Option<f32>)>>,
 }

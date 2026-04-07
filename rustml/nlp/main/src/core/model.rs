@@ -968,6 +968,9 @@ impl LlmModel {
         let layer_types = config.layer_types.as_ref();
         let rope_params_map = config.rope_parameters.as_ref();
 
+        log::info!("[gemma4] head_dim={:?}, global_head_dim={:?}, layers={}, kv_shared={:?}",
+            config.head_dim, config.global_head_dim, num_layers, config.num_kv_shared_layers);
+
         let default_head_dim = config.head_dim.unwrap_or(d_model / num_heads);
         let global_head_dim = config.global_head_dim.unwrap_or(default_head_dim);
         // Gemma 4 uses scaling=1.0 (no attention score scaling).
@@ -993,10 +996,16 @@ impl LlmModel {
                         Some(RoPEFreqs::new(head_dim, max_seq_len, params.rope_theta))
                     }
                 } else {
-                    None
+                    // Layer type exists but no matching RoPE params — use global theta
+                    Some(RoPEFreqs::new(head_dim, max_seq_len, config.rope_theta))
                 }
             } else {
-                None
+                // No per-layer RoPE params — fall back to global rope_theta
+                // Sliding layers use local theta (10000), global layers use global theta
+                let theta = if is_global { config.rope_theta } else {
+                    config.rope_local_base_freq.unwrap_or(10000.0)
+                };
+                Some(RoPEFreqs::new(head_dim, max_seq_len, theta))
             };
 
             let q_proj = Linear::from_weights(
@@ -1502,7 +1511,8 @@ impl LlmModel {
             let ok = match target {
                 QuantTarget::Q8_0 => l.quantize_weight_q8().is_ok(),
                 QuantTarget::F16 => l.convert_weight_f16().is_ok(),
-                QuantTarget::Q4_0 => false, // TODO: implement Q4_0 quantization path
+                QuantTarget::Q4_0 => l.quantize_weight_q4_0().is_ok(),
+                QuantTarget::Q4_1 => l.quantize_weight_q4_1().is_ok(),
                 QuantTarget::None => false,
             };
             if ok && l.weight.dtype() != orig_dtype {

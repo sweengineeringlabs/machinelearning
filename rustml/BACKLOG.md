@@ -299,6 +299,45 @@ Prefill is actually **more efficient** per-token than decode:
 | #6 FFN optimization | Gemma 3 | Near-optimal | N/A (L1 cache constraint) |
 | #7 Prefill optimization | All | ✓ Investigated | Already efficient (10-24% faster per-token than decode) |
 
+---
+
+### 8. Fix Gemma 4 E2B forward pass — garbled output from GGUF
+**Priority**: High | **Status**: Open | **Blocks**: Gemma 4 inference
+
+Gemma 4 E2B GGUF inference produces garbled/repetitive output (e.g. "気の気の気の"). Confirmed with both our custom-quantized GGUF and the official `ggml-org/gemma-4-E2B-it-GGUF` Q8_0 — proving the issue is in the forward pass, not quantization.
+
+**Infrastructure complete** (2026-04-07):
+- Gemma 4 detection from GGUF (`gemma4` arch or `global_head_dim`/`layer_types` present)
+- Weight mapping: official + custom GGUF tensor names → internal names
+- Config bridge: extracts head_dim, global_head_dim, layer_types, RoPE params, KV sharing, PLE
+- Routes to `from_pretrained_gemma4()` builder
+
+**Suspected root causes** (investigate in order):
+
+1. **Per-layer `layer_output_scale`** — Weight loaded from GGUF (`blk.N.layer_output_scale.weight`) and mapped to `layers.N.layer_scalar`, but **never consumed in forward pass**. Gemma 4 multiplies each layer's output by this scalar before the residual add. Without it, residual magnitudes are wrong.
+   - Files: `nn/main/src/core/transformer_block.rs` (forward_with_cache), `nlp/main/src/core/model.rs` (from_pretrained_gemma4)
+
+2. **Per-layer feed-forward dimensions** — Official GGUF has `gemma4.feed_forward_length` as a **per-layer array** (len=35). Our code reads a single scalar `hidden_dim`. Some layers may have different FFN widths.
+   - Files: `gguf/main/src/core/parser.rs` (to_model_config), `nlp/main/src/core/model.rs`
+
+3. **RoPE partial rotation on global layers** — HF config says `partial_rotary_factor: 0.25` for global layers. GGUF metadata has `rope.dimension_count=512` and `key_length=512`, making the parser compute `512/512=1.0` (full rotation). May need to derive partial factor from `dimension_count / (2 * key_length)` or hardcode for gemma4 arch.
+   - Files: `gguf/main/src/core/parser.rs` (rope_parameters extraction)
+
+**Debug approach**: Compare logits on a single token between safetensors path (HF weights) and GGUF path. The first divergence reveals the bug.
+
+**Test files**:
+- Official: `ggml-org/gemma-4-E2B-it-GGUF` Q8_0 (4.97 GB)
+- Custom: quantized via `rustml-quantize --model google/gemma-4-e2b-it --target q4_0`
+
+---
+
+### 9. Quantize engine: fix summary label "kept F32" for F16 tensors
+**Priority**: Low | **Status**: Open
+
+The quantization summary prints "Skipped (kept F32)" but skipped tensors are actually kept as F16. Update the log message in `quantize/main/src/core/engine.rs`.
+
+---
+
 ## Test Commands
 
 ```bash

@@ -155,6 +155,60 @@ pub fn dequantize_q4_0(raw: &[u8], n_elements: usize) -> QuantResult<Vec<f32>> {
     Ok(out_f32)
 }
 
+/// Quantize an f32 slice to Q4_1 format.
+///
+/// Each block of 32 elements is stored as:
+/// - 2 bytes: f16 scale d (little-endian)
+/// - 2 bytes: f16 min m (little-endian)
+/// - 16 bytes: packed 4-bit unsigned nibbles
+///
+/// Requires element count divisible by 32.
+pub fn quantize_q4_1(data: &[f32]) -> QuantResult<Vec<u8>> {
+    let n_elements = data.len();
+    if n_elements % Q4_1_BLOCK_SIZE != 0 {
+        return Err(QuantError::BlockAlignment(format!(
+            "Q4_1 requires element count divisible by {}, got {}",
+            Q4_1_BLOCK_SIZE, n_elements
+        )));
+    }
+
+    let n_blocks = n_elements / Q4_1_BLOCK_SIZE;
+    let mut output = vec![0u8; n_blocks * Q4_1_BLOCK_BYTES];
+
+    for block_idx in 0..n_blocks {
+        let src_offset = block_idx * Q4_1_BLOCK_SIZE;
+        let dst_offset = block_idx * Q4_1_BLOCK_BYTES;
+        let block = &data[src_offset..src_offset + Q4_1_BLOCK_SIZE];
+
+        let min = block.iter().copied().fold(f32::INFINITY, f32::min);
+        let max = block.iter().copied().fold(f32::NEG_INFINITY, f32::max);
+
+        let d = (max - min) / 15.0;
+        let inv_d = if d == 0.0 { 0.0 } else { 1.0 / d };
+
+        let d_f16 = f16::from_f32(d);
+        let m_f16 = f16::from_f32(min);
+        let d_bytes = d_f16.to_le_bytes();
+        let m_bytes = m_f16.to_le_bytes();
+        output[dst_offset] = d_bytes[0];
+        output[dst_offset + 1] = d_bytes[1];
+        output[dst_offset + 2] = m_bytes[0];
+        output[dst_offset + 3] = m_bytes[1];
+
+        for i in 0..16 {
+            let even_idx = i * 2;
+            let odd_idx = i * 2 + 1;
+
+            let even_q = ((block[even_idx] - min) * inv_d).round().clamp(0.0, 15.0) as u8;
+            let odd_q = ((block[odd_idx] - min) * inv_d).round().clamp(0.0, 15.0) as u8;
+
+            output[dst_offset + 4 + i] = (odd_q << 4) | (even_q & 0x0F);
+        }
+    }
+
+    Ok(output)
+}
+
 /// Fast per-row F32 -> Q8_0 quantization for the activation hot path.
 ///
 /// Quantizes `input` (length must be a multiple of 32) into Q8_0 blocks written
@@ -902,6 +956,35 @@ mod tests {
     fn test_q4_block_alignment_error() {
         let data = vec![1.0f32; 33];
         assert!(quantize_q4_0(&data).is_err());
+    }
+
+    #[test]
+    fn test_q4_1_roundtrip() {
+        let data: Vec<f32> = (0..64).map(|i| (i as f32 - 32.0) / 10.0).collect();
+        let quantized = quantize_q4_1(&data).unwrap();
+        let dequantized = dequantize_q4_1(&quantized, 64).unwrap();
+
+        for (orig, deq) in data.iter().zip(dequantized.iter()) {
+            assert!((orig - deq).abs() < 0.5, "Q4_1 roundtrip error too large: {} vs {}", orig, deq);
+        }
+    }
+
+    #[test]
+    fn test_q4_1_block_alignment_error() {
+        let data = vec![1.0f32; 33];
+        assert!(quantize_q4_1(&data).is_err());
+    }
+
+    #[test]
+    fn test_q4_1_roundtrip_constant_block() {
+        // All-same values: d should be 0, all nibbles 0, dequant == min
+        let data = vec![3.0f32; 32];
+        let quantized = quantize_q4_1(&data).unwrap();
+        let dequantized = dequantize_q4_1(&quantized, 32).unwrap();
+
+        for (orig, deq) in data.iter().zip(dequantized.iter()) {
+            assert!((orig - deq).abs() < 0.01, "Q4_1 constant block error: {} vs {}", orig, deq);
+        }
     }
 
     #[test]

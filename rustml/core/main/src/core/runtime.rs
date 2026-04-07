@@ -184,6 +184,8 @@ pub enum QuantTarget {
     Q8_0,
     /// Block-quantized 4-bit (aggressive compression).
     Q4_0,
+    /// Block-quantized 4-bit with min offset (better quality than Q4_0).
+    Q4_1,
 }
 
 /// Quantization strategy: per-layer-type policies loaded from TOML.

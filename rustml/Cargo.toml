@@ -1,5 +1,5 @@
 [workspace]
-members = ["core", "nn", "hub", "nlp", "tokenizer", "quant", "gguf", "swets"]
+members = ["core", "nn", "hub", "nlp", "tokenizer", "quant", "gguf", "swets", "quantize", "daemon"]
 resolver = "2"
 
 [workspace.package]
@@ -51,6 +51,8 @@ hf-hub = "0.4"
 smallvec = { version = "1.11", features = ["const_generics"] }
 safetensors = "0.3"
 tokenizers = "0.21"
+uuid = { version = "1", features = ["v4"] }
+chrono = "0.4"
 
 [profile.release]
 lto = "thin"

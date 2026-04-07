@@ -5,7 +5,7 @@ use std::path::Path;
 
 use crate::api::error::{GgufError, GgufResult};
 use crate::api::types::*;
-use crate::core::weight_map::{gguf_bert_weight_map, gguf_gemma3_weight_map, gguf_llama_weight_map, gguf_nomic_bert_weight_map};
+use crate::core::weight_map::{gguf_bert_weight_map, gguf_gemma3_weight_map, gguf_gemma4_weight_map, gguf_llama_weight_map, gguf_nomic_bert_weight_map};
 
 /// GGUF magic bytes: "GGUF"
 pub const GGUF_MAGIC: [u8; 4] = [0x47, 0x47, 0x55, 0x46];
@@ -284,6 +284,65 @@ impl GGUFFile {
         let sliding_window =
             get_u32_opt(&format!("{}.attention.sliding_window", arch)).map(|v| v as usize);
 
+        // Gemma 4 specific fields
+        // Official GGUF: key_length = global head dim, key_length_swa = sliding head dim
+        // Our convention: head_dim = default (sliding), global_head_dim = global
+        let swa_head_dim = get_u32_opt(&format!("{}.attention.key_length_swa", arch))
+            .map(|v| v as usize);
+        let global_head_dim = get_u32_opt(&format!("{}.attention.global_key_length", arch))
+            .map(|v| v as usize)
+            .or_else(|| {
+                // Official GGUF format: if key_length_swa exists, key_length is the global dim
+                if swa_head_dim.is_some() { head_dim } else { None }
+            });
+        // If we have a separate SWA head dim, use it as the default head_dim
+        let head_dim = swa_head_dim.or(head_dim);
+        let num_kv_shared_layers = get_u32_opt(&format!("{}.num_kv_shared_layers", arch))
+            .or_else(|| get_u32_opt(&format!("{}.attention.shared_kv_layers", arch)))
+            .map(|v| v as usize);
+        let final_logit_softcapping = get_f32_opt(&format!("{}.final_logit_softcapping", arch));
+        let hidden_size_per_layer_input = get_u32_opt(&format!("{}.hidden_size_per_layer_input", arch))
+            .or_else(|| get_u32_opt(&format!("{}.embedding_length_per_layer_input", arch)))
+            .map(|v| v as usize);
+        let use_double_wide_mlp = get_u32_opt(&format!("{}.use_double_wide_mlp", arch))
+            .map(|v| v != 0);
+
+        // Layer types array (Gemma 4: sliding_attention / full_attention pattern)
+        let layer_types = self.metadata.get(&format!("{}.layer_types", arch))
+            .and_then(|v| match v {
+                GGUFValue::Array(arr) => {
+                    let types: Vec<String> = arr.iter().filter_map(|v| {
+                        if let GGUFValue::String(s) = v { Some(s.clone()) } else { None }
+                    }).collect();
+                    if types.is_empty() { None } else { Some(types) }
+                }
+                _ => None,
+            })
+            .or_else(|| {
+                // Official GGUF format: sliding_window_pattern is a bool/int array
+                // (true/1 = sliding, false/0 = global)
+                self.metadata.get(&format!("{}.attention.sliding_window_pattern", arch))
+                    .and_then(|v| match v {
+                        GGUFValue::Array(arr) => {
+                            let types: Vec<String> = arr.iter().map(|v| {
+                                let is_sliding = match v {
+                                    GGUFValue::Bool(b) => *b,
+                                    GGUFValue::U32(n) => *n != 0,
+                                    GGUFValue::I32(n) => *n != 0,
+                                    _ => true,
+                                };
+                                if is_sliding {
+                                    "sliding_attention".to_string()
+                                } else {
+                                    "full_attention".to_string()
+                                }
+                            }).collect();
+                            if types.is_empty() { None } else { Some(types) }
+                        }
+                        _ => None,
+                    })
+            });
+
         let bos_token_id = get_u32("tokenizer.ggml.bos_token_id").ok();
         let eos_token_id = get_u32("tokenizer.ggml.eos_token_id").ok();
 
@@ -292,6 +351,37 @@ impl GGUFFile {
             .get("tokenizer.chat_template")
             .and_then(|v| v.as_string())
             .map(|s| s.to_string());
+
+        // Extract per-layer-type RoPE parameters (Gemma 4)
+        let rope_parameters = {
+            let mut params = HashMap::new();
+            // Our custom format: {arch}.rope.{layer_type}.freq_base
+            for layer_type in &["sliding_attention", "full_attention"] {
+                let prefix = format!("{}.rope.{}", arch, layer_type);
+                let theta = get_f32_opt(&format!("{prefix}.freq_base"));
+                if let Some(theta) = theta {
+                    let factor = get_f32_opt(&format!("{prefix}.partial_rotary_factor"));
+                    params.insert(layer_type.to_string(), (theta, factor));
+                }
+            }
+            // Official GGUF format: freq_base = global theta, freq_base_swa = sliding theta
+            if params.is_empty() {
+                let global_theta = get_f32_opt(&format!("{}.rope.freq_base", arch));
+                let swa_theta = get_f32_opt(&format!("{}.rope.freq_base_swa", arch));
+                let dim_count = get_u32_opt(&format!("{}.rope.dimension_count", arch)).map(|v| v as usize);
+                if let (Some(gt), Some(st)) = (global_theta, swa_theta) {
+                    // Compute partial_rotary_factor for global layers:
+                    // dimension_count = number of rotated dims, global_head_dim = total head dim
+                    let partial_factor = match (dim_count, global_head_dim) {
+                        (Some(dc), Some(ghd)) if dc < ghd => Some(dc as f32 / ghd as f32),
+                        _ => None,
+                    };
+                    params.insert("sliding_attention".to_string(), (st, None));
+                    params.insert("full_attention".to_string(), (gt, partial_factor));
+                }
+            }
+            if params.is_empty() { None } else { Some(params) }
+        };
 
         Ok(GgufModelConfig {
             architecture: arch,
@@ -309,6 +399,13 @@ impl GGUFFile {
             chat_template,
             head_dim,
             sliding_window,
+            global_head_dim,
+            layer_types,
+            num_kv_shared_layers,
+            final_logit_softcapping,
+            hidden_size_per_layer_input,
+            use_double_wide_mlp,
+            rope_parameters,
         })
     }
 
@@ -415,6 +512,19 @@ impl GGUFFile {
     ) -> GgufResult<HashMap<String, LoadedTensor>> {
         let tensors = self.load_tensors(path)?;
         let weight_map = gguf_gemma3_weight_map(n_layers);
+        Ok(weight_map.remap(tensors))
+    }
+
+    /// Load tensors and remap using Gemma 4 GGUF naming conventions.
+    ///
+    /// Extends Gemma 3 naming with PLE (Per-Layer Embeddings).
+    pub fn load_and_remap_gemma4<P: AsRef<Path>>(
+        &self,
+        path: P,
+        n_layers: usize,
+    ) -> GgufResult<HashMap<String, LoadedTensor>> {
+        let tensors = self.load_tensors(path)?;
+        let weight_map = gguf_gemma4_weight_map(n_layers);
         Ok(weight_map.remap(tensors))
     }
 

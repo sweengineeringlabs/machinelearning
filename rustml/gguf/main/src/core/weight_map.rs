@@ -167,15 +167,27 @@ pub fn gguf_gemma3_weight_map(n_layers: usize) -> WeightMap {
 pub fn gguf_gemma4_weight_map(n_layers: usize) -> WeightMap {
     let mut wm = gguf_gemma3_weight_map(n_layers);
 
+    // Global PLE tensors (our convention)
+    wm.mapping.insert("ple_shared_embd.weight".into(), "ple_shared_embedding.weight".into());
+    wm.mapping.insert("ple_model_proj.weight".into(), "ple_model_projection.weight".into());
+    wm.mapping.insert("ple_proj_norm.weight".into(), "ple_projection_norm.weight".into());
+    // Official GGUF convention
+    wm.mapping.insert("per_layer_token_embd.weight".into(), "ple_shared_embedding.weight".into());
+    wm.mapping.insert("per_layer_model_proj.weight".into(), "ple_model_projection.weight".into());
+    wm.mapping.insert("per_layer_proj_norm.weight".into(), "ple_projection_norm.weight".into());
+
     for i in 0..n_layers {
-        wm.mapping.insert(
-            format!("blk.{}.ple_embd.weight", i),
-            format!("layers.{}.ple.embedding.weight", i),
-        );
-        wm.mapping.insert(
-            format!("blk.{}.ple_proj.weight", i),
-            format!("layers.{}.ple.projection.weight", i),
-        );
+        // Per-layer PLE (our convention)
+        wm.mapping.insert(format!("blk.{}.ple_gate.weight", i), format!("layers.{}.ple.gate.weight", i));
+        wm.mapping.insert(format!("blk.{}.ple_proj.weight", i), format!("layers.{}.ple.projection.weight", i));
+        wm.mapping.insert(format!("blk.{}.post_ple_norm.weight", i), format!("layers.{}.post_ple_norm.weight", i));
+        // Official GGUF convention
+        wm.mapping.insert(format!("blk.{}.inp_gate.weight", i), format!("layers.{}.ple.gate.weight", i));
+        wm.mapping.insert(format!("blk.{}.proj.weight", i), format!("layers.{}.ple.projection.weight", i));
+        wm.mapping.insert(format!("blk.{}.post_norm.weight", i), format!("layers.{}.post_ple_norm.weight", i));
+        // Layer scalar (both conventions)
+        wm.mapping.insert(format!("blk.{}.layer_scalar", i), format!("layers.{}.layer_scalar", i));
+        wm.mapping.insert(format!("blk.{}.layer_output_scale.weight", i), format!("layers.{}.layer_scalar", i));
     }
 
     wm
@@ -422,14 +434,22 @@ mod tests {
 
         let mut tensors = HashMap::new();
         tensors.insert("token_embd.weight".to_string(), "tok");
-        tensors.insert("blk.0.ple_embd.weight".to_string(), "ple_e0");
+        tensors.insert("ple_shared_embd.weight".to_string(), "ple_shared");
+        tensors.insert("ple_model_proj.weight".to_string(), "ple_mp");
+        tensors.insert("ple_proj_norm.weight".to_string(), "ple_pn");
+        tensors.insert("blk.0.ple_gate.weight".to_string(), "ple_g0");
         tensors.insert("blk.0.ple_proj.weight".to_string(), "ple_p0");
+        tensors.insert("blk.0.post_ple_norm.weight".to_string(), "ple_n0");
         tensors.insert("blk.1.attn_q.weight".to_string(), "q1");
 
         let remapped = wm.remap(tensors);
         assert!(remapped.contains_key("token_embedding.weight"));
-        assert!(remapped.contains_key("layers.0.ple.embedding.weight"));
+        assert!(remapped.contains_key("ple_shared_embedding.weight"));
+        assert!(remapped.contains_key("ple_model_projection.weight"));
+        assert!(remapped.contains_key("ple_projection_norm.weight"));
+        assert!(remapped.contains_key("layers.0.ple.gate.weight"));
         assert!(remapped.contains_key("layers.0.ple.projection.weight"));
+        assert!(remapped.contains_key("layers.0.post_ple_norm.weight"));
         assert!(remapped.contains_key("layers.1.attention.q_proj.weight"));
     }
 

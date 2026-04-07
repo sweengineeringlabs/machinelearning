@@ -124,6 +124,38 @@ impl Linear {
         Ok(())
     }
 
+    /// Quantize F32 weight to Q4_0 for aggressive memory reduction.
+    /// Requires in_features divisible by 32 (Q4_0 block size).
+    /// No-op if weight is already quantized or alignment is not met.
+    pub fn quantize_weight_q4_0(&mut self) -> NnResult<()> {
+        if self.weight.dtype() != DType::F32 {
+            return Ok(());
+        }
+        if self.in_features % 32 != 0 {
+            return Ok(());
+        }
+        let f32_data = self.weight.data()?;
+        let q4_bytes = rustml_quant::quantize_q4_0(f32_data)?;
+        self.weight = Tensor::new(q4_bytes, vec![self.out_features, self.in_features], DType::Q4_0);
+        Ok(())
+    }
+
+    /// Quantize F32 weight to Q4_1 for aggressive memory reduction.
+    /// Requires in_features divisible by 32 (Q4_1 block size).
+    /// No-op if weight is already quantized or alignment is not met.
+    pub fn quantize_weight_q4_1(&mut self) -> NnResult<()> {
+        if self.weight.dtype() != DType::F32 {
+            return Ok(());
+        }
+        if self.in_features % 32 != 0 {
+            return Ok(());
+        }
+        let f32_data = self.weight.data()?;
+        let q4_bytes = rustml_quant::quantize_q4_1(f32_data)?;
+        self.weight = Tensor::new(q4_bytes, vec![self.out_features, self.in_features], DType::Q4_1);
+        Ok(())
+    }
+
     /// Returns (total_params, frozen_params).
     pub fn parameter_count(&self) -> (usize, usize) {
         let mut total = self.weight.numel();

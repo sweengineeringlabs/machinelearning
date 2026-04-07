@@ -4,7 +4,7 @@
 //! `GgufModelConfig` → `ModelConfig` for loading GGUF models.
 
 use crate::api::error::NlpResult;
-use crate::api::types::ModelConfig;
+use crate::api::types::{ModelConfig, RopeParameters};
 use rustml_core::{DType, Tensor};
 use rustml_gguf::{GgufModelConfig, LoadedDType, LoadedTensor};
 use rustml_nn::PositionEncoding;
@@ -45,6 +45,10 @@ pub fn convert_tensors(tensors: HashMap<String, LoadedTensor>) -> HashMap<String
 /// - `embedding_scale = sqrt(dim)` (Gemma embedding scaling)
 pub fn gguf_config_to_model_config(gc: &GgufModelConfig) -> NlpResult<ModelConfig> {
     let is_gemma3 = gc.architecture == "gemma3";
+    let is_gemma4 = gc.architecture == "gemma4"
+        || gc.global_head_dim.is_some()
+        || gc.layer_types.is_some();
+    let is_gemma_family = is_gemma3 || is_gemma4;
     let is_bert = gc.architecture == "bert";
     let is_nomic_bert = gc.architecture == "nomic-bert";
     let is_bert_family = is_bert || is_nomic_bert;
@@ -76,36 +80,45 @@ pub fn gguf_config_to_model_config(gc: &GgufModelConfig) -> NlpResult<ModelConfi
         chat_template: gc.chat_template.clone(),
         sliding_window: gc.sliding_window,
         attn_logit_cap: None,
-        final_logit_softcapping: None,
-        embedding_scale: if is_gemma3 {
+        final_logit_softcapping: gc.final_logit_softcapping,
+        embedding_scale: if is_gemma_family {
             Some((gc.dim as f32).sqrt())
         } else {
             None
         },
-        // GGUF converter (convert_hf_to_gguf.py) already adds +1.0 to Gemma norm weights,
-        // so we must NOT add it again at forward time. Explicitly set 0.0 for Gemma.
-        rms_norm_offset: if is_gemma3 { Some(0.0) } else { None },
+        // GGUF converter already adds +1.0 to Gemma norm weights,
+        // so we must NOT add it again at forward time.
+        rms_norm_offset: if is_gemma_family { Some(0.0) } else { None },
         attention_bias: if is_bert { Some(true) } else { None },
         parallel_residual: None,
         num_local_experts: None,
         num_experts_per_tok: None,
         head_dim: gc.head_dim,
         sliding_window_pattern: if is_gemma3 { Some(6) } else { None },
-        query_pre_attn_scalar: if is_gemma3 {
+        query_pre_attn_scalar: if is_gemma_family {
             Some(head_dim as f32)
         } else {
             None
         },
-        rope_local_base_freq: if is_gemma3 { Some(10000.0) } else { None },
+        rope_local_base_freq: if is_gemma_family { Some(10000.0) } else { None },
         rope_scaling_factor: None,
         pooling_strategy: None,
-        layer_types: None,
-        global_head_dim: None,
-        num_kv_shared_layers: None,
-        hidden_size_per_layer_input: None,
+        // Gemma 4 specific fields
+        layer_types: gc.layer_types.clone(),
+        global_head_dim: gc.global_head_dim,
+        num_kv_shared_layers: gc.num_kv_shared_layers,
+        hidden_size_per_layer_input: gc.hidden_size_per_layer_input,
         vocab_size_per_layer_input: None,
-        use_double_wide_mlp: None,
-        rope_parameters: None,
+        use_double_wide_mlp: gc.use_double_wide_mlp,
+        rope_parameters: gc.rope_parameters.as_ref().map(|rp| {
+            rp.iter().map(|(layer_type, (theta, factor))| {
+                (layer_type.clone(), RopeParameters {
+                    rope_type: if factor.is_some() { "proportional".to_string() } else { "default".to_string() },
+                    rope_theta: *theta,
+                    partial_rotary_factor: *factor,
+                })
+            }).collect()
+        }),
     };
     config.validate()?;
     Ok(config)

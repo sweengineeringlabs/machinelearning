@@ -561,7 +561,11 @@ fn run_gguf(
 
     eprintln!("  Loading tensors...");
     let is_gemma3 = gguf_config.architecture == "gemma3";
-    let loaded_tensors = if is_gemma3 {
+    let is_gemma4 = gguf_config.global_head_dim.is_some() || gguf_config.layer_types.is_some();
+    let loaded_tensors = if is_gemma4 {
+        gguf.load_and_remap_gemma4(gguf_path, config.n_layers)
+            .with_context(|| "Failed to load/remap gemma4 tensors")?
+    } else if is_gemma3 {
         gguf.load_and_remap_gemma3(gguf_path, config.n_layers)
             .with_context(|| "Failed to load/remap gemma3 tensors")?
     } else {
@@ -572,7 +576,10 @@ fn run_gguf(
     eprintln!("  {} tensors loaded", tensors.len());
 
     eprintln!("  Building model...");
-    let mut model = if is_gemma3 {
+    let mut model = if is_gemma4 {
+        LlmModel::from_pretrained_gemma4(&config, tensors)
+            .with_context(|| "Failed to build gemma4 model")?
+    } else if is_gemma3 {
         LlmModel::from_pretrained_gemma3(&config, tensors)
             .with_context(|| "Failed to build gemma3 model")?
     } else {

@@ -1,0 +1,34 @@
+[package]
+name = "rustml-quantize"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Quantization engine for RustML - converts SafeTensors models to quantized GGUF format"
+authors = []
+
+[lib]
+path = "main/src/lib.rs"
+
+[[bin]]
+name = "rustml-quantize"
+path = "main/src/main.rs"
+
+[dependencies]
+rustml-core.workspace = true
+rustml-quant.workspace = true
+rustml-gguf.workspace = true
+rustml-hub.workspace = true
+thiserror.workspace = true
+half.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+clap.workspace = true
+log.workspace = true
+env_logger = "0.11"
+
+[dev-dependencies]
+approx.workspace = true
+
+[package.metadata.struct-engine]
+application_type = "binary"
