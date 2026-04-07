@@ -28,3 +28,14 @@ audiolearn/tauri/WixTools/
 
 # Dioxus build artifacts
 audiolearn/app/dist/assets/dioxus/
+
+# Model files
+*.gguf
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.onnx
+
+# Windows NUL redirect artifact
+nul
