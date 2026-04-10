@@ -1,4 +1,4 @@
-use rustml_swets::*;
+use architectures::*;
 
 const EPS: f32 = 1e-3;
 const REL_TOL: f32 = 1e-2; // relative tolerance for gradient checks
@@ -53,7 +53,7 @@ fn test_matmul_gradient() {
     b.set_requires_grad(true);
 
     // Forward with tape
-    use rustml_swets::api::tape::{TapeEntry, BackwardOp};
+    use architectures::api::tape::{TapeEntry, BackwardOp};
 
     let output = a.matmul_raw(&b).unwrap();
     tape::record_op(TapeEntry {
@@ -108,7 +108,7 @@ fn test_matmul_gradient() {
 fn test_add_gradient() {
     tape::clear_tape();
 
-    use rustml_swets::api::tape::{TapeEntry, BackwardOp};
+    use architectures::api::tape::{TapeEntry, BackwardOp};
 
     let mut a = Tensor::from_vec(vec![1.0, 2.0, 3.0], vec![1, 3]).unwrap();
     a.set_requires_grad(true);
@@ -156,7 +156,7 @@ fn test_add_gradient() {
 fn test_mul_gradient() {
     tape::clear_tape();
 
-    use rustml_swets::api::tape::{TapeEntry, BackwardOp};
+    use architectures::api::tape::{TapeEntry, BackwardOp};
 
     let mut a = Tensor::from_vec(vec![2.0, 3.0], vec![1, 2]).unwrap();
     a.set_requires_grad(true);
@@ -213,7 +213,7 @@ fn test_mul_gradient() {
 fn test_relu_gradient() {
     tape::clear_tape();
 
-    use rustml_swets::api::tape::{TapeEntry, BackwardOp};
+    use architectures::api::tape::{TapeEntry, BackwardOp};
     use training_engine::ReLUBackward;
 
     let mut input = Tensor::from_vec(vec![-1.0, 0.5, -0.3, 2.0], vec![2, 2]).unwrap();

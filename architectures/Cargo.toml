@@ -1,10 +1,10 @@
 [package]
-name = "rustml-swets"
+name = "architectures"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "SWE Time Series - ML training framework for rustml"
+description = "Model architectures - LSTM, Transformer, TCN, N-BEATS, and time series data pipeline"
 
 [lib]
 path = "main/src/lib.rs"

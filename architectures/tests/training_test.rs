@@ -1,4 +1,4 @@
-use rustml_swets::*;
+use architectures::*;
 
 #[test]
 fn test_linear_regression_convergence() {

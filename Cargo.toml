@@ -15,8 +15,8 @@ members = [
     "llm/daemon",
     # Training engine
     "training-engine",
-    # Time Series
-    "timeseries",
+    # Model architectures
+    "architectures",
 ]
 exclude = ["llm"]
 
@@ -60,7 +60,7 @@ rustml-nlp = { path = "llm/nlp" }
 rustml-tokenizer = { path = "llm/tokenizer" }
 rustml-quant = { path = "llm/quant" }
 rustml-gguf = { path = "llm/gguf" }
-rustml-swets = { path = "timeseries" }
+architectures = { path = "architectures" }
 training-engine = { path = "training-engine" }
 swellmd = { path = "llm/daemon" }
 # Shared deps for quant/gguf crates
