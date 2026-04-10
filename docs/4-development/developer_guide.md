@@ -63,9 +63,6 @@ rust-deeplearning/
 │   ├── swets/              # rustml-swets — time series training (experimental)
 │   ├── cli/                # rustml-cli — unified `sweai` binary
 │   └── daemon/             # swellmd — HTTP inference daemon
-├── audiolearn/             # Separate app (audio learning)
-├── components/             # Shared UI components
-├── tutorial-app/           # Tutorial application
 └── docs/                   # Project documentation
 ```
 

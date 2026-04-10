@@ -67,19 +67,18 @@ rust-deeplearning/
 ├── Cargo.toml                  # Root workspace
 ├── docs/                       # Project-level docs
 │   └── 3-design/adr/           # Architecture Decision Records
-├── rustml/                     # Umbrella (4 sub-crates + CLI + extras)
+├── rustml/                     # Umbrella (10 sub-crates)
 │   ├── core/                   # rustml-core (tensors, dtypes)
 │   ├── nn/                     # rustml-nn (layers, KVCache, attention)
 │   ├── hub/                    # rustml-hub (HuggingFace downloads, SafeTensors)
 │   ├── nlp/                    # rustml-nlp (models, generation, tokenizer bridge)
 │   ├── gguf/                   # rustml-gguf (GGUF parsing, weight loading)
 │   ├── tokenizer/              # rustml-tokenizer (BPE, GGUF, byte tokenizers)
-│   └── cli/                    # rustml-cli (sweai unified binary)
-├── audiolearn/                 # Umbrella (2 sub-crates)
-│   ├── app/                    # audiolearn-app
-│   └── tauri/                  # audiolearn-tauri
-├── components/                 # Single-crate
-└── tutorial-app/               # Single-crate
+│   ├── quant/                  # rustml-quant (Q4/Q8 quantization, SIMD)
+│   ├── swets/                  # rustml-swets (time series training)
+│   ├── cli/                    # rustml-cli (sweai unified binary)
+│   └── daemon/                 # swellmd (HTTP inference daemon)
+└── docs/                       # Project-level docs
 ```
 
 ### Model Architecture

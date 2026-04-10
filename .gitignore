@@ -22,13 +22,6 @@ Thumbs.db
 .env
 .env.local
 
-# Tauri build artifacts
-audiolearn/tauri/gen/
-audiolearn/tauri/WixTools/
-
-# Dioxus build artifacts
-audiolearn/app/dist/assets/dioxus/
-
 # Model files
 *.gguf
 *.safetensors

@@ -1,7 +1,6 @@
 [workspace]
 resolver = "2"
 members = [
-    # ML stack (umbrella: rustml/)
     "rustml/core",
     "rustml/nn",
     "rustml/hub",
@@ -12,25 +11,17 @@ members = [
     "rustml/cli",
     "rustml/daemon",
     "rustml/swets",
-    # AudioLearn (umbrella: audiolearn/)
-    "audiolearn/app",
-    "audiolearn/tauri",
-    # UI
-    "components",
-    "tutorial-app",
 ]
-exclude = ["rustml", "audiolearn"]
+exclude = ["rustml"]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 authors = []
-repository = "https://github.com/sweengineeringlabs/rust-ui"
+repository = "https://github.com/sweengineeringlabs/rust-deeplearning"
 
 [workspace.dependencies]
-# UI
-dioxus = { version = "0.6", features = ["web", "desktop"] }
 # Serialization
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -50,14 +41,6 @@ dirs = "6"
 # HTTP
 reqwest = { version = "0.12", features = ["json"] }
 futures-util = "0.3"
-# Audio (desktop)
-rodio = "0.20"
-tts = "0.26"
-msedge-tts = "0.2"
-rfd = "0.15"
-# Web
-wasm-bindgen = "0.2"
-web-sys = "0.3"
 # Testing
 approx = "0.5"
 # Logging
@@ -83,7 +66,6 @@ hf-hub = "0.4"
 smallvec = { version = "1.11", features = ["const_generics"] }
 safetensors = "0.3"
 tokenizers = "0.21"
-components = { path = "components" }
 swe-readline = { path = "../swebash/swe-readline" }
 
 [profile.release]
