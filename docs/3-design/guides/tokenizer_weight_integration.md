@@ -249,7 +249,7 @@ The tokenizer and model weights must agree on a shared vocabulary. This is not e
 SafeTensors models store weights separately from the tokenizer. Agreement must be maintained across files:
 
 ```
-~/.cache/rustml/hub/openai-community--gpt2/
+~/.cache/llm/hub/openai-community--gpt2/
 ├── config.json            ← Model dimensions, vocab_size
 ├── model.safetensors      ← Weights (token_embedding must match vocab_size)
 ├── vocab.json             ← Token-to-ID mapping (BPE vocabulary)

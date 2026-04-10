@@ -176,7 +176,7 @@
 | EOS from config | `rustml-infer --safetensors google/gemma-3-1b-it --prompt "Hi" --max-tokens 64` | Stops at model's EOS token (from config.json `eos_token_id`), not GPT-2 hardcoded EOS |
 | Unsupported model_type | Download a model with unknown `model_type`, attempt inference | Error: `Unsupported SafeTensors model_type: '<type>'` |
 
-> **Supported architectures**: `gpt2`, `llama`, `mistral`, `qwen2`, `phi3`, `gemma3`, `gemma3_text`, `falcon`, `mixtral`. The dispatch is in `build_safetensors_model()` in `rustml/nlp/main/src/core/model.rs`.
+> **Supported architectures**: `gpt2`, `llama`, `mistral`, `qwen2`, `phi3`, `gemma3`, `gemma3_text`, `falcon`, `mixtral`. The dispatch is in `build_safetensors_model()` in `llm/nlp/main/src/core/model.rs`.
 
 ## 12. SafeTensors Diagnostics
 

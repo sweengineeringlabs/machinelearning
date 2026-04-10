@@ -64,7 +64,7 @@ grep avx2 /proc/cpuinfo
 Fast compilation, slower inference (5-10x slower than release):
 
 ```bash
-cd /path/to/rust-deeplearning
+cd /path/to/machinelearning
 cargo build -p swellmd
 # Binary: ./target/debug/swellmd
 ```
@@ -115,7 +115,7 @@ No additional runtime files are needed. Model files are either:
 - Downloaded from HuggingFace on first use (SafeTensors path)
 - Provided as local files (GGUF path)
 
-**Cache directory** (auto-created): `~/.cache/rustml/hub/`
+**Cache directory** (auto-created): `~/.cache/llm/hub/`
 
 ---
 
@@ -157,7 +157,7 @@ swellmd --safetensors openai-community/gpt2
 swellmd --safetensors openai-community/gpt2
 ```
 
-**Cache location**: `~/.cache/rustml/hub/<org>--<model>/`
+**Cache location**: `~/.cache/llm/hub/<org>--<model>/`
 
 **Gated models** require authentication:
 

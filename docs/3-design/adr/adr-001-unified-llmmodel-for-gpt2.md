@@ -51,7 +51,7 @@ Route GPT-2 SafeTensors inference through `LlmModel::from_pretrained_gpt2()` ins
 
 ## References
 
-- `rustml/nlp/main/src/core/model.rs` — `LlmModel::from_pretrained_gpt2()`, `map_gpt2_weights()`
-- `rustml/nlp/main/src/core/gpt.rs` — `GptModel` (reference implementation)
-- `rustml/nlp/main/src/bin/infer.rs` — `run_safetensors()` (updated)
-- `rustml/cli/src/cmd/infer.rs` — `run_safetensors()` (updated)
+- `llm/nlp/main/src/core/model.rs` — `LlmModel::from_pretrained_gpt2()`, `map_gpt2_weights()`
+- `llm/nlp/main/src/core/gpt.rs` — `GptModel` (reference implementation)
+- `llm/nlp/main/src/bin/infer.rs` — `run_safetensors()` (updated)
+- `llm/cli/src/cmd/infer.rs` — `run_safetensors()` (updated)

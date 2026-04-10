@@ -1,7 +1,0 @@
-pub mod error;
-pub mod layer;
-pub mod loss;
-pub mod optim;
-pub mod pool;
-pub mod tape;
-pub mod tensor;

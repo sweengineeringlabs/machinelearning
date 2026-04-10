@@ -2581,6 +2581,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustml-quantize"
+version = "0.1.0"
+dependencies = [
+ "approx",
+ "clap",
+ "env_logger",
+ "half",
+ "log",
+ "rustml-core",
+ "rustml-gguf",
+ "rustml-hub",
+ "rustml-quant",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.17",
+]
+
+[[package]]
 name = "rustml-swets"
 version = "0.1.0"
 dependencies = [

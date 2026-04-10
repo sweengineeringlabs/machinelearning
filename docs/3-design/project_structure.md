@@ -63,11 +63,9 @@ Types belong to the interface they define (`api/` or `spi/`), not a shared `comm
 ## Current Structure
 
 ```
-rust-deeplearning/
+machinelearning/
 ├── Cargo.toml                  # Root workspace
-├── docs/                       # Project-level docs
-│   └── 3-design/adr/           # Architecture Decision Records
-├── rustml/                     # Umbrella (10 sub-crates)
+├── llm/                        # LLM inference stack (10 crates)
 │   ├── core/                   # rustml-core (tensors, dtypes)
 │   ├── nn/                     # rustml-nn (layers, KVCache, attention)
 │   ├── hub/                    # rustml-hub (HuggingFace downloads, SafeTensors)
@@ -75,9 +73,11 @@ rust-deeplearning/
 │   ├── gguf/                   # rustml-gguf (GGUF parsing, weight loading)
 │   ├── tokenizer/              # rustml-tokenizer (BPE, GGUF, byte tokenizers)
 │   ├── quant/                  # rustml-quant (Q4/Q8 quantization, SIMD)
-│   ├── swets/                  # rustml-swets (time series training)
+│   ├── quantize/               # rustml-quantize (SafeTensors -> GGUF pipeline)
 │   ├── cli/                    # rustml-cli (sweai unified binary)
 │   └── daemon/                 # swellmd (HTTP inference daemon)
+├── ml-sdk/                     # ML SDK (general ML/DL)
+│   └── swets/                  # rustml-swets (time series training)
 └── docs/                       # Project-level docs
 ```
 

@@ -338,7 +338,7 @@ WantedBy=multi-user.target
 |---------|-------|-----|
 | `Provide a GGUF model path or --safetensors <MODEL_ID>` | No model specified | Add a GGUF path or `--safetensors` flag |
 | `Failed to download model` | No internet or bad model ID | Check network; verify model ID on huggingface.co |
-| `Failed to load config.json` | Corrupted cache | Delete `~/.cache/rustml/hub/<model>` and retry |
+| `Failed to load config.json` | Corrupted cache | Delete `~/.cache/llm/hub/<model>` and retry |
 | `Address already in use` | Port conflict | Use a different `--port` or stop the existing process |
 
 ### Request failures

@@ -10,18 +10,18 @@ developed to explore LLM inference in Rust. It implements its own tensor engine,
 GGUF parser, HuggingFace Hub client, tokenizer, and CLI from scratch, using
 third-party crates directly (`faer`, `safetensors`, `tokenizers`, `hf-hub`).
 
-In parallel, the `rustml/` workspace grew into a production-quality rewrite of the
+In parallel, the `llm/` workspace grew into a production-quality rewrite of the
 same domain, structured as a multi-crate workspace following the Stratified
 Encapsulation Architecture (SEA) pattern:
 
 | llmforge module | Production equivalent |
 |---|---|
-| `src/core/tensor/` | `rustml-core` (`rustml/core/`) |
-| `src/attention/`, `src/transformer/` | `rustml-nn` (`rustml/nn/`) |
-| `src/gguf/` | `rustml-gguf` (`rustml/gguf/`) |
-| `src/hub/` | `rustml-hub` (`rustml/hub/`) |
-| `src/tokenizer/` | `rustml-tokenizer` (`rustml/tokenizer/`) |
-| `src/inference/`, `src/model/` | `rustml-nlp` (`rustml/nlp/`) |
+| `src/core/tensor/` | `rustml-core` (`llm/core/`) |
+| `src/attention/`, `src/transformer/` | `rustml-nn` (`llm/nn/`) |
+| `src/gguf/` | `rustml-gguf` (`llm/gguf/`) |
+| `src/hub/` | `rustml-hub` (`llm/hub/`) |
+| `src/tokenizer/` | `rustml-tokenizer` (`llm/tokenizer/`) |
+| `src/inference/`, `src/model/` | `rustml-nlp` (`llm/nlp/`) |
 | `cli/` (`llmforge` binary) | `rustml-cli` (`sweai` binary) |
 
 The two implementations never converged — llmforge was never migrated to depend

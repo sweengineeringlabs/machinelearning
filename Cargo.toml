@@ -1,25 +1,28 @@
 [workspace]
 resolver = "2"
 members = [
-    "rustml/core",
-    "rustml/nn",
-    "rustml/hub",
-    "rustml/nlp",
-    "rustml/tokenizer",
-    "rustml/quant",
-    "rustml/gguf",
-    "rustml/cli",
-    "rustml/daemon",
-    "rustml/swets",
+    # LLM inference stack
+    "llm/core",
+    "llm/nn",
+    "llm/hub",
+    "llm/nlp",
+    "llm/tokenizer",
+    "llm/quant",
+    "llm/gguf",
+    "llm/quantize",
+    "llm/cli",
+    "llm/daemon",
+    # ML SDK
+    "ml-sdk/swets",
 ]
-exclude = ["rustml"]
+exclude = ["llm", "ml-sdk"]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 authors = []
-repository = "https://github.com/sweengineeringlabs/rust-deeplearning"
+repository = "https://github.com/sweengineeringlabs/machinelearning"
 
 [workspace.dependencies]
 # Serialization
@@ -47,15 +50,15 @@ approx = "0.5"
 log = "0.4"
 env_logger = "0.11"
 # Internal crates
-rustml-core = { path = "rustml/core" }
-rustml-nn = { path = "rustml/nn" }
-rustml-hub = { path = "rustml/hub" }
-rustml-nlp = { path = "rustml/nlp" }
-rustml-tokenizer = { path = "rustml/tokenizer" }
-rustml-quant = { path = "rustml/quant" }
-rustml-gguf = { path = "rustml/gguf" }
-rustml-swets = { path = "rustml/swets" }
-swellmd = { path = "rustml/daemon" }
+rustml-core = { path = "llm/core" }
+rustml-nn = { path = "llm/nn" }
+rustml-hub = { path = "llm/hub" }
+rustml-nlp = { path = "llm/nlp" }
+rustml-tokenizer = { path = "llm/tokenizer" }
+rustml-quant = { path = "llm/quant" }
+rustml-gguf = { path = "llm/gguf" }
+rustml-swets = { path = "ml-sdk/swets" }
+swellmd = { path = "llm/daemon" }
 # Shared deps for quant/gguf crates
 bytemuck = { version = "1", features = ["extern_crate_alloc"] }
 half = { version = "2.3", features = ["bytemuck"] }

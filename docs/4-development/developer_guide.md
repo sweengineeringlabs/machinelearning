@@ -47,12 +47,12 @@
 
 ## Workspace Overview
 
-RustML is a Cargo workspace rooted at `rust-deeplearning/`. The ML stack lives under `rustml/`:
+RustML is a Cargo workspace rooted at `machinelearning/`. Two workspaces: `llm/` for LLM inference and `ml-sdk/` for general ML:
 
 ```
-rust-deeplearning/
+machinelearning/
 ├── Cargo.toml              # Workspace root — members, shared deps, profiles
-├── rustml/
+├── llm/                    # LLM inference stack
 │   ├── core/               # rustml-core — tensors, SIMD ops, arena allocator
 │   ├── nn/                 # rustml-nn — transformer layers, attention, KV cache
 │   ├── hub/                # rustml-hub — HuggingFace download + SafeTensors
@@ -60,9 +60,11 @@ rust-deeplearning/
 │   ├── tokenizer/          # rustml-tokenizer — BPE, HF, GGUF tokenizers
 │   ├── quant/              # rustml-quant — Q4_0/Q4_1/Q8_0 quantization + SIMD
 │   ├── gguf/               # rustml-gguf — GGUF binary format parser
-│   ├── swets/              # rustml-swets — time series training (experimental)
+│   ├── quantize/           # rustml-quantize — SafeTensors to GGUF pipeline
 │   ├── cli/                # rustml-cli — unified `sweai` binary
 │   └── daemon/             # swellmd — HTTP inference daemon
+├── ml-sdk/                 # ML SDK
+│   └── swets/              # rustml-swets — time series training (experimental)
 └── docs/                   # Project documentation
 ```
 
@@ -264,8 +266,8 @@ RUST_LOG=rustml=debug cargo test -p rustml-nlp -- --nocapture
 
 1. Create the directory structure following SEA:
    ```bash
-   mkdir -p rustml/my_crate/main/src/{api,core,saf}
-   mkdir -p rustml/my_crate/tests
+   mkdir -p llm/my_crate/main/src/{api,core,saf}
+   mkdir -p llm/my_crate/tests
    ```
 
 2. Create `Cargo.toml` using workspace inheritance:
@@ -282,11 +284,11 @@ RUST_LOG=rustml=debug cargo test -p rustml-nlp -- --nocapture
    [workspace]
    members = [
        # ...
-       "rustml/my_crate",
+       "llm/my_crate",
    ]
 
    [workspace.dependencies]
-   rustml-my-crate = { path = "rustml/my_crate" }
+   rustml-my-crate = { path = "llm/my_crate" }
    ```
 
 4. Create `lib.rs`:
@@ -380,7 +382,7 @@ generator.generate_turn_stream(&messages, 256, |token_id| { ... })?;
 ### Crate Structure
 
 ```
-rustml/daemon/
+llm/daemon/
 ├── Cargo.toml
 ├── main/src/
 │   ├── lib.rs

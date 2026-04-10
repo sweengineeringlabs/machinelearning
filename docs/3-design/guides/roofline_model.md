@@ -147,4 +147,4 @@ From rustml profiling (2026-02-19):
 ## Related Files
 
 - `docs/7-operations/audit/perf_round6_trace_level_analysis.md` — Bandwidth measurements
-- `rustml/quant/main/src/core/quantize.rs` — Q8_0 matmul with bandwidth logging
+- `llm/quant/main/src/core/quantize.rs` — Q8_0 matmul with bandwidth logging

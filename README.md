@@ -1,30 +1,29 @@
-# RUSTML
+# MACHINELEARNING
 
-Pure-Rust ML inference framework with quantized LLM serving.
+Pure-Rust ML platform with two workspaces: LLM inference and ML SDK.
 
-## Workspace
+## Workspaces
+
+### llm/ — LLM Inference Stack
 
 | Crate | Description |
 |-------|-------------|
-| `rustml/core` | Tensor engine — multi-dtype, SIMD ops, memory-mapped storage |
-| `rustml/nn` | Neural network layers — attention (MHA/GQA), RoPE, RMSNorm, MoE |
-| `rustml/quant` | Quantization kernels — Q4_0/Q4_1/Q8_0 with AVX2/NEON SIMD |
-| `rustml/nlp` | Language models — unified arch for GPT-2, Llama, Gemma 4 |
-| `rustml/tokenizer` | Tokenizers — BPE, GGUF, HuggingFace backends |
-| `rustml/gguf` | GGUF format — parser and writer for quantized model weights |
-| `rustml/hub` | HuggingFace Hub — model download, caching, SafeTensors loading |
-| `rustml/cli` | CLI tools — unified `sweai` binary |
-| `rustml/daemon` | Inference daemon — `swellmd` HTTP service |
-| `rustml/swets` | Time series training — N-BEATS, TCN, LSTM, Transformer |
+| `llm/core` | Tensor engine — multi-dtype, SIMD ops, memory-mapped storage |
+| `llm/nn` | Neural network layers — attention (MHA/GQA), RoPE, RMSNorm, MoE |
+| `llm/quant` | Quantization kernels — Q4_0/Q4_1/Q8_0 with AVX2/NEON SIMD |
+| `llm/nlp` | Language models — unified arch for GPT-2, Llama, Gemma 4 |
+| `llm/tokenizer` | Tokenizers — BPE, GGUF, HuggingFace backends |
+| `llm/gguf` | GGUF format — parser and writer for quantized model weights |
+| `llm/hub` | HuggingFace Hub — model download, caching, SafeTensors loading |
+| `llm/quantize` | Quantization pipeline — SafeTensors to GGUF conversion |
+| `llm/cli` | CLI tools — unified `sweai` binary |
+| `llm/daemon` | Inference daemon — `swellmd` HTTP service |
 
-## Features
+### ml-sdk/ — ML SDK
 
-- Quantized inference: Q4_0, Q4_1, Q8_0, F16 with SIMD-accelerated kernels
-- Model architectures: GPT-2, Llama, Gemma 4 (PLE, logit capping)
-- SafeTensors and GGUF model loading with HuggingFace Hub integration
-- TOML-configurable per-layer quantization strategy
-- Text generation with temperature, top-k, nucleus sampling
-- KV caching for efficient autoregressive decoding
+| Crate | Description |
+|-------|-------------|
+| `ml-sdk/swets` | Time series training — N-BEATS, TCN, LSTM, Transformer, optimizers |
 
 ## Quick Start
 

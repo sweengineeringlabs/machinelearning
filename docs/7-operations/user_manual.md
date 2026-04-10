@@ -41,7 +41,7 @@
 1. **Build the CLI** (release mode recommended for inference speed):
 
    ```bash
-   cd /path/to/rust-deeplearning
+   cd /path/to/machinelearning
    cargo build --release -p rustml-cli
    ```
 
@@ -54,7 +54,7 @@
    ./target/release/sweai --help
    ```
 
-> **Tip:** All commands below assume you are in the workspace root (`rust-deeplearning/`). If you add `./target/release` to your `PATH`, you can run `sweai` directly without the path prefix.
+> **Tip:** All commands below assume you are in the workspace root (`machinelearning/`). If you add `./target/release` to your `PATH`, you can run `sweai` directly without the path prefix.
 
 ---
 

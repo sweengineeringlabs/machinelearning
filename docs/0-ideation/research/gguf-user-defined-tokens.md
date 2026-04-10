@@ -111,7 +111,7 @@ Output: "The capital of France is, indeed, Paris."
 
 | File | Change |
 |---|---|
-| `rustml/nlp/main/src/core/tokenizer/mod.rs` | Load token_type, collect USER_DEFINED tokens, greedy pre-match before BPE |
+| `llm/nlp/main/src/core/tokenizer/mod.rs` | Load token_type, collect USER_DEFINED tokens, greedy pre-match before BPE |
 
 ## Relationship to Previous Tokenizer Fix
 

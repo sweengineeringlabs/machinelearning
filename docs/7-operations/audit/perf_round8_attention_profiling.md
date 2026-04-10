@@ -170,5 +170,5 @@ HF_TOKEN=xxx RUST_LOG=rustml=trace cargo run --release -p rustml-nlp --bin rustm
 
 ## Files Modified
 
-- `rustml/nn/main/src/core/attention.rs` — Added trace-level timing instrumentation
-- `rustml/BACKLOG.md` — Updated Task #4 status to "Profiled (near-optimal)"
+- `llm/nn/main/src/core/attention.rs` — Added trace-level timing instrumentation
+- `llm/BACKLOG.md` — Updated Task #4 status to "Profiled (near-optimal)"

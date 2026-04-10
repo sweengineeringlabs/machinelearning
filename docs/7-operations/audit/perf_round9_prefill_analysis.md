@@ -127,6 +127,6 @@ RUST_LOG=rustml=trace HF_TOKEN=xxx cargo run --release -p rustml-nlp --bin rustm
 
 ## Files Referenced
 
-- `rustml/nlp/main/src/core/generator.rs` — prefill() and decode_step() methods
-- `rustml/nn/main/src/core/attention.rs` — forward_with_cache_inner() trace instrumentation
-- `rustml/BACKLOG.md` — Updated Task #7 status
+- `llm/nlp/main/src/core/generator.rs` — prefill() and decode_step() methods
+- `llm/nn/main/src/core/attention.rs` — forward_with_cache_inner() trace instrumentation
+- `llm/BACKLOG.md` — Updated Task #7 status

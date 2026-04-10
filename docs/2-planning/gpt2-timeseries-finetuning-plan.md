@@ -80,7 +80,7 @@ swets::Tensor [B, S, forecast_dim]
 
 Create a new module in `rustml-swets` (or a standalone crate) with the adapter:
 
-**File: `rustml/swets/main/src/core/models/gpt2_ts.rs`**
+**File: `ml-sdk/swets/main/src/core/models/gpt2_ts.rs`**
 
 ```rust
 pub struct Gpt2TimeSeriesConfig {

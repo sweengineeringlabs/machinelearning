@@ -225,7 +225,7 @@ Text-only inference covers the primary use case for swellmd chat completions.
 - [x] Unit tests for config parsing (`test_gemma4_config_from_json`)
 
 **Files:**
-- `rustml/nlp/main/src/api/types.rs` (lines 219-231, 512-554, 680-714)
+- `llm/nlp/main/src/api/types.rs` (lines 219-231, 512-554, 680-714)
 
 ### Phase 2: Partial RoPE + Dual Head Dim (Days 2-3) — PARTIAL
 
@@ -240,8 +240,8 @@ Text-only inference covers the primary use case for swellmd chat completions.
 - [ ] Verify Q projection output size matches per-layer head_dim
 
 **Files:**
-- `rustml/nn/main/src/core/rope.rs` (lines 136-163)
-- `rustml/nn/main/src/core/attention.rs`
+- `llm/nn/main/src/core/rope.rs` (lines 136-163)
+- `llm/nn/main/src/core/attention.rs`
 
 ### Phase 3: KV Sharing (Days 3-5) — PARTIAL
 
@@ -258,9 +258,9 @@ Text-only inference covers the primary use case for swellmd chat completions.
 - [ ] Unit tests: verify KV reuse produces correct attention output
 
 **Files:**
-- `rustml/nn/main/src/core/kv_cache.rs` (lines 1-213)
-- `rustml/nn/main/src/core/attention.rs`
-- `rustml/nn/main/src/core/transformer_block.rs`
+- `llm/nn/main/src/core/kv_cache.rs` (lines 1-213)
+- `llm/nn/main/src/core/attention.rs`
+- `llm/nn/main/src/core/transformer_block.rs`
 
 ### Phase 4: Per-Layer Embeddings (Days 5-6) — DONE
 
@@ -274,8 +274,8 @@ Text-only inference covers the primary use case for swellmd chat completions.
 - [x] Unit test: `test_ple_lookup` (embedding.rs:129-133)
 
 **Files:**
-- `rustml/nn/main/src/core/embedding.rs` (lines 89-122)
-- `rustml/nlp/main/src/core/model.rs` (lines 1553-1557, 1638-1642)
+- `llm/nn/main/src/core/embedding.rs` (lines 89-122)
+- `llm/nlp/main/src/core/model.rs` (lines 1553-1557, 1638-1642)
 
 ### Phase 5: Weight Loading + Constructor (Days 6-8) — PARTIAL
 
@@ -294,10 +294,10 @@ Text-only inference covers the primary use case for swellmd chat completions.
 - [ ] `swellmd` loader: add gemma4 branch alongside gemma3/nomic-bert
 
 **Files:**
-- `rustml/nlp/main/src/core/weight_map.rs` (lines 350-444)
-- `rustml/nlp/main/src/core/model.rs` (lines 898-1063, 1969-1973)
-- `rustml/nlp/main/src/core/gguf_bridge.rs` (lines 46-111 — needs update)
-- `rustml/gguf/main/src/core/weight_map.rs` (lines 167-182)
+- `llm/nlp/main/src/core/weight_map.rs` (lines 350-444)
+- `llm/nlp/main/src/core/model.rs` (lines 898-1063, 1969-1973)
+- `llm/nlp/main/src/core/gguf_bridge.rs` (lines 46-111 — needs update)
+- `llm/gguf/main/src/core/weight_map.rs` (lines 167-182)
 
 ### Phase 6: Validation + Testing (Days 8-10) — NOT STARTED
 

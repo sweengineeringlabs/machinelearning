@@ -133,16 +133,16 @@ cargo test -p rustml-tokenizer
 
 | Suite | Location | Count |
 |-------|----------|-------|
-| Core unit tests | `rustml/core/main/src/` | 44 |
-| NN unit tests | `rustml/nn/main/src/` | 78 |
-| GGUF unit tests | `rustml/gguf/main/src/` | 5 |
-| GGUF CLI integration | `rustml/gguf/tests/cli.rs` | 27 |
-| Hub unit tests | `rustml/hub/main/src/` | 8 |
-| Hub CLI integration | `rustml/hub/tests/cli.rs` | 15 |
-| NLP unit tests | `rustml/nlp/main/src/` | 109 |
-| NLP integration tests | `rustml/nlp/tests/` | 4 |
-| Infer CLI integration | `rustml/nlp/tests/infer_cli.rs` | 14 |
-| Tokenizer CLI integration | `rustml/tokenizer/tests/cli.rs` | 18 |
+| Core unit tests | `llm/core/main/src/` | 44 |
+| NN unit tests | `llm/nn/main/src/` | 78 |
+| GGUF unit tests | `llm/gguf/main/src/` | 5 |
+| GGUF CLI integration | `llm/gguf/tests/cli.rs` | 27 |
+| Hub unit tests | `llm/hub/main/src/` | 8 |
+| Hub CLI integration | `llm/hub/tests/cli.rs` | 15 |
+| NLP unit tests | `llm/nlp/main/src/` | 109 |
+| NLP integration tests | `llm/nlp/tests/` | 4 |
+| Infer CLI integration | `llm/nlp/tests/infer_cli.rs` | 14 |
+| Tokenizer CLI integration | `llm/tokenizer/tests/cli.rs` | 18 |
 | **Total** | | **322** |
 
 ---

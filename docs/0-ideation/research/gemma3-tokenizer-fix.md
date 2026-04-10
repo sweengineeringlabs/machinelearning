@@ -119,8 +119,8 @@ Adding `DType::Q4_1` to the preserve list reduced model build time from **21.6s 
 
 | File | Change |
 |---|---|
-| `rustml/nlp/main/src/core/tokenizer/mod.rs` | Rewrote `GgufTokenizer` with BPE scores, merge loop, space normalization |
-| `rustml/nlp/main/src/core/model.rs` | Added `DType::Q4_1` to weight preservation in `get_weight` (3 call sites) |
+| `llm/nlp/main/src/core/tokenizer/mod.rs` | Rewrote `GgufTokenizer` with BPE scores, merge loop, space normalization |
+| `llm/nlp/main/src/core/model.rs` | Added `DType::Q4_1` to weight preservation in `get_weight` (3 call sites) |
 
 ## Lessons Learned
 

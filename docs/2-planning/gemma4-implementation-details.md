@@ -69,7 +69,7 @@ Implement text-only inference support for the Gemma 4 E2B model (2.3B effective 
 
 ### 1. `rustml-nlp` (API & Configuration) — DONE
 
-- **File:** `rustml/nlp/main/src/api/types.rs`
+- **File:** `llm/nlp/main/src/api/types.rs`
     - [x] Update `ModelConfig` struct with Gemma 4 specific fields:
         - `layer_types: Option<Vec<String>>`
         - `global_head_dim: Option<usize>`
@@ -85,24 +85,24 @@ Implement text-only inference support for the Gemma 4 E2B model (2.3B effective 
 
 ### 2. `rustml-nn` (Core Infrastructure) — PARTIAL
 
-- **File:** `rustml/nn/main/src/core/rope.rs` — DONE
+- **File:** `llm/nn/main/src/core/rope.rs` — DONE
     - [x] `RoPEFreqs::with_partial_rotation` constructor (rope.rs:136-163)
     - [x] Partial rotation in `apply()` — rotate first N dims, pass through rest
     - [x] SIMD optimizations (AVX2/NEON)
     - [x] Unit test: `test_partial_rope` (rope.rs:333-352)
-- **File:** `rustml/nn/main/src/core/kv_cache.rs` — PARTIAL
+- **File:** `llm/nn/main/src/core/kv_cache.rs` — PARTIAL
     - [x] `KVCache::with_kv_sharing()` constructor with `layer_to_slot` mapping
     - [x] `get_slot_idx()`, `is_slot_owner()`, `get_view()`, `update()` APIs
     - [ ] **Missing:** Auto-generate sharing map from `num_kv_shared_layers` config
-- **File:** `rustml/nn/main/src/core/embedding.rs` — DONE
+- **File:** `llm/nn/main/src/core/embedding.rs` — DONE
     - [x] `PerLayerEmbedding` struct: wraps `Embedding` + `Linear` projection (embedding.rs:89-122)
     - [x] Unit test: `test_ple_lookup` (embedding.rs:129-133)
-- **File:** `rustml/nn/main/src/core/transformer_block.rs` — PARTIAL
+- **File:** `llm/nn/main/src/core/transformer_block.rs` — PARTIAL
     - [ ] **Missing:** Skipping K/V projections when operating in shared-KV mode
 
 ### 3. `rustml-nlp` (Model Implementation) — PARTIAL
 
-- **File:** `rustml/nlp/main/src/core/model.rs`
+- **File:** `llm/nlp/main/src/core/model.rs`
     - [x] `ple_tables: Vec<PerLayerEmbedding>` on `LlmModel`
     - [x] `from_pretrained_gemma4` constructor (model.rs:898-1063)
     - [x] `forward_pass` and `forward_with_cache_pass` incorporate PLE lookup/add
@@ -111,15 +111,15 @@ Implement text-only inference support for the Gemma 4 E2B model (2.3B effective 
     - [ ] **Missing:** QK norm loading (Gemma 3 does it at model.rs:800-806, Gemma 4 skips it)
     - [ ] **Missing:** Per-layer `head_dim` vs `global_head_dim` — all layers use uniform head_dim
     - [ ] **Missing:** `use_double_wide_mlp` not applied to FFN intermediate size
-- **File:** `rustml/nlp/main/src/core/weight_map.rs` — DONE
+- **File:** `llm/nlp/main/src/core/weight_map.rs` — DONE
     - [x] `WeightMap::gemma4` maps HF tensor names to internal names (weight_map.rs:350-444)
 
 ### 4. `rustml-gguf` (GGUF Support) — PARTIAL
 
-- **File:** `rustml/gguf/main/src/core/weight_map.rs` — DONE
+- **File:** `llm/gguf/main/src/core/weight_map.rs` — DONE
     - [x] `gguf_gemma4_weight_map()` extends Gemma 3 map with PLE entries (weight_map.rs:167-182)
     - [ ] **Unverified:** GGUF tensor names (`blk.{i}.ple_embd.weight`) not confirmed against actual files
-- **File:** `rustml/nlp/main/src/core/gguf_bridge.rs` — NOT DONE
+- **File:** `llm/nlp/main/src/core/gguf_bridge.rs` — NOT DONE
     - [ ] **Missing:** `gguf_config_to_model_config()` has no Gemma 4 branch (only handles Gemma 3)
 
 ## Verification Plan

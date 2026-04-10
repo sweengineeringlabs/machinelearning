@@ -92,8 +92,8 @@ After the fix, the logit verifier shows token ID match (16 tokens, no WARN) on t
 
 | File | Change |
 |---|---|
-| `rustml/nlp/main/src/core/tokenizer/mod.rs` | Add `TOKEN_TYPE_CONTROL`, expand type check to include CONTROL tokens |
-| `rustml/nlp/tests/logit_verifier_test.rs` | Detect BOS in encoded output to avoid double-prepend |
+| `llm/nlp/main/src/core/tokenizer/mod.rs` | Add `TOKEN_TYPE_CONTROL`, expand type check to include CONTROL tokens |
+| `llm/nlp/tests/logit_verifier_test.rs` | Detect BOS in encoded output to avoid double-prepend |
 
 ## Relationship to Previous Tokenizer Fixes
 

@@ -125,4 +125,4 @@ DDR5-5500:         88 GB/s     →       14-22 GB/s   →    11-18 GB/s
 - `docs/7-operations/audit/perf_round6_bottleneck_analysis_report.md`
 - `docs/7-operations/audit/perf_round6_trace_level_analysis.md`
 - `docs/3-design/guides/roofline_model.md`
-- `rustml/BACKLOG.md`
+- `llm/BACKLOG.md`

@@ -70,7 +70,7 @@ rustc --version
 ### Build Release Binary
 
 ```bash
-cd /path/to/rust-deeplearning
+cd /path/to/machinelearning
 cargo build -p swellmd --release
 ```
 
