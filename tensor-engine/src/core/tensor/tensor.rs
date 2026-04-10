@@ -3,8 +3,10 @@
 //! The Tensor struct is defined in api/tensor_def.rs.
 //! This module provides all impl blocks.
 
-pub use crate::api::tensor_def::{Tensor, Storage, f32_vec_to_bytes, f32_slice_to_bytes};
-pub(crate) use crate::api::tensor_def::{TensorShape, storage_byte_len};
+pub use crate::api::tensor::def::Tensor;
+pub use crate::api::storage_def::{Storage, f32_vec_to_bytes, f32_slice_to_bytes};
+pub(crate) use crate::api::tensor::def::TensorShape;
+pub(crate) use crate::api::storage_def::storage_byte_len;
 use crate::api::error::{TensorError, TensorResult};
 use crate::api::dtype::DType;
 use crate::api::device::Device;

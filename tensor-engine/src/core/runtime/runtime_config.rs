@@ -36,76 +36,74 @@ impl Default for RuntimeConfig {
     }
 }
 
-impl RuntimeConfig {
-    /// Apply this runtime configuration globally.
-    pub(crate) fn apply_inner(&self) -> Result<(), crate::api::error::TensorError> {
-        use faer::{Parallelism, set_global_parallelism};
+/// Apply a runtime configuration globally.
+pub(crate) fn apply_runtime_config(config: &RuntimeConfig) -> Result<(), crate::api::error::TensorError> {
+    use faer::{Parallelism, set_global_parallelism};
 
-        if self.num_threads == 0 {
-            set_global_parallelism(Parallelism::Rayon(0));
-        } else {
-            set_global_parallelism(Parallelism::Rayon(self.num_threads));
-            rayon::ThreadPoolBuilder::new()
-                .num_threads(self.num_threads)
-                .build_global()
-                .map_err(|e| crate::api::error::TensorError::InvalidOperation(
-                    format!("Failed to set rayon thread pool: {}", e)
-                ))?;
-        }
-
-        SOFTMAX_PAR_THRESHOLD.store(self.softmax_par_threshold, Ordering::Relaxed);
-        BATCHED_MATMUL_PAR_THRESHOLD.store(self.batched_matmul_par_threshold, Ordering::Relaxed);
-        GEMV_PAR_THRESHOLD.store(self.gemv_par_threshold, Ordering::Relaxed);
-
-        let simd = Self::detect_simd();
-        eprintln!("[runtime] SIMD: {}", simd);
-
-        let threads = rayon::current_num_threads();
-        eprintln!("[runtime] Rayon threads: {}", threads);
-
-        Ok(())
+    if config.num_threads == 0 {
+        set_global_parallelism(Parallelism::Rayon(0));
+    } else {
+        set_global_parallelism(Parallelism::Rayon(config.num_threads));
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(config.num_threads)
+            .build_global()
+            .map_err(|e| crate::api::error::TensorError::InvalidOperation(
+                format!("Failed to set rayon thread pool: {}", e)
+            ))?;
     }
 
-    /// Detect available SIMD instruction sets.
-    pub(crate) fn detect_simd() -> &'static str {
-        #[cfg(target_arch = "x86_64")]
-        {
-            if is_x86_feature_detected!("avx2") {
-                return "AVX2";
-            }
-            if is_x86_feature_detected!("sse2") {
-                return "SSE2";
-            }
+    SOFTMAX_PAR_THRESHOLD.store(config.softmax_par_threshold, Ordering::Relaxed);
+    BATCHED_MATMUL_PAR_THRESHOLD.store(config.batched_matmul_par_threshold, Ordering::Relaxed);
+    GEMV_PAR_THRESHOLD.store(config.gemv_par_threshold, Ordering::Relaxed);
+
+    let simd = detect_simd();
+    eprintln!("[runtime] SIMD: {}", simd);
+
+    let threads = rayon::current_num_threads();
+    eprintln!("[runtime] Rayon threads: {}", threads);
+
+    Ok(())
+}
+
+/// Detect available SIMD instruction sets.
+pub(crate) fn detect_simd() -> &'static str {
+    #[cfg(target_arch = "x86_64")]
+    {
+        if is_x86_feature_detected!("avx2") {
+            return "AVX2";
         }
-        #[cfg(target_arch = "aarch64")]
-        {
-            return "NEON";
+        if is_x86_feature_detected!("sse2") {
+            return "SSE2";
         }
-        "scalar"
     }
-
-    /// Warm up the rayon thread pool by forcing all threads to wake and do work.
-    pub(crate) fn warmup_thread_pool() {
-        let n_threads = rayon::current_num_threads();
-        let work_size = n_threads * 1024;
-        let mut buffer: Vec<f32> = vec![1.0; work_size];
-
-        buffer.par_chunks_mut(1024).for_each(|chunk| {
-            for i in 0..chunk.len() {
-                chunk[i] = chunk[i] * 2.0 + 1.0;
-            }
-            std::sync::atomic::fence(Ordering::SeqCst);
-        });
-
-        let _sum: f32 = buffer.par_chunks(1024)
-            .map(|chunk| chunk.iter().sum::<f32>())
-            .sum();
+    #[cfg(target_arch = "aarch64")]
+    {
+        return "NEON";
     }
+    "scalar"
+}
+
+/// Warm up the rayon thread pool by forcing all threads to wake and do work.
+pub(crate) fn warmup_thread_pool() {
+    let n_threads = rayon::current_num_threads();
+    let work_size = n_threads * 1024;
+    let mut buffer: Vec<f32> = vec![1.0; work_size];
+
+    buffer.par_chunks_mut(1024).for_each(|chunk| {
+        for i in 0..chunk.len() {
+            chunk[i] = chunk[i] * 2.0 + 1.0;
+        }
+        std::sync::atomic::fence(Ordering::SeqCst);
+    });
+
+    let _sum: f32 = buffer.par_chunks(1024)
+        .map(|chunk| chunk.iter().sum::<f32>())
+        .sum();
 }
 
 impl ConfigOps for RuntimeConfig {
     fn apply(&self) -> Result<(), crate::api::error::TensorError> {
-        self.apply_inner()
+        apply_runtime_config(self)
     }
 }
 
@@ -113,7 +111,7 @@ impl ConfigOps for RuntimeConfig {
 mod tests {
     use super::*;
 
-    /// @covers: RuntimeConfig::default
+    /// @covers: RuntimeConfig (Default)
     #[test]
     fn test_default_returns_standard_thresholds() {
         let config = RuntimeConfig::default();
@@ -123,25 +121,25 @@ mod tests {
         assert_eq!(config.gemv_par_threshold, 4096);
     }
 
-    /// @covers: RuntimeConfig::detect_simd
+    /// @covers: detect_simd
     #[test]
     fn test_detect_simd_returns_nonempty() {
-        let simd = RuntimeConfig::detect_simd();
+        let simd = detect_simd();
         assert!(!simd.is_empty());
     }
 
-    /// @covers: RuntimeConfig::apply_inner
+    /// @covers: apply_runtime_config
     #[test]
-    fn test_apply_inner_does_not_panic() {
+    fn test_apply_runtime_config_does_not_panic() {
         let config = RuntimeConfig::default();
-        let result = config.apply_inner();
+        let result = apply_runtime_config(&config);
         assert!(result.is_ok());
     }
 
-    /// @covers: RuntimeConfig::warmup_thread_pool
+    /// @covers: warmup_thread_pool
     #[test]
     fn test_warmup_thread_pool_does_not_panic() {
-        RuntimeConfig::warmup_thread_pool();
+        warmup_thread_pool();
     }
 
     /// @covers: ConfigOps::apply

@@ -1,7 +1,7 @@
 // SAF wrapper functions — standalone functions that delegate to api traits.
 // These are the public surface for consumers who don't use trait objects directly.
 
-use crate::api::traits::TensorOps;
+use crate::api::tensor::ops::TensorOps;
 use crate::api::error::TensorResult;
 use super::types::Tensor;
 
@@ -34,21 +34,79 @@ pub fn tensor_softmax(t: &Tensor, dim: i64) -> TensorResult<Tensor> {
 ///
 /// Configures rayon thread pool, faer parallelism, and per-op thresholds.
 pub fn apply_runtime_config(config: &crate::core::runtime::runtime_config::RuntimeConfig) -> TensorResult<()> {
-    config.apply_inner()
+    crate::core::runtime::runtime_config::apply_runtime_config(config)
 }
 
-// ==================== QuantOps wrappers ====================
+// ==================== TensorBuilder factory ====================
 
-pub use crate::core::runtime::quant::config::QuantConfig;
+/// Create a new [`TensorBuilder`](crate::api::tensor_builder_def::TensorBuilder) for
+/// constructing tensors with explicit shape, dtype, and device.
+pub fn create_tensor_builder() -> crate::api::tensor_builder_def::TensorBuilder {
+    crate::api::tensor_builder_def::TensorBuilder::new()
+}
+
+// ==================== QuantConfig wrappers ====================
+
+pub use crate::api::quant_config_def::QuantConfig;
+
+/// Create a QuantConfig with all layers set to Q8_0.
+pub fn quant_config_q8_all() -> QuantConfig {
+    QuantConfig::q8_all()
+}
+
+/// Create a QuantConfig with no quantization.
+pub fn quant_config_none() -> QuantConfig {
+    QuantConfig::none()
+}
+
+/// Load a QuantConfig from a TOML file, falling back to defaults.
+pub fn quant_config_from_toml_file(path: &std::path::Path) -> QuantConfig {
+    QuantConfig::from_toml_file(path)
+}
+
+/// Get the attention quantization target.
+pub fn quant_config_attention(c: &QuantConfig) -> crate::api::quant::target::QuantTarget {
+    c.attention()
+}
+
+/// Get the feed-forward quantization target.
+pub fn quant_config_feed_forward(c: &QuantConfig) -> crate::api::quant::target::QuantTarget {
+    c.feed_forward()
+}
+
+/// Get the output quantization target.
+pub fn quant_config_output(c: &QuantConfig) -> crate::api::quant::target::QuantTarget {
+    c.output()
+}
+
+/// Get the MoE quantization target.
+pub fn quant_config_moe(c: &QuantConfig) -> crate::api::quant::target::QuantTarget {
+    c.moe()
+}
+
+/// Get the gate quantization target.
+pub fn quant_config_gate(c: &QuantConfig) -> crate::api::quant::target::QuantTarget {
+    c.gate()
+}
+
+/// Get the minimum dimension for quantization.
+pub fn quant_config_min_dim(c: &QuantConfig) -> usize {
+    c.min_dim()
+}
+
+/// Set the minimum dimension for quantization.
+pub fn quant_config_set_min_dim(c: &mut QuantConfig, min_dim: usize) {
+    c.set_min_dim(min_dim);
+}
 
 /// Warm up the rayon thread pool by forcing all threads to wake and do work.
 pub fn warmup_thread_pool() {
-    crate::core::runtime::runtime_config::RuntimeConfig::warmup_thread_pool();
+    crate::core::runtime::runtime_config::warmup_thread_pool();
 }
 
 /// Detect available SIMD instruction sets.
 pub fn detect_simd() -> &'static str {
-    crate::core::runtime::runtime_config::RuntimeConfig::detect_simd()
+    crate::core::runtime::runtime_config::detect_simd()
 }
 
 #[cfg(test)]
@@ -115,5 +173,86 @@ mod tests {
     #[test]
     fn test_warmup_thread_pool_does_not_panic() {
         warmup_thread_pool();
+    }
+
+    /// @covers: create_tensor_builder
+    #[test]
+    fn test_create_tensor_builder_produces_valid_tensor() {
+        let t = create_tensor_builder()
+            .shape(vec![2, 3])
+            .zeros()
+            .unwrap();
+        assert_eq!(t.shape(), &[2, 3]);
+    }
+
+    /// @covers: quant_config_q8_all
+    #[test]
+    fn test_quant_config_q8_all_returns_q8_attention() {
+        let c = quant_config_q8_all();
+        assert_eq!(quant_config_attention(&c), crate::api::quant::target::QuantTarget::Q8_0);
+    }
+
+    /// @covers: quant_config_none
+    #[test]
+    fn test_quant_config_none_returns_none_attention() {
+        let c = quant_config_none();
+        assert_eq!(quant_config_attention(&c), crate::api::quant::target::QuantTarget::None);
+    }
+
+    /// @covers: quant_config_set_min_dim
+    #[test]
+    fn test_quant_config_set_min_dim_roundtrip() {
+        let mut c = quant_config_q8_all();
+        quant_config_set_min_dim(&mut c, 1024);
+        assert_eq!(quant_config_min_dim(&c), 1024);
+    }
+
+    /// @covers: quant_config_from_toml_file
+    #[test]
+    fn test_quant_config_from_toml_file_missing_returns_default() {
+        let c = quant_config_from_toml_file(std::path::Path::new("/nonexistent.toml"));
+        assert_eq!(quant_config_attention(&c), crate::api::quant::target::QuantTarget::Q8_0);
+    }
+
+    /// @covers: quant_config_feed_forward
+    #[test]
+    fn test_quant_config_feed_forward_wrapper() {
+        let c = quant_config_q8_all();
+        assert_eq!(quant_config_feed_forward(&c), crate::api::quant::target::QuantTarget::Q8_0);
+    }
+
+    /// @covers: quant_config_output
+    #[test]
+    fn test_quant_config_output_wrapper() {
+        let c = quant_config_q8_all();
+        assert_eq!(quant_config_output(&c), crate::api::quant::target::QuantTarget::Q8_0);
+    }
+
+    /// @covers: quant_config_moe
+    #[test]
+    fn test_quant_config_moe_wrapper() {
+        let c = quant_config_q8_all();
+        assert_eq!(quant_config_moe(&c), crate::api::quant::target::QuantTarget::Q8_0);
+    }
+
+    /// @covers: quant_config_gate
+    #[test]
+    fn test_quant_config_gate_wrapper() {
+        let c = quant_config_q8_all();
+        assert_eq!(quant_config_gate(&c), crate::api::quant::target::QuantTarget::Q8_0);
+    }
+
+    /// @covers: quant_config_min_dim
+    #[test]
+    fn test_quant_config_min_dim_wrapper() {
+        let c = quant_config_q8_all();
+        assert_eq!(quant_config_min_dim(&c), 0);
+    }
+
+    /// @covers: quant_config_attention
+    #[test]
+    fn test_quant_config_attention_returns_target() {
+        let c = quant_config_q8_all();
+        assert_eq!(quant_config_attention(&c), crate::api::quant::target::QuantTarget::Q8_0);
     }
 }

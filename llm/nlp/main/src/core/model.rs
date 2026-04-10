@@ -7,7 +7,7 @@
 use crate::api::error::{NlpError, NlpResult};
 use crate::api::types::{LanguageModel, ModelConfig};
 use crate::core::weight_map::WeightMap;
-use tensor_engine::{DType, QuantConfig, QuantTarget, Tensor, f32_vec_to_bytes};
+use tensor_engine::{DType, QuantConfig, QuantTarget, Tensor, f32_vec_to_bytes, quant_config_q8_all, quant_config_attention, quant_config_feed_forward, quant_config_output, quant_config_moe, quant_config_gate, quant_config_min_dim, quant_config_set_min_dim};
 use rustml_nn::{
     Activation, Embedding, FeedForward, KVCache, LayerNorm, Linear, MoeLayer, MultiHeadAttention,
     NormLayer, PerLayerEmbedding, PerLayerInput, PoolingStrategy, PositionEncoding, RMSNorm, RoPEFreqs,
@@ -1487,11 +1487,11 @@ impl LlmModel {
     /// Quantize weights using the legacy uniform policy.
     /// Prefer `quantize_with_strategy()` for fine-grained control.
     pub fn quantize_all_weights(&mut self, min_dim: Option<usize>) -> NlpResult<usize> {
-        let mut strategy = QuantConfig::q8_all();
+        let mut strategy = quant_config_q8_all();
         if let Some(d) = min_dim {
-            strategy.set_min_dim(d);
+            quant_config_set_min_dim(&mut strategy, d);
         } else {
-            strategy.set_min_dim(self.config.dim);
+            quant_config_set_min_dim(&mut strategy, self.config.dim);
         }
         self.quantize_with_strategy(&strategy)
     }
@@ -1501,7 +1501,7 @@ impl LlmModel {
     /// Each layer class (attention, ffn, output, moe, gate) is quantized
     /// independently based on its `QuantTarget` in the strategy.
     pub fn quantize_with_strategy(&mut self, strategy: &QuantConfig) -> NlpResult<usize> {
-        let min_dim = strategy.min_dim();
+        let min_dim = quant_config_min_dim(strategy);
         let mut count = 0usize;
 
         fn try_q(l: &mut Linear, target: QuantTarget, c: &mut usize, min_dim: usize) {
@@ -1520,10 +1520,10 @@ impl LlmModel {
             }
         }
 
-        let attn_target = strategy.attention();
-        let ff_target = strategy.feed_forward();
-        let out_target = strategy.output();
-        let moe_target = strategy.moe();
+        let attn_target = quant_config_attention(strategy);
+        let ff_target = quant_config_feed_forward(strategy);
+        let out_target = quant_config_output(strategy);
+        let moe_target = quant_config_moe(strategy);
 
         for layer in &mut self.layers {
             try_q(&mut layer.attention.q_proj, attn_target, &mut count, min_dim);

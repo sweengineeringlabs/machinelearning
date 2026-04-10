@@ -22,3 +22,38 @@ impl OptProfile {
         *self != OptProfile::Baseline
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// @covers: use_inplace_ops
+    #[test]
+    fn test_use_inplace_ops_disabled_for_baseline() {
+        assert!(!OptProfile::Baseline.use_inplace_ops());
+        assert!(OptProfile::Optimized.use_inplace_ops());
+        assert!(OptProfile::Aggressive.use_inplace_ops());
+    }
+
+    /// @covers: use_buffered_sampling
+    #[test]
+    fn test_use_buffered_sampling_disabled_for_baseline() {
+        assert!(!OptProfile::Baseline.use_buffered_sampling());
+        assert!(OptProfile::Optimized.use_buffered_sampling());
+        assert!(OptProfile::Aggressive.use_buffered_sampling());
+    }
+
+    #[test]
+    fn test_opt_profile_equality_comparison() {
+        assert_eq!(OptProfile::Optimized, OptProfile::Optimized);
+        assert_ne!(OptProfile::Optimized, OptProfile::Baseline);
+        assert_ne!(OptProfile::Baseline, OptProfile::Aggressive);
+    }
+
+    #[test]
+    fn test_opt_profile_clone_preserves_variant() {
+        let p = OptProfile::Aggressive;
+        let cloned = p.clone();
+        assert_eq!(p, cloned);
+    }
+}

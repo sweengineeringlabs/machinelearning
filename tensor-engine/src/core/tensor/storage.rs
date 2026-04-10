@@ -1,3 +1,6 @@
-// Re-export from api — Storage is defined alongside Tensor in api/tensor_def.rs
-pub use crate::api::tensor_def::Storage;
-pub(crate) use crate::api::tensor_def::storage_byte_len;
+// Re-export from api — Storage is defined in api/storage_def.rs
+pub use crate::api::storage_def::Storage;
+pub(crate) use crate::api::storage_def::storage_byte_len;
+
+/// Namespace marker for Storage re-export from this module.
+pub(crate) struct StorageOps;

@@ -4,7 +4,7 @@
 /// overhead. Buffers returned via `put()` are kept in a pool and returned by
 /// `get()` when a matching or larger buffer is available.
 
-use crate::api::pool_ops::PoolOps;
+use crate::api::traits::PoolOps;
 
 /// A pool of reusable byte buffers for tensor storage.
 pub(crate) struct TensorPool {
@@ -14,18 +14,16 @@ pub(crate) struct TensorPool {
 
 impl TensorPool {
     /// Create a new pool with the given maximum number of cached buffers.
-    pub fn new(capacity: usize) -> Self {
+    pub(crate) fn new(capacity: usize) -> Self {
         Self {
             buffers: Vec::new(),
             capacity,
         }
     }
+}
 
-    /// Get a buffer of at least `size` bytes.
-    ///
-    /// If a suitable buffer exists in the pool, it is reused (cleared).
-    /// Otherwise, a new buffer is allocated.
-    pub fn get(&mut self, size: usize) -> Vec<u8> {
+impl PoolOps for TensorPool {
+    fn get(&mut self, size: usize) -> Vec<u8> {
         // Find the smallest buffer that fits
         let mut best_idx = None;
         let mut best_size = usize::MAX;
@@ -48,42 +46,19 @@ impl TensorPool {
         }
     }
 
-    /// Return a buffer to the pool for future reuse.
-    ///
-    /// If the pool is at capacity, the buffer is dropped.
-    pub fn put(&mut self, buf: Vec<u8>) {
+    fn put(&mut self, buf: Vec<u8>) {
         if self.buffers.len() < self.capacity {
             self.buffers.push(buf);
         }
         // else: drop the buffer
     }
 
-    /// Returns the number of buffers currently in the pool.
-    pub fn len(&self) -> usize {
+    fn len(&self) -> usize {
         self.buffers.len()
     }
 
-    /// Returns true if the pool has no cached buffers.
-    pub fn is_empty(&self) -> bool {
-        self.buffers.is_empty()
-    }
-}
-
-impl PoolOps for TensorPool {
-    fn get(&mut self, size: usize) -> Vec<u8> {
-        self.get(size)
-    }
-
-    fn put(&mut self, buf: Vec<u8>) {
-        self.put(buf);
-    }
-
-    fn len(&self) -> usize {
-        self.len()
-    }
-
     fn is_empty(&self) -> bool {
-        self.is_empty()
+        self.buffers.is_empty()
     }
 }
 

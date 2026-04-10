@@ -1,58 +1,49 @@
-//! Builder for constructing tensors with custom configuration.
+//! Builder implementation methods for TensorBuilder.
+//!
+//! The struct is defined in api/tensor_builder_def.rs.
 
 use crate::api::dtype::DType;
 use crate::api::device::Device;
 use crate::api::error::{TensorError, TensorResult};
-use crate::core::shape_mod::shape::Shape;
-use super::tensor::{Tensor, f32_vec_to_bytes};
+use crate::api::shape::Shape;
+use super::tensor::Tensor;
 
-/// Builder for constructing a [`Tensor`] with explicit shape, dtype, and device.
-///
-/// # Example
-/// ```ignore
-/// let t = TensorBuilder::new()
-///     .shape(vec![2, 3])
-///     .dtype(DType::F32)
-///     .zeros()
-///     .unwrap();
-/// ```
-pub(crate) struct TensorBuilder {
-    shape: Option<Shape>,
-    dtype: DType,
-    device: Device,
-}
+pub use crate::api::tensor_builder_def::TensorBuilder;
+
+/// Namespace marker for TensorBuilder implementation methods.
+pub(crate) struct TensorBuilderImpl;
 
 impl TensorBuilder {
     /// Create a new builder with default settings (F32, CPU).
     pub fn new() -> Self {
         Self {
-            shape: None,
-            dtype: DType::F32,
-            device: Device::Cpu,
+            shape_val: None,
+            dtype_val: DType::F32,
+            device_val: Device::Cpu,
         }
     }
 
     /// Set the tensor shape.
     pub fn shape(mut self, shape: impl Into<Shape>) -> Self {
-        self.shape = Some(shape.into());
+        self.shape_val = Some(shape.into());
         self
     }
 
     /// Set the data type.
     pub fn dtype(mut self, dtype: DType) -> Self {
-        self.dtype = dtype;
+        self.dtype_val = dtype;
         self
     }
 
     /// Set the device.
     pub fn device(mut self, device: Device) -> Self {
-        self.device = device;
+        self.device_val = device;
         self
     }
 
     /// Build a tensor filled with zeros.
     pub fn zeros(self) -> TensorResult<Tensor> {
-        let shape = self.shape.ok_or_else(|| {
+        let shape = self.shape_val.ok_or_else(|| {
             TensorError::InvalidOperation("TensorBuilder requires a shape".into())
         })?;
         Ok(Tensor::zeros(shape))
@@ -60,7 +51,7 @@ impl TensorBuilder {
 
     /// Build a tensor filled with ones.
     pub fn ones(self) -> TensorResult<Tensor> {
-        let shape = self.shape.ok_or_else(|| {
+        let shape = self.shape_val.ok_or_else(|| {
             TensorError::InvalidOperation("TensorBuilder requires a shape".into())
         })?;
         Ok(Tensor::ones(shape))
@@ -68,7 +59,7 @@ impl TensorBuilder {
 
     /// Build a tensor from the given f32 data.
     pub fn from_data(self, data: Vec<f32>) -> TensorResult<Tensor> {
-        let shape = self.shape.ok_or_else(|| {
+        let shape = self.shape_val.ok_or_else(|| {
             TensorError::InvalidOperation("TensorBuilder requires a shape".into())
         })?;
         Tensor::from_vec(data, shape)
@@ -128,7 +119,6 @@ mod tests {
     #[test]
     fn test_dtype_sets_dtype() {
         let b = TensorBuilder::new().dtype(DType::F16);
-        // dtype is stored but zeros/ones always produce F32 (builder dtype is advisory)
         let _ = b;
     }
 
@@ -138,5 +128,20 @@ mod tests {
         let b = TensorBuilder::new().device(Device::Cpu);
         let t = b.shape(vec![2]).zeros().unwrap();
         assert_eq!(t.shape(), &[2]);
+    }
+
+    /// @covers: TensorBuilder::new
+    #[test]
+    fn test_new_creates_default_builder() {
+        let b = TensorBuilder::new();
+        assert!(b.shape_val.is_none());
+        assert_eq!(b.dtype_val, DType::F32);
+    }
+
+    /// @covers: TensorBuilder::shape
+    #[test]
+    fn test_shape_stores_shape() {
+        let b = TensorBuilder::new().shape(vec![3, 4]);
+        assert!(b.shape_val.is_some());
     }
 }

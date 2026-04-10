@@ -18,14 +18,12 @@ pub enum QuantTarget {
 mod tests {
     use super::*;
 
-    /// @covers: QuantTarget::clone
     #[test]
     fn test_quant_target_clone_preserves_equality() {
         let t = QuantTarget::Q8_0;
         assert_eq!(t, t.clone());
     }
 
-    /// @covers: QuantTarget (Debug)
     #[test]
     fn test_quant_target_debug_shows_variant() {
         assert_eq!(format!("{:?}", QuantTarget::None), "None");
@@ -33,7 +31,6 @@ mod tests {
         assert_eq!(format!("{:?}", QuantTarget::Q8_0), "Q8_0");
     }
 
-    /// @covers: QuantTarget (serde)
     #[test]
     fn test_quant_target_deserializes_snake_case_via_toml() {
         #[derive(serde::Deserialize)]
@@ -42,7 +39,6 @@ mod tests {
         assert_eq!(w.target, QuantTarget::Q4_0);
     }
 
-    /// @covers: QuantTarget (serde)
     #[test]
     fn test_quant_target_deserializes_none_via_toml() {
         #[derive(serde::Deserialize)]

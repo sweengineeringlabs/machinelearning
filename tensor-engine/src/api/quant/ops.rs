@@ -1,4 +1,4 @@
-use crate::api::quant_target_api::QuantTarget;
+use crate::api::quant::target::QuantTarget;
 
 /// Quantization strategy interface.
 ///
@@ -30,8 +30,8 @@ pub trait QuantOps {
 mod tests {
     use crate::core::runtime::quant::strategy::QuantStrategy;
     use crate::core::runtime::quant::target::QuantTarget;
+    use super::QuantOps;
 
-    /// @covers: QuantOps::none
     #[test]
     fn test_quant_ops_none_returns_no_quantization() {
         let s = QuantStrategy::none();

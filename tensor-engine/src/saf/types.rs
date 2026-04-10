@@ -6,10 +6,11 @@
 //! Types that are pub(crate) in core/ are NOT re-exported here.
 //! They are accessed only through wrapper functions in saf/wrappers.rs.
 
-pub use crate::api::tensor_def::{Tensor, Storage, f32_vec_to_bytes, f32_slice_to_bytes};
+pub use crate::api::tensor::def::Tensor;
+pub use crate::api::storage_def::{Storage, f32_vec_to_bytes, f32_slice_to_bytes};
 pub use crate::api::shape::Shape;
 pub use crate::api::opt_profile_def::OptProfile;
-pub use crate::api::quant_target_api::QuantTarget;
+pub use crate::api::quant::target::QuantTarget;
 
 #[cfg(test)]
 mod tests {
