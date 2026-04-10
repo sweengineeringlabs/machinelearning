@@ -47,7 +47,7 @@
 
 ## Workspace Overview
 
-RustML is a Cargo workspace rooted at `machinelearning/`. Two workspaces: `llm/` for LLM inference and `ml-sdk/` for general ML:
+RustML is a Cargo workspace rooted at `machinelearning/`. Two workspaces: `llm/` for LLM inference and `timeseries/` for time series training:
 
 ```
 machinelearning/
@@ -63,8 +63,7 @@ machinelearning/
 │   ├── quantize/           # rustml-quantize — SafeTensors to GGUF pipeline
 │   ├── cli/                # rustml-cli — unified `sweai` binary
 │   └── daemon/             # swellmd — HTTP inference daemon
-├── ml-sdk/                 # ML SDK
-│   └── swets/              # rustml-swets — time series training (experimental)
+├── timeseries/             # rustml-swets — time series training
 └── docs/                   # Project documentation
 ```
 

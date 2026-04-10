@@ -302,7 +302,7 @@ Issues identified during design review that must be resolved before or during im
 Following rustml workspace conventions:
 
 ```
-ml-sdk/swets/
+timeseries/
 ├── Cargo.toml              # Package (member of rustml workspace)
 ├── docs/
 │   └── 1-requirements/

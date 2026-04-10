@@ -19,11 +19,11 @@ Pure-Rust ML platform with two workspaces: LLM inference and ML SDK.
 | `llm/cli` | CLI tools — unified `sweai` binary |
 | `llm/daemon` | Inference daemon — `swellmd` HTTP service |
 
-### ml-sdk/ — ML SDK
+### timeseries/ — Time Series
 
 | Crate | Description |
 |-------|-------------|
-| `ml-sdk/swets` | Time series training — N-BEATS, TCN, LSTM, Transformer, optimizers |
+| `timeseries` | Training framework — N-BEATS, TCN, LSTM, Transformer, optimizers |
 
 ## Quick Start
 

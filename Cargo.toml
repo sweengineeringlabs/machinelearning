@@ -12,10 +12,10 @@ members = [
     "llm/quantize",
     "llm/cli",
     "llm/daemon",
-    # ML SDK
-    "ml-sdk/swets",
+    # Time Series
+    "timeseries",
 ]
-exclude = ["llm", "ml-sdk"]
+exclude = ["llm"]
 
 [workspace.package]
 version = "0.1.0"
@@ -57,7 +57,7 @@ rustml-nlp = { path = "llm/nlp" }
 rustml-tokenizer = { path = "llm/tokenizer" }
 rustml-quant = { path = "llm/quant" }
 rustml-gguf = { path = "llm/gguf" }
-rustml-swets = { path = "ml-sdk/swets" }
+rustml-swets = { path = "timeseries" }
 swellmd = { path = "llm/daemon" }
 # Shared deps for quant/gguf crates
 bytemuck = { version = "1", features = ["extern_crate_alloc"] }
