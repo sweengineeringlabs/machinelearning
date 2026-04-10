@@ -119,7 +119,7 @@ Not every problem needs a 70B parameter model. Time series forecasting, anomaly 
 | **Rust-native ML training** | Developers who want train + deploy in one language | burn (primary), dfdx (secondary) |
 | **Time series in Rust** | No existing Rust framework with PatchTST/Informer/N-BEATS | None — greenfield |
 | **LLM inference in Rust** | Run GPT-2/BERT/GLM-4 without Python | candle (primary) |
-| **Embedded/edge inference** | Safety-critical, low-latency, no-std targets | tract, candle |
+| **Edge training + inference** | On-device fine-tuning and online learning in Rust — tract and candle are inference-only | No Rust competitor for edge training |
 | **WASM ML** | Browser and serverless inference | candle, tract |
 
 ### 7.2 Differentiation
@@ -128,6 +128,7 @@ Not every problem needs a 70B parameter model. Time series forecasting, anomaly 
 |-----------|-------------------------------------------------------------|
 | vs burn | rustml has deeper model zoo (GPT-2, GLM-4, PatchTST) and time series specialization |
 | vs tch-rs | rustml is pure Rust — no libtorch dependency, simpler builds, WASM-compatible |
+| vs tract/candle (edge) | rustml has autograd — can train and fine-tune on-device, not just inference |
 | vs PyTorch | rustml deploys as a static binary, no Python, deterministic memory, <10ms startup |
 
 ### 7.3 Risks
