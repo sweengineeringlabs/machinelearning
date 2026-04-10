@@ -96,8 +96,21 @@ The pattern: Rust is chosen for **inference at the edge**, where Python's overhe
 
 ## 6. Market Trends
 
-### 6.1 On-Device / Edge AI
-The shift from cloud to edge inference is accelerating. Apple Intelligence, Google on-device models, and the llama.cpp ecosystem prove that running models locally is viable and preferred for latency/privacy. Rust's zero-overhead abstractions and no-runtime deployment make it ideal for this segment.
+### 6.1 On-Device Training — The Next Platform Shift
+
+The industry is moving beyond edge inference to **edge training** — models that learn where the data lives, because the data can't leave:
+
+| Domain | What's happening | Why data stays on-device |
+|--------|-----------------|------------------------|
+| **Apple** | On-device fine-tuning for personalized Siri, keyboard prediction, photo models | User privacy as product differentiator |
+| **Google** | Federated learning across billions of Android devices (Gboard, Now Playing) | Scale — can't centralize data from 3B devices |
+| **Tesla** | Continuous learning from fleet sensor data at the edge | Bandwidth — cameras generate TB/day per vehicle |
+| **Medical devices** | Models adapting to individual patients without cloud round-trips | Regulation — HIPAA/GDPR prohibit data leaving the device |
+| **Industrial IoT** | Predictive maintenance models retraining on local equipment drift | Latency — factory floor decisions in milliseconds, not seconds |
+
+**The tooling gap:** Python can't run on these devices (no runtime, no GC tolerance). C++ can but isn't memory-safe (unacceptable in medical/automotive). **Rust with autograd is the missing piece** — memory-safe, no runtime, deterministic latency, and the ability to train on-device.
+
+Every existing Rust ML framework (candle, tract, ort) is inference-only. rustml is the only Rust framework that can both train and deploy at the edge.
 
 ### 6.2 WASM ML
 Browser-based and serverless ML is growing (Cloudflare Workers, Vercel Edge). candle and tract already compile to WASM. rustml can target this with its pure Rust stack.
@@ -150,4 +163,4 @@ The Rust ML market is early-stage with no dominant winner. candle leads on infer
 - End-to-end train-to-deploy in pure Rust
 - Specialized time series forecasting support
 
-rustml's strategy: **own the Rust ML full-stack** — from tensor engine to trained model to deployed binary — with time series as the beachhead vertical and LLM inference as the growth vector.
+rustml's strategy: **own the Rust ML full-stack** — from tensor engine to trained model to deployed binary — with time series as the beachhead vertical, LLM inference as the growth vector, and on-device training as the long-term platform play.

@@ -46,13 +46,14 @@ Rust ML is strongest where Python is weakest: edge deployment, safety-critical s
 
 1. **Time series as beachhead** — no Rust competitor exists, win the vertical
 2. **LLM inference as growth vector** — large community demand, proven by llama.cpp
-3. **Pure Rust full-stack as moat** — train, quantize, deploy in one language with zero C/C++ dependencies
+3. **On-device training as platform play** — the industry is shifting from cloud training to edge training (Apple, Google, Tesla, medical, industrial IoT). Data can't leave the device due to privacy, regulation, bandwidth, or latency constraints. Python can't run there, C++ isn't memory-safe. Rust with autograd is the missing piece — and every other Rust ML framework (candle, tract, ort) is inference-only
+4. **Pure Rust full-stack as moat** — train, quantize, deploy in one language with zero C/C++ dependencies
 
 ### Non-goals
 
-- Competing with PyTorch for research training workflows
+- Competing with PyTorch for cloud-based research training workflows
 - Supporting every model architecture
-- GPU training (CPU training for small models is the sweet spot)
+- GPU training (CPU training for small models and edge devices is the sweet spot)
 
 ---
 
@@ -112,13 +113,15 @@ Expand where rustml models can run.
 | ID | Item | Priority | Effort | Crate | Description |
 |----|------|----------|--------|-------|-------------|
 | R-030 | WASM compilation target | Must | 2 weeks | rustml-core | Compile tensor engine + inference to WASM. candle and tract prove this works |
-| R-031 | `no_std` core subset | Should | 2 weeks | rustml-core | Enable embedded/bare-metal deployment. Requires removing std dependencies from hot path |
-| R-032 | Static binary packaging | Should | 3 days | rustml-cli | Single binary with model weights embedded. `include_bytes!()` or appended payload |
-| R-033 | C FFI bindings | Nice | 1 week | rustml-core | Enable calling rustml from C/C++/Python/Swift. Expands adoption surface |
-| R-034 | Python bindings (PyO3) | Nice | 2 weeks | new crate | `pip install rustml` — lowers adoption barrier. Train in Python, deploy in Rust |
-| R-035 | safetensors export | Should | 3 days | rustml-hub | Save trained models in safetensors format. Enables rustml→HuggingFace pipeline |
+| R-031 | `no_std` core subset | Must | 2 weeks | rustml-core | Enable embedded/bare-metal deployment. Requires removing std dependencies from hot path. Critical for edge training |
+| R-032 | On-device fine-tuning demo | Must | 1 week | rustml-train | End-to-end demo: load pretrained model, fine-tune on local data, save updated weights — all in a static binary under 50MB. Proof of concept for the edge training thesis |
+| R-033 | Static binary packaging | Should | 3 days | rustml-cli | Single binary with model weights embedded. `include_bytes!()` or appended payload |
+| R-034 | Federated learning primitives | Should | 2 weeks | new crate | Gradient aggregation without centralizing data. Enables multi-device training (medical, mobile) |
+| R-035 | C FFI bindings | Nice | 1 week | rustml-core | Enable calling rustml from C/C++/Python/Swift. Expands adoption surface |
+| R-036 | Python bindings (PyO3) | Nice | 2 weeks | new crate | `pip install rustml` — lowers adoption barrier. Train in Python, deploy in Rust |
+| R-037 | safetensors export | Should | 3 days | rustml-hub | Save trained models in safetensors format. Enables rustml→HuggingFace pipeline |
 
-**Exit criteria:** rustml model runs in browser via WASM. At least one model packaged as single static binary.
+**Exit criteria:** rustml model runs in browser via WASM. On-device fine-tuning demo ships as a static binary under 50MB. `no_std` core compiles for ARM embedded targets.
 
 ### Phase 5: Ecosystem Maturity (2027+)
 
@@ -165,7 +168,7 @@ Ranked by defensibility and market impact:
 | 1 | **Time series in Rust** | Zero competitors. Greenfield vertical | Now — Q3 2026 |
 | 2 | **Full-stack Rust ML** | Train → quantize → deploy, no Python. burn is close but lacks model zoo | Q2 — Q4 2026 |
 | 3 | **GGUF/safetensors interop** | Access the entire HuggingFace + llama.cpp ecosystem without reimplementing | Q2 — Q3 2026 |
-| 4 | **Edge training** | tract and candle are inference-only. On-device fine-tuning/online learning has no Rust solution | Q4 2026 |
+| 4 | **On-device training** | The next platform shift. Data can't leave the device (privacy, regulation, bandwidth). Python can't run there, C++ isn't memory-safe. Every Rust ML framework is inference-only — rustml is the only one that can train at the edge | Q4 2026 |
 | 5 | **WASM deployment** | Browser inference is underserved. candle does it but is inference-only | Q4 2026 |
 | 6 | **Safety-critical ML** | Rust's memory safety is a regulatory advantage in automotive/medical/aerospace | 2027+ |
 
