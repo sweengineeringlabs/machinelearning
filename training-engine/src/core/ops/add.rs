@@ -5,7 +5,7 @@ use crate::api::tensor::Tensor;
 /// saved[0] = shape of A (encoded as tensor), saved[1] = shape of B (encoded as tensor)
 /// grad_A = unbroadcast(grad_output, shape_A)
 /// grad_B = unbroadcast(grad_output, shape_B)
-pub(crate) struct AddBackward {
+pub struct AddBackward {
     pub a_shape: Vec<usize>,
     pub b_shape: Vec<usize>,
 }
@@ -23,7 +23,7 @@ impl BackwardOp for AddBackward {
 }
 
 /// Reduce gradient back to the original shape when broadcasting occurred.
-pub(crate) fn unbroadcast(grad: &Tensor, target_shape: &[usize]) -> Tensor {
+pub fn unbroadcast(grad: &Tensor, target_shape: &[usize]) -> Tensor {
     let grad_shape = grad.shape();
     if grad_shape == target_shape {
         return grad.clone();

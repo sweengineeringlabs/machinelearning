@@ -160,4 +160,19 @@ mod tests {
         let adam = Adam::new(0.001).with_weight_decay(0.01);
         assert!((adam.weight_decay - 0.01).abs() < f32::EPSILON);
     }
+
+    /// @covers: Adam::lr
+    #[test]
+    fn test_adam_lr_returns_learning_rate() {
+        let adam = Adam::new(0.01);
+        assert!((adam.lr() - 0.01).abs() < f32::EPSILON);
+    }
+
+    /// @covers: Adam::set_lr
+    #[test]
+    fn test_adam_set_lr_updates_value() {
+        let mut adam = Adam::new(0.01);
+        adam.set_lr(0.001);
+        assert!((adam.lr() - 0.001).abs() < f32::EPSILON);
+    }
 }

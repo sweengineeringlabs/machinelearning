@@ -10,10 +10,7 @@ use crate::api::error::SwetsResult;
 use crate::api::layer::Layer;
 use crate::api::tape::{self, BackwardOp, TapeEntry};
 use crate::api::tensor::Tensor;
-use training_engine::core::nn::activations::GELU;
-use training_engine::core::nn::dropout::Dropout;
-use training_engine::core::nn::layer_norm::LayerNorm;
-use training_engine::core::nn::linear::Linear;
+use training_engine::{GELU, Dropout, LayerNorm, Linear};
 
 // ---------------------------------------------------------------------------
 // MultiHeadAttention (FR-802)

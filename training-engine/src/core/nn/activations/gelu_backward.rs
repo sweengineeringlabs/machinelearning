@@ -3,7 +3,7 @@ use crate::api::tensor::Tensor;
 
 /// Backward op for the approximate GELU activation.
 /// saved[0] = input (pre-activation)
-pub(crate) struct GELUBackward;
+pub struct GELUBackward;
 
 impl BackwardOp for GELUBackward {
     fn backward(&self, grad_output: &Tensor, saved: &[Tensor]) -> Vec<Tensor> {

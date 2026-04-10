@@ -19,8 +19,8 @@ pub use crate::api::QuantileLoss;
 
 // Neural network layers
 pub use crate::api::{GELU, ReLU, SiLU, Sigmoid, Tanh};
-pub use crate::api::BatchNorm1d;
-pub use crate::api::Conv1d;
+pub use crate::api::{BatchNorm1d, BatchNorm1dBuilder};
+pub use crate::api::{Conv1d, Conv1dBuilder};
 pub use crate::api::Dropout;
 pub use crate::api::LayerNorm;
 pub use crate::api::Linear;
@@ -35,3 +35,6 @@ pub use crate::api::SGD;
 
 // LR Schedulers
 pub use crate::api::{CosineAnnealingLR, StepLR, WarmupCosineScheduler};
+
+// Backward ops (for downstream crate tape-recorded operations)
+pub use crate::api::{unbroadcast, AddBackward, MatMulBackward, MulBackward, ReLUBackward};

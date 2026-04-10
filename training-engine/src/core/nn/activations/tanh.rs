@@ -64,4 +64,12 @@ mod tests {
         let t = Tanh::new();
         assert!(t.parameters().is_empty());
     }
+
+    /// @covers: Tanh::new
+    #[test]
+    fn test_tanh_default_matches_new() {
+        let t1 = Tanh::new();
+        let t2 = Tanh::default();
+        assert_eq!(t1.parameters().len(), t2.parameters().len());
+    }
 }

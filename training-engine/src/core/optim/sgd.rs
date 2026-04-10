@@ -94,4 +94,11 @@ mod tests {
         sgd.set_lr(0.001);
         assert!((sgd.lr() - 0.001).abs() < f32::EPSILON);
     }
+
+    /// @covers: SGD::lr
+    #[test]
+    fn test_sgd_lr_returns_learning_rate() {
+        let sgd = SGD::new(0.05);
+        assert!((sgd.lr() - 0.05).abs() < f32::EPSILON);
+    }
 }

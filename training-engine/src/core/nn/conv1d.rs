@@ -441,4 +441,5 @@ mod tests {
         // out_length = (10 + 0 - 1*(3-1) - 1) / 1 + 1 = 8
         assert_eq!(output.shape(), &[1, 4, 8]);
     }
+
 }

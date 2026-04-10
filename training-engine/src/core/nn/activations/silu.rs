@@ -74,4 +74,12 @@ mod tests {
         let silu = SiLU::new();
         assert!(silu.parameters().is_empty());
     }
+
+    /// @covers: SiLU::new
+    #[test]
+    fn test_silu_default_matches_new() {
+        let s1 = SiLU::new();
+        let s2 = SiLU::default();
+        assert_eq!(s1.parameters().len(), s2.parameters().len());
+    }
 }

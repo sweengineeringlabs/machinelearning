@@ -155,4 +155,14 @@ mod tests {
         let output = layer.forward(&input).unwrap();
         assert_eq!(output.shape(), &[2, 3]);
     }
+
+    /// @covers: Linear::parameters
+    #[test]
+    fn test_linear_parameters_returns_weight_and_bias() {
+        let layer = Linear::new(4, 3);
+        let params = layer.parameters();
+        assert_eq!(params.len(), 2);
+        assert_eq!(params[0].shape(), &[3, 4]); // weight
+        assert_eq!(params[1].shape(), &[3]);     // bias
+    }
 }

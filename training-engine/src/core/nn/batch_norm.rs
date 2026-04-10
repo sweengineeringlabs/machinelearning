@@ -451,4 +451,5 @@ mod tests {
         let output = bn.forward(&input).unwrap();
         assert_eq!(output.shape(), &[2, 2]);
     }
+
 }

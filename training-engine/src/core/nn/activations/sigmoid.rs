@@ -64,4 +64,12 @@ mod tests {
         let sig = Sigmoid::new();
         assert!(sig.parameters().is_empty());
     }
+
+    /// @covers: Sigmoid::new
+    #[test]
+    fn test_sigmoid_default_matches_new() {
+        let s1 = Sigmoid::new();
+        let s2 = Sigmoid::default();
+        assert_eq!(s1.parameters().len(), s2.parameters().len());
+    }
 }

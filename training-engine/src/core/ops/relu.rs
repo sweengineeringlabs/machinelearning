@@ -3,7 +3,7 @@ use crate::api::tensor::Tensor;
 
 /// Backward for ReLU: grad * (input > 0)
 /// saved[0] = input (pre-activation)
-pub(crate) struct ReLUBackward;
+pub struct ReLUBackward;
 
 impl BackwardOp for ReLUBackward {
     fn backward(&self, grad_output: &Tensor, saved: &[Tensor]) -> Vec<Tensor> {

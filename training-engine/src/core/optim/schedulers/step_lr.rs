@@ -69,4 +69,11 @@ mod tests {
         for _ in 0..9 { scheduler.step(&mut opt); }
         assert!((scheduler.get_lr() - 0.0125).abs() < 1e-6);
     }
+
+    /// @covers: StepLR::new
+    #[test]
+    fn test_step_lr_new_creates_instance() {
+        let scheduler = StepLR::new(0.05, 10, 0.1);
+        assert!((scheduler.get_lr() - 0.05).abs() < 1e-6);
+    }
 }

@@ -5,7 +5,7 @@ use crate::api::tensor::Tensor;
 /// saved[0] = A, saved[1] = B
 /// grad_A = grad_output @ B^T
 /// grad_B = A^T @ grad_output
-pub(crate) struct MatMulBackward;
+pub struct MatMulBackward;
 
 impl BackwardOp for MatMulBackward {
     fn backward(&self, grad_output: &Tensor, saved: &[Tensor]) -> Vec<Tensor> {

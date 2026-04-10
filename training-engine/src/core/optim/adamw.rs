@@ -171,4 +171,11 @@ mod tests {
         adamw.set_lr(0.0001);
         assert!((adamw.lr() - 0.0001).abs() < f32::EPSILON);
     }
+
+    /// @covers: AdamW::lr
+    #[test]
+    fn test_adamw_lr_returns_learning_rate() {
+        let adamw = AdamW::new(0.01);
+        assert!((adamw.lr() - 0.01).abs() < f32::EPSILON);
+    }
 }

@@ -2,9 +2,7 @@ use crate::api::error::SwetsResult;
 use crate::api::layer::Layer;
 use crate::api::tape::{self, BackwardOp, TapeEntry};
 use crate::api::tensor::Tensor;
-use training_engine::core::nn::activations::ReLU;
-use training_engine::core::nn::linear::Linear;
-use training_engine::core::ops::add::unbroadcast;
+use training_engine::{ReLU, Linear, unbroadcast};
 
 // ---------------------------------------------------------------------------
 // Tape-recorded Add / Sub helpers

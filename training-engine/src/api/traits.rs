@@ -33,7 +33,7 @@ mod tests {
         fn _assert_lr_scheduler<T: LRScheduler>() {}
     }
 
-    /// @covers: BackwardOp (trait re-export)
+    /// @covers: backward (trait re-export)
     #[test]
     fn test_backward_op_trait_is_accessible() {
         fn _assert_backward_op<T: BackwardOp>() {}

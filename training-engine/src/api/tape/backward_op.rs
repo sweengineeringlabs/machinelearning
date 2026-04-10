@@ -24,14 +24,12 @@ mod tests {
         }
     }
 
-    /// @covers: BackwardOp
     #[test]
     fn test_backward_op_name_returns_identifier() {
         let op = NoopBackward;
         assert_eq!(op.name(), "NoopBackward");
     }
 
-    /// @covers: BackwardOp
     #[test]
     fn test_backward_op_backward_returns_empty_grads_for_noop() {
         let op = NoopBackward;

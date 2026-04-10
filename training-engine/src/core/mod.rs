@@ -1,4 +1,4 @@
-pub mod loss;
-pub mod nn;
-pub mod ops;
-pub mod optim;
+pub(crate) mod loss;
+pub(crate) mod nn;
+pub(crate) mod ops;
+pub(crate) mod optim;

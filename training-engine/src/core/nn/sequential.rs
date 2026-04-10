@@ -99,4 +99,25 @@ mod tests {
         assert!(seq.is_empty());
         assert_eq!(seq.len(), 0);
     }
+
+    /// @covers: Sequential::parameters
+    #[test]
+    fn test_sequential_parameters_aggregates_all_layers() {
+        let seq = Sequential::new(vec![
+            Box::new(Linear::new(4, 3)),
+            Box::new(Linear::new(3, 2)),
+        ]);
+        // Two linear layers: each has weight + bias = 2 tensors, total = 4
+        assert_eq!(seq.parameters().len(), 4);
+    }
+
+    /// @covers: Sequential::parameters_mut
+    #[test]
+    fn test_sequential_parameters_mut_aggregates_all_layers() {
+        let mut seq = Sequential::new(vec![
+            Box::new(Linear::new(4, 3)),
+            Box::new(Linear::new(3, 2)),
+        ]);
+        assert_eq!(seq.parameters_mut().len(), 4);
+    }
 }

@@ -70,4 +70,12 @@ mod tests {
         for _ in 0..50 { scheduler.step(&mut opt); }
         assert!((scheduler.get_lr() - 0.05).abs() < 1e-4);
     }
+
+    /// @covers: CosineAnnealingLR::new
+    #[test]
+    fn test_cosine_annealing_new_creates_instance() {
+        let scheduler = CosineAnnealingLR::new(0.01, 200, 1e-4);
+        // At step 0, lr should be initial_lr
+        assert!((scheduler.get_lr() - 0.01).abs() < 1e-6);
+    }
 }

@@ -4,7 +4,7 @@ use crate::api::tensor::Tensor;
 /// Backward op for the SiLU (Swish) activation.
 /// saved[0] = input (pre-activation)
 /// Gradient: sigmoid(x) * (1 + x * (1 - sigmoid(x)))
-pub(crate) struct SiLUBackward;
+pub struct SiLUBackward;
 
 impl BackwardOp for SiLUBackward {
     fn backward(&self, grad_output: &Tensor, saved: &[Tensor]) -> Vec<Tensor> {

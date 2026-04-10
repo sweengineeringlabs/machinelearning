@@ -176,4 +176,26 @@ mod tests {
         let d = Dropout::new(0.5);
         assert!(d.parameters().is_empty());
     }
+
+    /// @covers: Dropout::forward
+    #[test]
+    fn test_dropout_training_mode_zeroes_some_elements() {
+        let mut d = Dropout::new(0.5);
+        let input = Tensor::ones(vec![100]);
+        let output = d.forward(&input).unwrap();
+        let data = output.to_vec();
+        // With p=0.5, some values should be zero and others scaled by 2.0
+        let zeros = data.iter().filter(|&&v| v == 0.0).count();
+        let scaled = data.iter().filter(|&&v| (v - 2.0).abs() < 1e-6).count();
+        assert!(zeros > 0, "Dropout should zero some elements");
+        assert!(scaled > 0, "Dropout should scale surviving elements");
+        assert_eq!(zeros + scaled, 100);
+    }
+
+    /// @covers: Dropout::parameters_mut
+    #[test]
+    fn test_dropout_parameters_mut_is_empty() {
+        let mut d = Dropout::new(0.3);
+        assert!(d.parameters_mut().is_empty());
+    }
 }

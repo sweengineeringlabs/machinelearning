@@ -6,7 +6,7 @@ use crate::core::ops::add::unbroadcast;
 /// saved[0] = A, saved[1] = B
 /// grad_A = grad_output * B
 /// grad_B = grad_output * A
-pub(crate) struct MulBackward;
+pub struct MulBackward;
 
 impl BackwardOp for MulBackward {
     fn backward(&self, grad_output: &Tensor, saved: &[Tensor]) -> Vec<Tensor> {

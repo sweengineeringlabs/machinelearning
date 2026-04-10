@@ -159,18 +159,12 @@ impl Layer for LSTM {
         let mut output_data = vec![0.0f32; batch * seq_len * hidden];
 
         // Preload weight/bias data for performance (avoid repeated to_vec calls)
-        struct LayerWeights {
-            w_ih: Vec<f32>,
-            w_hh: Vec<f32>,
-            b_ih: Vec<f32>,
-            b_hh: Vec<f32>,
-            layer_input_size: usize,
-        }
+        use crate::core::nn::lstm_weights::LstmWeights;
 
-        let layer_weights: Vec<LayerWeights> = (0..self.num_layers)
+        let layer_weights: Vec<LstmWeights> = (0..self.num_layers)
             .map(|l| {
                 let lis = if l == 0 { self.input_size } else { hidden };
-                LayerWeights {
+                LstmWeights {
                     w_ih: self.layers[l].w_ih.to_vec(),
                     w_hh: self.layers[l].w_hh.to_vec(),
                     b_ih: self.layers[l].b_ih.to_vec(),
@@ -420,16 +414,12 @@ impl BackwardOp for LSTMBackward {
 
         // Recover weight data from saved tensors
         // saved[0] = input, saved[1 + l*4 + k] = weight/bias for layer l
-        struct LayerWeightData {
-            w_ih: Vec<f32>,
-            w_hh: Vec<f32>,
-            layer_input_size: usize,
-        }
+        use crate::core::nn::lstm_weight_data::LstmWeightData;
 
-        let layer_wd: Vec<LayerWeightData> = (0..num_layers)
+        let layer_wd: Vec<LstmWeightData> = (0..num_layers)
             .map(|l| {
                 let lis = if l == 0 { self.input_size } else { hidden };
-                LayerWeightData {
+                LstmWeightData {
                     w_ih: saved[1 + l * 4].to_vec(),
                     w_hh: saved[1 + l * 4 + 1].to_vec(),
                     layer_input_size: lis,
@@ -700,6 +690,7 @@ mod tests {
         assert_eq!(lstm.num_layers(), 2);
     }
 
+    /// @covers: LSTM::forward
     #[test]
     fn test_lstm_output_shape() {
         let mut lstm = LSTM::new(10, 20, 2);
@@ -708,6 +699,7 @@ mod tests {
         assert_eq!(output.shape(), &[4, 5, 20]);
     }
 
+    /// @covers: LSTM::new
     #[test]
     fn test_lstm_single_layer() {
         let mut lstm = LSTM::new(3, 4, 1);
@@ -722,6 +714,7 @@ mod tests {
         }
     }
 
+    /// @covers: LSTM::forward
     #[test]
     fn test_lstm_state_persistence() {
         let mut lstm = LSTM::new(3, 4, 1);
@@ -737,6 +730,7 @@ mod tests {
         assert!(differs, "Outputs should differ when state is carried over");
     }
 
+    /// @covers: LSTM::reset_state
     #[test]
     fn test_lstm_reset_state() {
         let mut lstm = LSTM::new(3, 4, 1);
@@ -759,6 +753,7 @@ mod tests {
         }
     }
 
+    /// @covers: LSTM::parameters
     #[test]
     fn test_lstm_parameters_count() {
         let lstm = LSTM::new(10, 20, 2);

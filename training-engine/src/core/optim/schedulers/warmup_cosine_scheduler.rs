@@ -92,4 +92,12 @@ mod tests {
         for _ in 0..100 { scheduler.step(&mut opt); }
         assert!((scheduler.get_lr() - 0.001).abs() < 1e-6);
     }
+
+    /// @covers: WarmupCosineScheduler::new
+    #[test]
+    fn test_warmup_cosine_new_creates_instance() {
+        let scheduler = WarmupCosineScheduler::new(0.01, 5, 50, 1e-4);
+        // At step 0 (before any warmup), lr should be 0
+        assert!(scheduler.get_lr().abs() < 1e-6);
+    }
 }

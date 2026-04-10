@@ -57,7 +57,7 @@ fn test_matmul_gradient() {
 
     let output = a.matmul_raw(&b).unwrap();
     tape::record_op(TapeEntry {
-        backward_op: Box::new(training_engine::core::ops::matmul::MatMulBackward),
+        backward_op: Box::new(training_engine::MatMulBackward),
         output_id: output.id(),
         input_ids: vec![a.id(), b.id()],
         saved_tensors: vec![a.clone(), b.clone()],
@@ -117,7 +117,7 @@ fn test_add_gradient() {
 
     let output = a.add_raw(&b).unwrap();
     tape::record_op(TapeEntry {
-        backward_op: Box::new(training_engine::core::ops::add::AddBackward {
+        backward_op: Box::new(training_engine::AddBackward {
             a_shape: a.shape().to_vec(),
             b_shape: b.shape().to_vec(),
         }),
@@ -165,7 +165,7 @@ fn test_mul_gradient() {
 
     let output = a.mul_raw(&b).unwrap();
     tape::record_op(TapeEntry {
-        backward_op: Box::new(training_engine::core::ops::mul::MulBackward),
+        backward_op: Box::new(training_engine::MulBackward),
         output_id: output.id(),
         input_ids: vec![a.id(), b.id()],
         saved_tensors: vec![a.clone(), b.clone()],
@@ -214,7 +214,7 @@ fn test_relu_gradient() {
     tape::clear_tape();
 
     use rustml_swets::api::tape::{TapeEntry, BackwardOp};
-    use training_engine::core::ops::relu::ReLUBackward;
+    use training_engine::ReLUBackward;
 
     let mut input = Tensor::from_vec(vec![-1.0, 0.5, -0.3, 2.0], vec![2, 2]).unwrap();
     input.set_requires_grad(true);

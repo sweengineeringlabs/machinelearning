@@ -22,7 +22,9 @@ pub use crate::core::loss::quantile::QuantileLoss;
 // Neural network layers
 pub use crate::core::nn::activations::{GELU, ReLU, SiLU, Sigmoid, Tanh};
 pub use crate::core::nn::batch_norm::BatchNorm1d;
+pub use crate::core::nn::batch_norm_builder::BatchNorm1dBuilder;
 pub use crate::core::nn::conv1d::Conv1d;
+pub use crate::core::nn::conv1d_builder::Conv1dBuilder;
 pub use crate::core::nn::dropout::Dropout;
 pub use crate::core::nn::layer_norm::LayerNorm;
 pub use crate::core::nn::linear::Linear;
@@ -37,3 +39,9 @@ pub use crate::core::optim::sgd::SGD;
 
 // LR Schedulers
 pub use crate::core::optim::schedulers::{CosineAnnealingLR, StepLR, WarmupCosineScheduler};
+
+// Backward ops (for downstream crate tape-recorded operations)
+pub use crate::core::ops::add::{unbroadcast, AddBackward};
+pub use crate::core::ops::matmul::MatMulBackward;
+pub use crate::core::ops::mul::MulBackward;
+pub use crate::core::ops::relu::ReLUBackward;

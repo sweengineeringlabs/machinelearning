@@ -85,4 +85,12 @@ mod tests {
         let gelu = GELU::new();
         assert!(gelu.parameters().is_empty());
     }
+
+    /// @covers: GELU::new
+    #[test]
+    fn test_gelu_default_matches_new() {
+        let g1 = GELU::new();
+        let g2 = GELU::default();
+        assert_eq!(g1.parameters().len(), g2.parameters().len());
+    }
 }

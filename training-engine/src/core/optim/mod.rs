@@ -1,5 +1,5 @@
-pub mod adam;
-pub mod adamw;
-pub mod grad_clip;
-pub mod schedulers;
-pub mod sgd;
+pub(crate) mod adam;
+pub(crate) mod adamw;
+pub(crate) mod grad_clip;
+pub(crate) mod schedulers;
+pub(crate) mod sgd;

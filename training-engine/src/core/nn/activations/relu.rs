@@ -64,4 +64,12 @@ mod tests {
         let relu = ReLU::new();
         assert!(relu.parameters().is_empty());
     }
+
+    /// @covers: ReLU::new
+    #[test]
+    fn test_relu_default_matches_new() {
+        let r1 = ReLU::new();
+        let r2 = ReLU::default();
+        assert_eq!(r1.parameters().len(), r2.parameters().len());
+    }
 }
