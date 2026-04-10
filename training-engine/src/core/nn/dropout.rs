@@ -116,3 +116,64 @@ impl BackwardOp for DropoutBackward {
         "DropoutBackward"
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// @covers: Dropout::new
+    #[test]
+    fn test_dropout_new_stores_probability() {
+        let d = Dropout::new(0.3);
+        assert!((d.p() - 0.3).abs() < f32::EPSILON);
+        assert!(d.is_training());
+    }
+
+    /// @covers: Dropout::train
+    #[test]
+    fn test_train_enables_dropout() {
+        let mut d = Dropout::new(0.5);
+        d.eval();
+        d.train();
+        assert!(d.is_training());
+    }
+
+    /// @covers: Dropout::eval
+    #[test]
+    fn test_eval_disables_dropout() {
+        let mut d = Dropout::new(0.5);
+        d.eval();
+        assert!(!d.is_training());
+    }
+
+    /// @covers: Dropout::is_training
+    #[test]
+    fn test_is_training() {
+        let d = Dropout::new(0.5);
+        assert!(d.is_training());
+    }
+
+    /// @covers: Dropout::p
+    #[test]
+    fn test_p_returns_probability() {
+        let d = Dropout::new(0.3);
+        assert!((d.p() - 0.3).abs() < f32::EPSILON);
+    }
+
+    /// @covers: Dropout::forward (eval mode)
+    #[test]
+    fn test_dropout_eval_mode_passes_through_unchanged() {
+        let mut d = Dropout::new(0.5);
+        d.eval();
+        let input = Tensor::from_vec(vec![1.0, 2.0, 3.0], vec![3]).unwrap();
+        let output = d.forward(&input).unwrap();
+        assert_eq!(output.to_vec(), vec![1.0, 2.0, 3.0]);
+    }
+
+    /// @covers: Dropout::parameters
+    #[test]
+    fn test_dropout_has_no_parameters() {
+        let d = Dropout::new(0.5);
+        assert!(d.parameters().is_empty());
+    }
+}

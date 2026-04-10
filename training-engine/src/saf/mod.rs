@@ -1,4 +1,5 @@
-// SAF (Simple API Facade) — re-exports for convenient access
+// SAF (Simple API Facade) -- re-exports for convenient access.
+// All re-exports come from the api layer (not directly from core).
 
 // API traits and types
 pub use crate::api::error::{SwetsError, SwetsResult};
@@ -10,27 +11,27 @@ pub use crate::api::tape;
 pub use crate::api::tensor::{Tensor, TensorId};
 
 // Loss functions
-pub use crate::core::loss::cross_entropy::CrossEntropyLoss;
-pub use crate::core::loss::huber::HuberLoss;
-pub use crate::core::loss::mae::MAELoss;
-pub use crate::core::loss::mse::MSELoss;
-pub use crate::core::loss::quantile::QuantileLoss;
+pub use crate::api::CrossEntropyLoss;
+pub use crate::api::HuberLoss;
+pub use crate::api::MAELoss;
+pub use crate::api::MSELoss;
+pub use crate::api::QuantileLoss;
 
 // Neural network layers
-pub use crate::core::nn::activations::{GELU, ReLU, SiLU, Sigmoid, Tanh};
-pub use crate::core::nn::batch_norm::BatchNorm1d;
-pub use crate::core::nn::conv1d::Conv1d;
-pub use crate::core::nn::dropout::Dropout;
-pub use crate::core::nn::layer_norm::LayerNorm;
-pub use crate::core::nn::linear::Linear;
-pub use crate::core::nn::lstm::LSTM;
-pub use crate::core::nn::sequential::Sequential;
+pub use crate::api::{GELU, ReLU, SiLU, Sigmoid, Tanh};
+pub use crate::api::BatchNorm1d;
+pub use crate::api::Conv1d;
+pub use crate::api::Dropout;
+pub use crate::api::LayerNorm;
+pub use crate::api::Linear;
+pub use crate::api::LSTM;
+pub use crate::api::Sequential;
 
 // Optimizers
-pub use crate::core::optim::adam::Adam;
-pub use crate::core::optim::adamw::AdamW;
-pub use crate::core::optim::grad_clip::{clip_grad_norm, clip_grad_value};
-pub use crate::core::optim::sgd::SGD;
+pub use crate::api::Adam;
+pub use crate::api::AdamW;
+pub use crate::api::{clip_grad_norm, clip_grad_value};
+pub use crate::api::SGD;
 
 // LR Schedulers
-pub use crate::core::optim::schedulers::{CosineAnnealingLR, StepLR, WarmupCosineScheduler};
+pub use crate::api::{CosineAnnealingLR, StepLR, WarmupCosineScheduler};

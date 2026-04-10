@@ -6,7 +6,7 @@ use crate::api::tensor::Tensor;
 ///
 /// Implemented element-wise via to_vec() since we lack complex dim-wise broadcast ops.
 /// Assumes a 2-D tensor [batch, classes] with dim = -1 or 1.
-pub struct SoftmaxBackward {
+pub(crate) struct SoftmaxBackward {
     pub dim: i64,
 }
 
@@ -60,5 +60,21 @@ impl BackwardOp for SoftmaxBackward {
 
     fn name(&self) -> &str {
         "SoftmaxBackward"
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// @covers: SoftmaxBackward::backward
+    #[test]
+    fn test_softmax_backward_output_shape_matches_input() {
+        let op = SoftmaxBackward { dim: -1 };
+        // Uniform softmax output
+        let softmax_out = Tensor::from_vec(vec![0.25, 0.25, 0.25, 0.25], vec![1, 4]).unwrap();
+        let grad_output = Tensor::ones(vec![1, 4]);
+        let grads = op.backward(&grad_output, &[softmax_out]);
+        assert_eq!(grads[0].shape(), &[1, 4]);
     }
 }

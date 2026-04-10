@@ -77,3 +77,27 @@ pub fn clip_grad_value(params: &[&Tensor], clip_value: f32) {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// @covers: clip_grad_norm
+    #[test]
+    fn test_clip_grad_norm_returns_total_norm_when_no_grads() {
+        tape::clear_tape();
+        let t = Tensor::zeros(vec![3]);
+        let norm = clip_grad_norm(&[&t], 1.0);
+        // No grad set, so total_norm should be 0
+        assert!(norm.abs() < 1e-6);
+    }
+
+    /// @covers: clip_grad_value
+    #[test]
+    fn test_clip_grad_value_does_not_panic_without_grads() {
+        tape::clear_tape();
+        let t = Tensor::zeros(vec![3]);
+        clip_grad_value(&[&t], 0.5);
+        // Should not panic
+    }
+}

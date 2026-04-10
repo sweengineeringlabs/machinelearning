@@ -66,3 +66,41 @@ impl BackwardOp for MSEBackward {
         "MSEBackward"
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// @covers: MSELoss::new
+    #[test]
+    fn test_new_creates_instance() {
+        let _loss = MSELoss::new();
+    }
+
+    /// @covers: MSELoss::default
+    #[test]
+    fn test_default_creates_instance() {
+        let _loss = MSELoss::default();
+    }
+
+    /// @covers: MSELoss::forward
+    #[test]
+    fn test_mse_loss_identical_inputs_returns_zero() {
+        let loss = MSELoss::new();
+        let pred = Tensor::from_vec(vec![1.0, 2.0, 3.0], vec![3]).unwrap();
+        let tgt = Tensor::from_vec(vec![1.0, 2.0, 3.0], vec![3]).unwrap();
+        let result = loss.forward(&pred, &tgt).unwrap();
+        assert!(result.to_vec()[0].abs() < 1e-6);
+    }
+
+    /// @covers: MSELoss::forward
+    #[test]
+    fn test_mse_loss_known_value() {
+        let loss = MSELoss::new();
+        let pred = Tensor::from_vec(vec![1.0, 2.0], vec![2]).unwrap();
+        let tgt = Tensor::from_vec(vec![3.0, 4.0], vec![2]).unwrap();
+        let result = loss.forward(&pred, &tgt).unwrap();
+        // MSE = mean((1-3)^2 + (2-4)^2) = mean(4 + 4) = 4.0
+        assert!((result.to_vec()[0] - 4.0).abs() < 1e-6);
+    }
+}

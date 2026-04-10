@@ -5,7 +5,7 @@ use crate::api::tensor::Tensor;
 /// saved[0] = shape of A (encoded as tensor), saved[1] = shape of B (encoded as tensor)
 /// grad_A = unbroadcast(grad_output, shape_A)
 /// grad_B = unbroadcast(grad_output, shape_B)
-pub struct AddBackward {
+pub(crate) struct AddBackward {
     pub a_shape: Vec<usize>,
     pub b_shape: Vec<usize>,
 }
@@ -23,7 +23,7 @@ impl BackwardOp for AddBackward {
 }
 
 /// Reduce gradient back to the original shape when broadcasting occurred.
-pub fn unbroadcast(grad: &Tensor, target_shape: &[usize]) -> Tensor {
+pub(crate) fn unbroadcast(grad: &Tensor, target_shape: &[usize]) -> Tensor {
     let grad_shape = grad.shape();
     if grad_shape == target_shape {
         return grad.clone();
@@ -50,4 +50,31 @@ pub fn unbroadcast(grad: &Tensor, target_shape: &[usize]) -> Tensor {
     }
 
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// @covers: AddBackward::backward
+    #[test]
+    fn test_add_backward_produces_two_gradients() {
+        let op = AddBackward {
+            a_shape: vec![2, 3],
+            b_shape: vec![2, 3],
+        };
+        let grad = Tensor::ones(vec![2, 3]);
+        let grads = op.backward(&grad, &[]);
+        assert_eq!(grads.len(), 2);
+        assert_eq!(grads[0].shape(), &[2, 3]);
+        assert_eq!(grads[1].shape(), &[2, 3]);
+    }
+
+    /// @covers: unbroadcast
+    #[test]
+    fn test_unbroadcast_same_shape_returns_clone() {
+        let t = Tensor::ones(vec![2, 3]);
+        let result = unbroadcast(&t, &[2, 3]);
+        assert_eq!(result.shape(), &[2, 3]);
+    }
 }

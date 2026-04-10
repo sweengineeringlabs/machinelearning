@@ -108,3 +108,51 @@ impl BackwardOp for LinearBackward {
         "LinearBackward"
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// @covers: Linear::new
+    #[test]
+    fn test_linear_new_creates_correct_parameter_shapes() {
+        let layer = Linear::new(4, 3);
+        assert_eq!(layer.in_features(), 4);
+        assert_eq!(layer.out_features(), 3);
+        let params = layer.parameters();
+        assert_eq!(params.len(), 2); // weight + bias
+        assert_eq!(params[0].shape(), &[3, 4]); // weight [out, in]
+        assert_eq!(params[1].shape(), &[3]);     // bias [out]
+    }
+
+    /// @covers: Linear::in_features
+    #[test]
+    fn test_in_features_returns_configured_value() {
+        let layer = Linear::new(4, 3);
+        assert_eq!(layer.in_features(), 4);
+    }
+
+    /// @covers: Linear::out_features
+    #[test]
+    fn test_out_features_returns_configured_value() {
+        let layer = Linear::new(4, 3);
+        assert_eq!(layer.out_features(), 3);
+    }
+
+    /// @covers: Linear::parameters_mut
+    #[test]
+    fn test_parameters_mut_returns_mutable_refs() {
+        let mut layer = Linear::new(4, 3);
+        let params = layer.parameters_mut();
+        assert_eq!(params.len(), 2);
+    }
+
+    /// @covers: Linear::forward
+    #[test]
+    fn test_linear_forward_output_shape() {
+        let mut layer = Linear::new(4, 3);
+        let input = Tensor::randn([2, 4]); // batch=2
+        let output = layer.forward(&input).unwrap();
+        assert_eq!(output.shape(), &[2, 3]);
+    }
+}

@@ -6,7 +6,7 @@ use crate::core::ops::add::unbroadcast;
 /// saved[0] = A, saved[1] = B
 /// grad_A = grad_output * B
 /// grad_B = grad_output * A
-pub struct MulBackward;
+pub(crate) struct MulBackward;
 
 impl BackwardOp for MulBackward {
     fn backward(&self, grad_output: &Tensor, saved: &[Tensor]) -> Vec<Tensor> {
@@ -24,5 +24,24 @@ impl BackwardOp for MulBackward {
 
     fn name(&self) -> &str {
         "MulBackward"
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// @covers: MulBackward::backward
+    #[test]
+    fn test_mul_backward_produces_correct_gradients() {
+        let op = MulBackward;
+        let a = Tensor::from_vec(vec![2.0, 3.0], vec![2]).unwrap();
+        let b = Tensor::from_vec(vec![4.0, 5.0], vec![2]).unwrap();
+        let grad_output = Tensor::ones(vec![2]);
+        let grads = op.backward(&grad_output, &[a, b]);
+        assert_eq!(grads.len(), 2);
+        // grad_a = grad * b = [4, 5], grad_b = grad * a = [2, 3]
+        assert_eq!(grads[0].to_vec(), vec![4.0, 5.0]);
+        assert_eq!(grads[1].to_vec(), vec![2.0, 3.0]);
     }
 }

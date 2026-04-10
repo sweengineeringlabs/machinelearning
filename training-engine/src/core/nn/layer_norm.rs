@@ -222,3 +222,61 @@ impl BackwardOp for LayerNormBackward {
         "LayerNormBackward"
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// @covers: LayerNorm::new
+    #[test]
+    fn test_layer_norm_new_creates_correct_params() {
+        let ln = LayerNorm::new(vec![4]);
+        assert_eq!(ln.normalized_shape(), &[4]);
+        let params = ln.parameters();
+        assert_eq!(params.len(), 2); // gamma + beta
+    }
+
+    /// @covers: LayerNorm::with_eps
+    #[test]
+    fn test_with_eps() {
+        let ln = LayerNorm::with_eps(vec![4], 1e-3);
+        assert!((ln.eps() - 1e-3).abs() < 1e-10);
+    }
+
+    /// @covers: LayerNorm::eps
+    #[test]
+    fn test_eps() {
+        let ln = LayerNorm::new(vec![4]);
+        assert!((ln.eps() - 1e-5).abs() < 1e-10);
+    }
+
+    /// @covers: LayerNorm::normalized_shape
+    #[test]
+    fn test_normalized_shape() {
+        let ln = LayerNorm::new(vec![8]);
+        assert_eq!(ln.normalized_shape(), &[8]);
+    }
+
+    /// @covers: LayerNorm::parameters
+    #[test]
+    fn test_parameters() {
+        let ln = LayerNorm::new(vec![4]);
+        assert_eq!(ln.parameters().len(), 2);
+    }
+
+    /// @covers: LayerNorm::parameters_mut
+    #[test]
+    fn test_parameters_mut() {
+        let mut ln = LayerNorm::new(vec![4]);
+        assert_eq!(ln.parameters_mut().len(), 2);
+    }
+
+    /// @covers: LayerNorm::forward
+    #[test]
+    fn test_layer_norm_forward_output_shape() {
+        let mut ln = LayerNorm::new(vec![3]);
+        let input = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0], vec![2, 3]).unwrap();
+        let output = ln.forward(&input).unwrap();
+        assert_eq!(output.shape(), &[2, 3]);
+    }
+}

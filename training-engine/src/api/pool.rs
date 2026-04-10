@@ -72,6 +72,7 @@ pub fn clear_pool() {
 mod tests {
     use super::*;
 
+    /// @covers: acquire
     #[test]
     fn acquire_returns_zeroed_buffer() {
         let buf = acquire(10);
@@ -79,6 +80,7 @@ mod tests {
         assert!(buf.iter().all(|&v| v == 0.0));
     }
 
+    /// @covers: release
     #[test]
     fn release_and_reacquire_reuses_allocation() {
         let buf = acquire(8);
@@ -92,6 +94,7 @@ mod tests {
         assert!(buf2.iter().all(|&v| v == 0.0));
     }
 
+    /// @covers: clear_pool
     #[test]
     fn clear_pool_drains_all_bins() {
         release(acquire(16));

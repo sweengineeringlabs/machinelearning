@@ -1,23 +1,6 @@
 use tensor_engine::{DType, Tensor as CoreTensor, TensorError, TensorResult};
 use crate::api::error::{SwetsError, SwetsResult};
-use std::sync::atomic::{AtomicU64, Ordering};
-
-static NEXT_ID: AtomicU64 = AtomicU64::new(1);
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct TensorId(pub(crate) u64);
-
-impl TensorId {
-    fn next() -> Self {
-        TensorId(NEXT_ID.fetch_add(1, Ordering::Relaxed))
-    }
-}
-
-impl std::fmt::Display for TensorId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "TensorId({})", self.0)
-    }
-}
+pub use crate::api::tensor_id::TensorId;
 
 #[derive(Debug, Clone)]
 pub struct Tensor {
@@ -530,4 +513,479 @@ fn compute_strides(shape: &[usize]) -> Vec<usize> {
         strides[i] = strides[i + 1] * shape[i + 1];
     }
     strides
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// @covers: Tensor::zeros
+    #[test]
+    fn test_zeros_creates_all_zero_tensor() {
+        let t = Tensor::zeros(vec![2, 3]);
+        assert_eq!(t.shape(), &[2, 3]);
+        assert!(t.to_vec().iter().all(|&v| v == 0.0));
+    }
+
+    /// @covers: Tensor::ones
+    #[test]
+    fn test_ones_creates_all_one_tensor() {
+        let t = Tensor::ones(vec![2, 3]);
+        assert!(t.to_vec().iter().all(|&v| v == 1.0));
+    }
+
+    /// @covers: Tensor::numel
+    #[test]
+    fn test_numel_returns_total_elements() {
+        let t = Tensor::zeros(vec![2, 3, 4]);
+        assert_eq!(t.numel(), 24);
+    }
+
+    /// @covers: Tensor::add_raw
+    #[test]
+    fn test_add_raw_sums_element_wise() {
+        let a = Tensor::from_vec(vec![1.0, 2.0], vec![2]).unwrap();
+        let b = Tensor::from_vec(vec![3.0, 4.0], vec![2]).unwrap();
+        let c = a.add_raw(&b).unwrap();
+        assert_eq!(c.to_vec(), vec![4.0, 6.0]);
+    }
+
+    /// @covers: Tensor::mul_scalar_raw
+    #[test]
+    fn test_mul_scalar_raw_scales_all_elements() {
+        let a = Tensor::from_vec(vec![1.0, 2.0, 3.0], vec![3]).unwrap();
+        let b = a.mul_scalar_raw(2.0);
+        assert_eq!(b.to_vec(), vec![2.0, 4.0, 6.0]);
+    }
+
+    /// @covers: TensorId::next
+    #[test]
+    fn test_tensor_ids_are_unique() {
+        let t1 = Tensor::zeros(vec![1]);
+        let t2 = Tensor::zeros(vec![1]);
+        assert_ne!(t1.id(), t2.id());
+    }
+
+    /// @covers: Tensor::set_requires_grad
+    #[test]
+    fn test_set_requires_grad_toggles_flag() {
+        let mut t = Tensor::zeros(vec![2]);
+        assert!(!t.requires_grad());
+        t.set_requires_grad(true);
+        assert!(t.requires_grad());
+    }
+
+    /// @covers: compute_strides
+    #[test]
+    fn test_compute_strides_for_3d_shape() {
+        let strides = compute_strides(&[2, 3, 4]);
+        assert_eq!(strides, vec![12, 4, 1]);
+    }
+
+    /// @covers: compute_strides
+    #[test]
+    fn test_compute_strides_empty_shape() {
+        let strides = compute_strides(&[]);
+        assert!(strides.is_empty());
+    }
+
+    /// @covers: normalize_dim_helper
+    #[test]
+    fn test_normalize_dim_helper_negative_dim() {
+        let result = normalize_dim_helper(-1, 3).unwrap();
+        assert_eq!(result, 2);
+    }
+
+    /// @covers: normalize_dim_helper
+    #[test]
+    fn test_normalize_dim_helper_out_of_bounds() {
+        let result = normalize_dim_helper(5, 3);
+        assert!(result.is_err());
+    }
+
+    /// @covers: Tensor::randn
+    #[test]
+    fn test_randn_creates_tensor_with_correct_shape() {
+        let t = Tensor::randn(vec![3, 4]);
+        assert_eq!(t.shape(), &[3, 4]);
+        assert_eq!(t.numel(), 12);
+    }
+
+    /// @covers: Tensor::from_vec
+    #[test]
+    fn test_from_vec_creates_tensor_with_data() {
+        let t = Tensor::from_vec(vec![1.0, 2.0, 3.0], vec![3]).unwrap();
+        assert_eq!(t.to_vec(), vec![1.0, 2.0, 3.0]);
+    }
+
+    /// @covers: Tensor::full
+    #[test]
+    fn test_full_creates_tensor_with_value() {
+        let t = Tensor::full(vec![2, 3], 5.0);
+        assert!(t.to_vec().iter().all(|&v| (v - 5.0).abs() < 1e-6));
+    }
+
+    /// @covers: Tensor::inner
+    #[test]
+    fn test_inner_returns_core_tensor() {
+        let t = Tensor::zeros(vec![2, 3]);
+        let inner = t.inner();
+        assert_eq!(inner.shape(), &[2, 3]);
+    }
+
+    /// @covers: Tensor::ndim
+    #[test]
+    fn test_ndim_returns_number_of_dimensions() {
+        let t = Tensor::zeros(vec![2, 3, 4]);
+        assert_eq!(t.ndim(), 3);
+    }
+
+    /// @covers: Tensor::dtype
+    #[test]
+    fn test_dtype_returns_tensor_dtype() {
+        let t = Tensor::zeros(vec![2]);
+        let _ = t.dtype(); // Just ensure it doesn't panic
+    }
+
+    /// @covers: Tensor::data
+    #[test]
+    fn test_data_returns_slice() {
+        let t = Tensor::from_vec(vec![1.0, 2.0], vec![2]).unwrap();
+        let data = t.data().unwrap();
+        assert_eq!(data, &[1.0, 2.0]);
+    }
+
+    /// @covers: Tensor::to_vec
+    #[test]
+    fn test_to_vec_returns_owned_data() {
+        let t = Tensor::from_vec(vec![3.0, 4.0], vec![2]).unwrap();
+        assert_eq!(t.to_vec(), vec![3.0, 4.0]);
+    }
+
+    /// @covers: Tensor::new
+    #[test]
+    fn test_new_wraps_core_tensor() {
+        let core = tensor_engine::Tensor::zeros(vec![2]);
+        let t = Tensor::new(core, true);
+        assert!(t.requires_grad());
+        assert_eq!(t.shape(), &[2]);
+    }
+
+    /// @covers: Tensor::id
+    #[test]
+    fn test_id_returns_unique_id() {
+        let t = Tensor::zeros(vec![1]);
+        let _ = t.id();
+    }
+
+    /// @covers: Tensor::shape
+    #[test]
+    fn test_shape_returns_dimensions() {
+        let t = Tensor::zeros(vec![2, 3]);
+        assert_eq!(t.shape(), &[2, 3]);
+    }
+
+    /// @covers: Tensor::requires_grad
+    #[test]
+    fn test_requires_grad_returns_false_by_default() {
+        let t = Tensor::zeros(vec![2]);
+        assert!(!t.requires_grad());
+    }
+
+    /// @covers: Tensor::matmul_raw
+    #[test]
+    fn test_matmul_raw() {
+        let a = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2]).unwrap();
+        let b = Tensor::from_vec(vec![1.0, 0.0, 0.0, 1.0], vec![2, 2]).unwrap();
+        let c = a.matmul_raw(&b).unwrap();
+        assert_eq!(c.to_vec(), vec![1.0, 2.0, 3.0, 4.0]);
+    }
+
+    /// @covers: Tensor::sub_raw
+    #[test]
+    fn test_sub_raw() {
+        let a = Tensor::from_vec(vec![5.0, 3.0], vec![2]).unwrap();
+        let b = Tensor::from_vec(vec![2.0, 1.0], vec![2]).unwrap();
+        let c = a.sub_raw(&b).unwrap();
+        assert_eq!(c.to_vec(), vec![3.0, 2.0]);
+    }
+
+    /// @covers: Tensor::mul_raw
+    #[test]
+    fn test_mul_raw() {
+        let a = Tensor::from_vec(vec![2.0, 3.0], vec![2]).unwrap();
+        let b = Tensor::from_vec(vec![4.0, 5.0], vec![2]).unwrap();
+        let c = a.mul_raw(&b).unwrap();
+        assert_eq!(c.to_vec(), vec![8.0, 15.0]);
+    }
+
+    /// @covers: Tensor::transpose_raw
+    #[test]
+    fn test_transpose_raw() {
+        let a = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0], vec![2, 3]).unwrap();
+        let t = a.transpose_raw(0, 1).unwrap();
+        assert_eq!(t.shape(), &[3, 2]);
+    }
+
+    /// @covers: Tensor::relu_raw
+    #[test]
+    fn test_relu_raw() {
+        let a = Tensor::from_vec(vec![-1.0, 0.0, 1.0], vec![3]).unwrap();
+        let r = a.relu_raw();
+        assert_eq!(r.to_vec(), vec![0.0, 0.0, 1.0]);
+    }
+
+    /// @covers: Tensor::neg_raw
+    #[test]
+    fn test_neg_raw() {
+        let a = Tensor::from_vec(vec![1.0, -2.0], vec![2]).unwrap();
+        let n = a.neg_raw();
+        assert_eq!(n.to_vec(), vec![-1.0, 2.0]);
+    }
+
+    /// @covers: Tensor::mean_all_raw
+    #[test]
+    fn test_mean_all_raw() {
+        let a = Tensor::from_vec(vec![2.0, 4.0], vec![2]).unwrap();
+        assert!((a.mean_all_raw() - 3.0).abs() < 1e-6);
+    }
+
+    /// @covers: Tensor::sum_all_raw
+    #[test]
+    fn test_sum_all_raw() {
+        let a = Tensor::from_vec(vec![1.0, 2.0, 3.0], vec![3]).unwrap();
+        assert!((a.sum_all_raw() - 6.0).abs() < 1e-6);
+    }
+
+    /// @covers: Tensor::pow_raw
+    #[test]
+    fn test_pow_raw() {
+        let a = Tensor::from_vec(vec![2.0, 3.0], vec![2]).unwrap();
+        let p = a.pow_raw(2.0);
+        assert_eq!(p.to_vec(), vec![4.0, 9.0]);
+    }
+
+    /// @covers: Tensor::div_raw
+    #[test]
+    fn test_div_raw() {
+        let a = Tensor::from_vec(vec![6.0, 8.0], vec![2]).unwrap();
+        let b = Tensor::from_vec(vec![2.0, 4.0], vec![2]).unwrap();
+        let c = a.div_raw(&b).unwrap();
+        assert_eq!(c.to_vec(), vec![3.0, 2.0]);
+    }
+
+    /// @covers: Tensor::div_scalar_raw
+    #[test]
+    fn test_div_scalar_raw() {
+        let a = Tensor::from_vec(vec![4.0, 6.0], vec![2]).unwrap();
+        let c = a.div_scalar_raw(2.0);
+        assert_eq!(c.to_vec(), vec![2.0, 3.0]);
+    }
+
+    /// @covers: Tensor::add_scalar_raw
+    #[test]
+    fn test_add_scalar_raw() {
+        let a = Tensor::from_vec(vec![1.0, 2.0], vec![2]).unwrap();
+        let c = a.add_scalar_raw(3.0);
+        assert_eq!(c.to_vec(), vec![4.0, 5.0]);
+    }
+
+    /// @covers: Tensor::sqrt_raw
+    #[test]
+    fn test_sqrt_raw() {
+        let a = Tensor::from_vec(vec![4.0, 9.0], vec![2]).unwrap();
+        let s = a.sqrt_raw();
+        assert!((s.to_vec()[0] - 2.0).abs() < 1e-6);
+        assert!((s.to_vec()[1] - 3.0).abs() < 1e-6);
+    }
+
+    /// @covers: Tensor::reshape_raw
+    #[test]
+    fn test_reshape_raw() {
+        let a = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2]).unwrap();
+        let r = a.reshape_raw(&[4]).unwrap();
+        assert_eq!(r.shape(), &[4]);
+    }
+
+    /// @covers: Tensor::sum_raw
+    #[test]
+    fn test_sum_raw() {
+        let a = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2]).unwrap();
+        let s = a.sum_raw(1).unwrap();
+        assert_eq!(s.to_vec(), vec![3.0, 7.0]);
+    }
+
+    /// @covers: Tensor::permute_raw
+    #[test]
+    fn test_permute_raw() {
+        let a = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0], vec![2, 3]).unwrap();
+        let p = a.permute_raw(&[1, 0]).unwrap();
+        assert_eq!(p.shape(), &[3, 2]);
+    }
+
+    /// @covers: Tensor::squeeze_raw
+    #[test]
+    fn test_squeeze_raw() {
+        let a = Tensor::from_vec(vec![1.0, 2.0], vec![1, 2]).unwrap();
+        let s = a.squeeze_raw(0).unwrap();
+        assert_eq!(s.shape(), &[2]);
+    }
+
+    /// @covers: Tensor::unsqueeze_raw
+    #[test]
+    fn test_unsqueeze_raw() {
+        let a = Tensor::from_vec(vec![1.0, 2.0], vec![2]).unwrap();
+        let u = a.unsqueeze_raw(0).unwrap();
+        assert_eq!(u.shape(), &[1, 2]);
+    }
+
+    /// @covers: Tensor::flatten_raw
+    #[test]
+    fn test_flatten_raw() {
+        let a = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2]).unwrap();
+        let f = a.flatten_raw().unwrap();
+        assert_eq!(f.shape(), &[4]);
+    }
+
+    /// @covers: Tensor::view_raw
+    #[test]
+    fn test_view_raw() {
+        let a = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0], vec![2, 3]).unwrap();
+        let v = a.view_raw(&[3, 2]).unwrap();
+        assert_eq!(v.shape(), &[3, 2]);
+    }
+
+    /// @covers: Tensor::slice_raw
+    #[test]
+    fn test_slice_raw() {
+        let a = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![4]).unwrap();
+        let s = a.slice_raw(0, 1, 3).unwrap();
+        assert_eq!(s.to_vec(), vec![2.0, 3.0]);
+    }
+
+    /// @covers: Tensor::exp_raw
+    #[test]
+    fn test_exp_raw() {
+        let a = Tensor::from_vec(vec![0.0], vec![1]).unwrap();
+        let e = a.exp_raw();
+        assert!((e.to_vec()[0] - 1.0).abs() < 1e-6);
+    }
+
+    /// @covers: Tensor::log_raw
+    #[test]
+    fn test_log_raw() {
+        let a = Tensor::from_vec(vec![1.0], vec![1]).unwrap();
+        let l = a.log_raw();
+        assert!(l.to_vec()[0].abs() < 1e-6);
+    }
+
+    /// @covers: Tensor::abs_raw
+    #[test]
+    fn test_abs_raw() {
+        let a = Tensor::from_vec(vec![-1.0, 2.0, -3.0], vec![3]).unwrap();
+        let ab = a.abs_raw();
+        assert_eq!(ab.to_vec(), vec![1.0, 2.0, 3.0]);
+    }
+
+    /// @covers: Tensor::mean_raw
+    #[test]
+    fn test_mean_raw() {
+        let a = Tensor::from_vec(vec![1.0, 3.0, 2.0, 4.0], vec![2, 2]).unwrap();
+        let m = a.mean_raw(1).unwrap();
+        assert!((m.to_vec()[0] - 2.0).abs() < 1e-6);
+        assert!((m.to_vec()[1] - 3.0).abs() < 1e-6);
+    }
+
+    /// @covers: Tensor::max_raw
+    #[test]
+    fn test_max_raw() {
+        let a = Tensor::from_vec(vec![1.0, 3.0, 2.0, 4.0], vec![2, 2]).unwrap();
+        let (vals, _idxs) = a.max_raw(1).unwrap();
+        assert_eq!(vals.to_vec(), vec![3.0, 4.0]);
+    }
+
+    /// @covers: Tensor::min_raw
+    #[test]
+    fn test_min_raw() {
+        let a = Tensor::from_vec(vec![1.0, 3.0, 2.0, 4.0], vec![2, 2]).unwrap();
+        let (vals, _idxs) = a.min_raw(1).unwrap();
+        assert_eq!(vals.to_vec(), vec![1.0, 2.0]);
+    }
+
+    /// @covers: Tensor::var_raw
+    #[test]
+    fn test_var_raw() {
+        let a = Tensor::from_vec(vec![2.0, 4.0, 2.0, 4.0], vec![2, 2]).unwrap();
+        let v = a.var_raw(1).unwrap();
+        assert!(v.to_vec()[0] > 0.0);
+    }
+
+    /// @covers: Tensor::std_dev_raw
+    #[test]
+    fn test_std_dev_raw() {
+        let a = Tensor::from_vec(vec![2.0, 4.0, 2.0, 4.0], vec![2, 2]).unwrap();
+        let s = a.std_dev_raw(1).unwrap();
+        assert!(s.to_vec()[0] > 0.0);
+    }
+
+    /// @covers: Tensor::concat_raw
+    #[test]
+    fn test_concat_raw() {
+        let a = Tensor::from_vec(vec![1.0, 2.0], vec![2]).unwrap();
+        let b = Tensor::from_vec(vec![3.0, 4.0], vec![2]).unwrap();
+        let c = Tensor::concat_raw(&[&a, &b], 0).unwrap();
+        assert_eq!(c.to_vec(), vec![1.0, 2.0, 3.0, 4.0]);
+    }
+
+    /// @covers: Tensor::stack_raw
+    #[test]
+    fn test_stack_raw() {
+        let a = Tensor::from_vec(vec![1.0, 2.0], vec![2]).unwrap();
+        let b = Tensor::from_vec(vec![3.0, 4.0], vec![2]).unwrap();
+        let s = Tensor::stack_raw(&[&a, &b], 0).unwrap();
+        assert_eq!(s.shape(), &[2, 2]);
+    }
+
+    /// @covers: Tensor::split_raw
+    #[test]
+    fn test_split_raw() {
+        let a = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![4]).unwrap();
+        let chunks = a.split_raw(2, 0).unwrap();
+        assert_eq!(chunks.len(), 2);
+    }
+
+    /// @covers: Tensor::update_data_from
+    #[test]
+    fn test_update_data_from() {
+        let mut a = Tensor::from_vec(vec![1.0, 2.0], vec![2]).unwrap();
+        let b = Tensor::from_vec(vec![5.0, 6.0], vec![2]).unwrap();
+        a.update_data_from(&b);
+        assert_eq!(a.to_vec(), vec![5.0, 6.0]);
+    }
+
+    /// @covers: Tensor::index_select_raw
+    #[test]
+    fn test_index_select_raw() {
+        let a = Tensor::from_vec(vec![10.0, 20.0, 30.0, 40.0], vec![4]).unwrap();
+        let s = a.index_select_raw(0, &[0, 2]).unwrap();
+        assert_eq!(s.to_vec(), vec![10.0, 30.0]);
+    }
+
+    /// @covers: Tensor::gather_raw
+    #[test]
+    fn test_gather_raw() {
+        let a = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2]).unwrap();
+        let idx = Tensor::from_vec(vec![0.0, 1.0, 1.0, 0.0], vec![2, 2]).unwrap();
+        let g = a.gather_raw(1, &idx).unwrap();
+        assert_eq!(g.shape(), &[2, 2]);
+    }
+
+    /// @covers: Tensor::masked_select_raw
+    #[test]
+    fn test_masked_select_raw() {
+        let a = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![4]).unwrap();
+        let mask = Tensor::from_vec(vec![1.0, 0.0, 1.0, 0.0], vec![4]).unwrap();
+        let s = a.masked_select_raw(&mask).unwrap();
+        assert_eq!(s.to_vec(), vec![1.0, 3.0]);
+    }
 }

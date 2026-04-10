@@ -5,7 +5,7 @@ use crate::api::tensor::Tensor;
 /// saved[0] = A, saved[1] = B
 /// grad_A = grad_output @ B^T
 /// grad_B = A^T @ grad_output
-pub struct MatMulBackward;
+pub(crate) struct MatMulBackward;
 
 impl BackwardOp for MatMulBackward {
     fn backward(&self, grad_output: &Tensor, saved: &[Tensor]) -> Vec<Tensor> {
@@ -25,5 +25,23 @@ impl BackwardOp for MatMulBackward {
 
     fn name(&self) -> &str {
         "MatMulBackward"
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// @covers: MatMulBackward::backward
+    #[test]
+    fn test_matmul_backward_produces_two_gradients() {
+        let op = MatMulBackward;
+        let a = Tensor::ones(vec![2, 3]);
+        let b = Tensor::ones(vec![3, 4]);
+        let grad_output = Tensor::ones(vec![2, 4]);
+        let grads = op.backward(&grad_output, &[a, b]);
+        assert_eq!(grads.len(), 2);
+        assert_eq!(grads[0].shape(), &[2, 3]); // grad_A
+        assert_eq!(grads[1].shape(), &[3, 4]); // grad_B
     }
 }

@@ -125,3 +125,39 @@ impl Optimizer for Adam {
         self.learning_rate = lr;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// @covers: Adam::new
+    #[test]
+    fn test_adam_new_defaults() {
+        let adam = Adam::new(0.001);
+        assert!((adam.lr() - 0.001).abs() < f32::EPSILON);
+        assert!((adam.beta1 - 0.9).abs() < f32::EPSILON);
+        assert!((adam.beta2 - 0.999).abs() < f32::EPSILON);
+    }
+
+    /// @covers: Adam::with_betas
+    #[test]
+    fn test_adam_with_betas() {
+        let adam = Adam::new(0.001).with_betas(0.8, 0.99);
+        assert!((adam.beta1 - 0.8).abs() < f32::EPSILON);
+        assert!((adam.beta2 - 0.99).abs() < f32::EPSILON);
+    }
+
+    /// @covers: Adam::with_epsilon
+    #[test]
+    fn test_with_epsilon() {
+        let adam = Adam::new(0.001).with_epsilon(1e-7);
+        assert!((adam.epsilon - 1e-7).abs() < 1e-12);
+    }
+
+    /// @covers: Adam::with_weight_decay
+    #[test]
+    fn test_adam_with_weight_decay() {
+        let adam = Adam::new(0.001).with_weight_decay(0.01);
+        assert!((adam.weight_decay - 0.01).abs() < f32::EPSILON);
+    }
+}

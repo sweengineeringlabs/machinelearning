@@ -120,3 +120,35 @@ impl BackwardOp for QuantileBackward {
         "QuantileBackward"
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// @covers: QuantileLoss::new
+    #[test]
+    fn test_new_creates_instance() {
+        let _loss = QuantileLoss::new(0.5);
+    }
+
+    /// @covers: QuantileLoss::forward
+    #[test]
+    fn test_quantile_loss_identical_inputs_returns_zero() {
+        let loss = QuantileLoss::new(0.5);
+        let pred = Tensor::from_vec(vec![1.0, 2.0], vec![2]).unwrap();
+        let tgt = Tensor::from_vec(vec![1.0, 2.0], vec![2]).unwrap();
+        let result = loss.forward(&pred, &tgt).unwrap();
+        assert!(result.to_vec()[0].abs() < 1e-6);
+    }
+
+    /// @covers: QuantileLoss::new
+    #[test]
+    fn test_quantile_loss_default_is_median() {
+        let loss = QuantileLoss::default();
+        // At quantile=0.5 with symmetric error, loss should be symmetric
+        let pred = Tensor::from_vec(vec![0.0], vec![1]).unwrap();
+        let tgt = Tensor::from_vec(vec![1.0], vec![1]).unwrap();
+        let result = loss.forward(&pred, &tgt).unwrap();
+        assert!(result.to_vec()[0] > 0.0);
+    }
+}

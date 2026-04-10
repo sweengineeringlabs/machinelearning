@@ -129,3 +129,46 @@ impl Optimizer for AdamW {
         self.learning_rate = lr;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// @covers: AdamW::new
+    #[test]
+    fn test_adamw_new_defaults() {
+        let adamw = AdamW::new(0.001);
+        assert!((adamw.lr() - 0.001).abs() < f32::EPSILON);
+        assert!((adamw.weight_decay - 0.01).abs() < f32::EPSILON);
+    }
+
+    /// @covers: AdamW::with_betas
+    #[test]
+    fn test_with_betas() {
+        let adamw = AdamW::new(0.001).with_betas(0.85, 0.99);
+        assert!((adamw.beta1 - 0.85).abs() < f32::EPSILON);
+        assert!((adamw.beta2 - 0.99).abs() < f32::EPSILON);
+    }
+
+    /// @covers: AdamW::with_epsilon
+    #[test]
+    fn test_with_epsilon() {
+        let adamw = AdamW::new(0.001).with_epsilon(1e-7);
+        assert!((adamw.epsilon - 1e-7).abs() < 1e-12);
+    }
+
+    /// @covers: AdamW::with_weight_decay
+    #[test]
+    fn test_adamw_with_weight_decay() {
+        let adamw = AdamW::new(0.001).with_weight_decay(0.05);
+        assert!((adamw.weight_decay - 0.05).abs() < f32::EPSILON);
+    }
+
+    /// @covers: AdamW::set_lr
+    #[test]
+    fn test_adamw_set_lr() {
+        let mut adamw = AdamW::new(0.001);
+        adamw.set_lr(0.0001);
+        assert!((adamw.lr() - 0.0001).abs() < f32::EPSILON);
+    }
+}

@@ -46,3 +46,57 @@ impl Layer for Sequential {
             .collect()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::nn::linear::Linear;
+    use crate::core::nn::activations::relu::ReLU;
+
+    /// @covers: Sequential::new
+    #[test]
+    fn test_sequential_new_stores_layers() {
+        let seq = Sequential::new(vec![
+            Box::new(Linear::new(4, 3)),
+            Box::new(ReLU::new()),
+        ]);
+        assert_eq!(seq.len(), 2);
+        assert!(!seq.is_empty());
+    }
+
+    /// @covers: Sequential::forward
+    #[test]
+    fn test_sequential_forward_chains_layers() {
+        let mut seq = Sequential::new(vec![
+            Box::new(Linear::new(4, 3)),
+            Box::new(ReLU::new()),
+        ]);
+        let input = Tensor::randn([2, 4]);
+        let output = seq.forward(&input).unwrap();
+        assert_eq!(output.shape(), &[2, 3]);
+    }
+
+    /// @covers: Sequential::len
+    #[test]
+    fn test_len() {
+        let seq = Sequential::new(vec![
+            Box::new(Linear::new(4, 3)),
+        ]);
+        assert_eq!(seq.len(), 1);
+    }
+
+    /// @covers: Sequential::is_empty
+    #[test]
+    fn test_is_empty() {
+        let seq = Sequential::new(vec![]);
+        assert!(seq.is_empty());
+    }
+
+    /// @covers: Sequential::is_empty
+    #[test]
+    fn test_sequential_empty() {
+        let seq = Sequential::new(vec![]);
+        assert!(seq.is_empty());
+        assert_eq!(seq.len(), 0);
+    }
+}

@@ -1,6 +1,6 @@
-pub mod api;
-pub mod core;
+mod api;
+mod core;
 mod gateway;
 mod saf;
 
-pub use saf::*;
+pub use gateway::*;

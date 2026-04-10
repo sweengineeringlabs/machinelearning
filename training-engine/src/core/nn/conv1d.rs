@@ -337,3 +337,108 @@ impl BackwardOp for Conv1dBackward {
         "Conv1dBackward"
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// @covers: Conv1d::new
+    #[test]
+    fn test_conv1d_new_creates_correct_parameter_shapes() {
+        let layer = Conv1d::new(3, 8, 5);
+        assert_eq!(layer.in_channels(), 3);
+        assert_eq!(layer.out_channels(), 8);
+        assert_eq!(layer.kernel_size(), 5);
+        let params = layer.parameters();
+        assert_eq!(params.len(), 2);
+        assert_eq!(params[0].shape(), &[8, 3, 5]); // weight
+        assert_eq!(params[1].shape(), &[8]);         // bias
+    }
+
+    /// @covers: Conv1d::with_stride
+    #[test]
+    fn test_with_stride() {
+        let layer = Conv1d::new(2, 4, 3).with_stride(2);
+        assert_eq!(layer.stride(), 2);
+    }
+
+    /// @covers: Conv1d::with_padding
+    #[test]
+    fn test_with_padding() {
+        let layer = Conv1d::new(2, 4, 3).with_padding(1);
+        assert_eq!(layer.padding(), 1);
+    }
+
+    /// @covers: Conv1d::with_dilation
+    #[test]
+    fn test_with_dilation() {
+        let layer = Conv1d::new(2, 4, 3).with_dilation(2);
+        assert_eq!(layer.dilation(), 2);
+    }
+
+    /// @covers: Conv1d::in_channels
+    #[test]
+    fn test_in_channels() {
+        let layer = Conv1d::new(3, 8, 5);
+        assert_eq!(layer.in_channels(), 3);
+    }
+
+    /// @covers: Conv1d::out_channels
+    #[test]
+    fn test_out_channels() {
+        let layer = Conv1d::new(3, 8, 5);
+        assert_eq!(layer.out_channels(), 8);
+    }
+
+    /// @covers: Conv1d::kernel_size
+    #[test]
+    fn test_kernel_size() {
+        let layer = Conv1d::new(3, 8, 5);
+        assert_eq!(layer.kernel_size(), 5);
+    }
+
+    /// @covers: Conv1d::stride
+    #[test]
+    fn test_stride() {
+        let layer = Conv1d::new(3, 8, 5);
+        assert_eq!(layer.stride(), 1);
+    }
+
+    /// @covers: Conv1d::padding
+    #[test]
+    fn test_padding() {
+        let layer = Conv1d::new(3, 8, 5);
+        assert_eq!(layer.padding(), 0);
+    }
+
+    /// @covers: Conv1d::dilation
+    #[test]
+    fn test_dilation() {
+        let layer = Conv1d::new(3, 8, 5);
+        assert_eq!(layer.dilation(), 1);
+    }
+
+    /// @covers: Conv1d::parameters
+    #[test]
+    fn test_parameters() {
+        let layer = Conv1d::new(3, 8, 5);
+        assert_eq!(layer.parameters().len(), 2);
+    }
+
+    /// @covers: Conv1d::parameters_mut
+    #[test]
+    fn test_parameters_mut() {
+        let mut layer = Conv1d::new(3, 8, 5);
+        assert_eq!(layer.parameters_mut().len(), 2);
+    }
+
+    /// @covers: Conv1d::forward
+    #[test]
+    fn test_conv1d_forward_output_shape() {
+        let mut layer = Conv1d::new(2, 4, 3);
+        let input = Tensor::randn([1, 2, 10]); // batch=1, in_ch=2, length=10
+        let output = layer.forward(&input).unwrap();
+        // out_length = (10 + 0 - 1*(3-1) - 1) / 1 + 1 = 8
+        assert_eq!(output.shape(), &[1, 4, 8]);
+    }
+}

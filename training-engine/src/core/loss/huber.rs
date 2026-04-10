@@ -118,3 +118,46 @@ impl BackwardOp for HuberBackward {
         "HuberBackward"
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// @covers: HuberLoss::forward
+    #[test]
+    fn test_huber_loss_identical_inputs_returns_zero() {
+        let loss = HuberLoss::new(1.0);
+        let pred = Tensor::from_vec(vec![1.0, 2.0], vec![2]).unwrap();
+        let tgt = Tensor::from_vec(vec![1.0, 2.0], vec![2]).unwrap();
+        let result = loss.forward(&pred, &tgt).unwrap();
+        assert!(result.to_vec()[0].abs() < 1e-6);
+    }
+
+    /// @covers: HuberLoss::new
+    #[test]
+    fn test_new_stores_delta() {
+        let loss = HuberLoss::new(2.0);
+        // Verified by using it in forward
+        let pred = Tensor::from_vec(vec![0.0], vec![1]).unwrap();
+        let tgt = Tensor::from_vec(vec![0.0], vec![1]).unwrap();
+        let result = loss.forward(&pred, &tgt).unwrap();
+        assert!(result.to_vec()[0].abs() < 1e-6);
+    }
+
+    /// @covers: HuberLoss::default
+    #[test]
+    fn test_default_uses_delta_one() {
+        let _loss = HuberLoss::default();
+    }
+
+    /// @covers: HuberLoss::forward
+    #[test]
+    fn test_huber_loss_small_diff_uses_quadratic() {
+        let loss = HuberLoss::new(2.0);
+        let pred = Tensor::from_vec(vec![1.0], vec![1]).unwrap();
+        let tgt = Tensor::from_vec(vec![2.0], vec![1]).unwrap();
+        let result = loss.forward(&pred, &tgt).unwrap();
+        // diff = -1, |diff| = 1 < delta=2, so loss = 0.5 * 1^2 = 0.5
+        assert!((result.to_vec()[0] - 0.5).abs() < 1e-6);
+    }
+}

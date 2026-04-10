@@ -89,3 +89,41 @@ impl BackwardOp for MAEBackward {
         "MAEBackward"
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// @covers: MAELoss::new
+    #[test]
+    fn test_new_creates_instance() {
+        let _loss = MAELoss::new();
+    }
+
+    /// @covers: MAELoss::default
+    #[test]
+    fn test_default_creates_instance() {
+        let _loss = MAELoss::default();
+    }
+
+    /// @covers: MAELoss::forward
+    #[test]
+    fn test_mae_loss_identical_inputs_returns_zero() {
+        let loss = MAELoss::new();
+        let pred = Tensor::from_vec(vec![1.0, 2.0], vec![2]).unwrap();
+        let tgt = Tensor::from_vec(vec![1.0, 2.0], vec![2]).unwrap();
+        let result = loss.forward(&pred, &tgt).unwrap();
+        assert!(result.to_vec()[0].abs() < 1e-6);
+    }
+
+    /// @covers: MAELoss::forward
+    #[test]
+    fn test_mae_loss_known_value() {
+        let loss = MAELoss::new();
+        let pred = Tensor::from_vec(vec![1.0, 5.0], vec![2]).unwrap();
+        let tgt = Tensor::from_vec(vec![3.0, 3.0], vec![2]).unwrap();
+        let result = loss.forward(&pred, &tgt).unwrap();
+        // MAE = mean(|1-3| + |5-3|) = mean(2 + 2) = 2.0
+        assert!((result.to_vec()[0] - 2.0).abs() < 1e-6);
+    }
+}

@@ -147,3 +147,41 @@ impl BackwardOp for CrossEntropyBackward {
         "CrossEntropyBackward"
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// @covers: CrossEntropyLoss::forward
+    #[test]
+    fn test_cross_entropy_loss_perfect_prediction_low_loss() {
+        let loss = CrossEntropyLoss::new();
+        // logits where class 0 is strongly predicted
+        let pred = Tensor::from_vec(vec![10.0, 0.0, 0.0], vec![1, 3]).unwrap();
+        let tgt = Tensor::from_vec(vec![1.0, 0.0, 0.0], vec![1, 3]).unwrap();
+        let result = loss.forward(&pred, &tgt).unwrap();
+        assert!(result.to_vec()[0] < 0.01);
+    }
+
+    /// @covers: CrossEntropyLoss::new
+    #[test]
+    fn test_new_creates_instance() {
+        let _loss = CrossEntropyLoss::new();
+    }
+
+    /// @covers: CrossEntropyLoss::default
+    #[test]
+    fn test_default_creates_instance() {
+        let _loss = CrossEntropyLoss::default();
+    }
+
+    /// @covers: CrossEntropyLoss::forward
+    #[test]
+    fn test_cross_entropy_loss_wrong_prediction_high_loss() {
+        let loss = CrossEntropyLoss::new();
+        let pred = Tensor::from_vec(vec![0.0, 0.0, 10.0], vec![1, 3]).unwrap();
+        let tgt = Tensor::from_vec(vec![1.0, 0.0, 0.0], vec![1, 3]).unwrap();
+        let result = loss.forward(&pred, &tgt).unwrap();
+        assert!(result.to_vec()[0] > 5.0);
+    }
+}

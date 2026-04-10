@@ -68,3 +68,30 @@ impl Optimizer for SGD {
         self.learning_rate = lr;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// @covers: SGD::new
+    #[test]
+    fn test_sgd_new_stores_lr() {
+        let sgd = SGD::new(0.01);
+        assert!((sgd.lr() - 0.01).abs() < f32::EPSILON);
+    }
+
+    /// @covers: SGD::with_momentum
+    #[test]
+    fn test_sgd_with_momentum_sets_momentum() {
+        let sgd = SGD::new(0.01).with_momentum(0.9);
+        assert!((sgd.momentum - 0.9).abs() < f32::EPSILON);
+    }
+
+    /// @covers: SGD::set_lr
+    #[test]
+    fn test_sgd_set_lr_updates_value() {
+        let mut sgd = SGD::new(0.01);
+        sgd.set_lr(0.001);
+        assert!((sgd.lr() - 0.001).abs() < f32::EPSILON);
+    }
+}

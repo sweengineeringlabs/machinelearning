@@ -679,6 +679,27 @@ impl BackwardOp for LSTMBackward {
 mod tests {
     use super::*;
 
+    /// @covers: LSTM::input_size
+    #[test]
+    fn test_input_size() {
+        let lstm = LSTM::new(10, 20, 2);
+        assert_eq!(lstm.input_size(), 10);
+    }
+
+    /// @covers: LSTM::hidden_size
+    #[test]
+    fn test_hidden_size() {
+        let lstm = LSTM::new(10, 20, 2);
+        assert_eq!(lstm.hidden_size(), 20);
+    }
+
+    /// @covers: LSTM::num_layers
+    #[test]
+    fn test_num_layers() {
+        let lstm = LSTM::new(10, 20, 2);
+        assert_eq!(lstm.num_layers(), 2);
+    }
+
     #[test]
     fn test_lstm_output_shape() {
         let mut lstm = LSTM::new(10, 20, 2);

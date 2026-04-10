@@ -341,3 +341,114 @@ impl BackwardOp for BatchNorm1dBackward {
         "BatchNorm1dBackward"
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// @covers: BatchNorm1d::new
+    #[test]
+    fn test_batch_norm_new_defaults() {
+        let bn = BatchNorm1d::new(4);
+        assert_eq!(bn.num_features(), 4);
+        assert!(bn.is_training());
+        assert!((bn.eps() - 1e-5).abs() < 1e-10);
+        assert!((bn.momentum() - 0.1).abs() < 1e-6);
+    }
+
+    /// @covers: BatchNorm1d::forward
+    #[test]
+    fn test_batch_norm_forward_output_shape_2d() {
+        let mut bn = BatchNorm1d::new(3);
+        let input = Tensor::randn([4, 3]); // batch=4, features=3
+        let output = bn.forward(&input).unwrap();
+        assert_eq!(output.shape(), &[4, 3]);
+    }
+
+    /// @covers: BatchNorm1d::is_training
+    #[test]
+    fn test_is_training_returns_true_initially() {
+        let bn = BatchNorm1d::new(2);
+        assert!(bn.is_training());
+    }
+
+    /// @covers: BatchNorm1d::num_features
+    #[test]
+    fn test_num_features_returns_configured_value() {
+        let bn = BatchNorm1d::new(5);
+        assert_eq!(bn.num_features(), 5);
+    }
+
+    /// @covers: BatchNorm1d::running_mean
+    #[test]
+    fn test_running_mean_starts_at_zero() {
+        let bn = BatchNorm1d::new(3);
+        assert_eq!(bn.running_mean(), &[0.0, 0.0, 0.0]);
+    }
+
+    /// @covers: BatchNorm1d::running_var
+    #[test]
+    fn test_running_var_starts_at_one() {
+        let bn = BatchNorm1d::new(3);
+        assert_eq!(bn.running_var(), &[1.0, 1.0, 1.0]);
+    }
+
+    /// @covers: BatchNorm1d::eps
+    #[test]
+    fn test_eps_returns_default_value() {
+        let bn = BatchNorm1d::new(2);
+        assert!((bn.eps() - 1e-5).abs() < 1e-10);
+    }
+
+    /// @covers: BatchNorm1d::momentum
+    #[test]
+    fn test_momentum_returns_default_value() {
+        let bn = BatchNorm1d::new(2);
+        assert!((bn.momentum() - 0.1).abs() < 1e-6);
+    }
+
+    /// @covers: BatchNorm1d::parameters
+    #[test]
+    fn test_parameters_returns_gamma_and_beta() {
+        let bn = BatchNorm1d::new(4);
+        assert_eq!(bn.parameters().len(), 2);
+    }
+
+    /// @covers: BatchNorm1d::parameters_mut
+    #[test]
+    fn test_parameters_mut_returns_mutable_refs() {
+        let mut bn = BatchNorm1d::new(4);
+        assert_eq!(bn.parameters_mut().len(), 2);
+    }
+
+    /// @covers: BatchNorm1d::with_config
+    #[test]
+    fn test_with_config_sets_eps_and_momentum() {
+        let bn = BatchNorm1d::with_config(4, 1e-3, 0.2);
+        assert!((bn.eps() - 1e-3).abs() < 1e-10);
+        assert!((bn.momentum() - 0.2).abs() < 1e-6);
+    }
+
+    /// @covers: BatchNorm1d::train
+    #[test]
+    fn test_train_sets_training_mode() {
+        let mut bn = BatchNorm1d::new(2);
+        bn.eval();
+        assert!(!bn.is_training());
+        bn.train();
+        assert!(bn.is_training());
+    }
+
+    /// @covers: BatchNorm1d::eval
+    #[test]
+    fn test_batch_norm_eval_uses_running_stats() {
+        let mut bn = BatchNorm1d::new(2);
+        // Train to populate running stats
+        let input = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2]).unwrap();
+        let _ = bn.forward(&input).unwrap();
+        bn.eval();
+        assert!(!bn.is_training());
+        let output = bn.forward(&input).unwrap();
+        assert_eq!(output.shape(), &[2, 2]);
+    }
+}
