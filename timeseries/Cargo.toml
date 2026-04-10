@@ -10,7 +10,7 @@ description = "SWE Time Series - ML training framework for rustml"
 path = "main/src/lib.rs"
 
 [dependencies]
-ml-sdk.workspace = true
+training-engine.workspace = true
 tensor-engine.workspace = true
 thiserror.workspace = true
 rand.workspace = true

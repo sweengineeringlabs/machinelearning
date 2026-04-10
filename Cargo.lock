@@ -1697,18 +1697,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ml-sdk"
-version = "0.1.0"
-dependencies = [
- "approx",
- "log",
- "rand 0.8.5",
- "smallvec",
- "tensor-engine",
- "thiserror 2.0.17",
-]
-
-[[package]]
 name = "monostate"
 version = "0.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2597,11 +2585,11 @@ version = "0.1.0"
 dependencies = [
  "approx",
  "log",
- "ml-sdk",
  "rand 0.8.5",
  "smallvec",
  "tensor-engine",
  "thiserror 2.0.17",
+ "training-engine",
 ]
 
 [[package]]
@@ -3258,6 +3246,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "db97caf9d906fbde555dd62fa95ddba9eecfd14cb388e4f491a66d74cd5fb79a"
 dependencies = [
  "once_cell",
+]
+
+[[package]]
+name = "training-engine"
+version = "0.1.0"
+dependencies = [
+ "approx",
+ "rand 0.8.5",
+ "smallvec",
+ "tensor-engine",
+ "thiserror 2.0.17",
 ]
 
 [[package]]

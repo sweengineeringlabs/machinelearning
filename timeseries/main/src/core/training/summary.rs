@@ -39,8 +39,8 @@ pub fn model_summary(model: &dyn Layer) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ml_sdk::core::nn::linear::Linear;
-    use ml_sdk::core::nn::sequential::Sequential;
+    use training_engine::core::nn::linear::Linear;
+    use training_engine::core::nn::sequential::Sequential;
 
     #[test]
     fn summary_single_linear() {

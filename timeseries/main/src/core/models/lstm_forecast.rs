@@ -1,8 +1,8 @@
 use crate::api::error::SwetsResult;
 use crate::api::layer::Layer;
 use crate::api::tensor::Tensor;
-use ml_sdk::core::nn::linear::Linear;
-use ml_sdk::core::nn::lstm::LSTM;
+use training_engine::core::nn::linear::Linear;
+use training_engine::core::nn::lstm::LSTM;
 
 /// LSTM-based forecasting model (FR-804).
 ///

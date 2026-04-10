@@ -1,5 +1,5 @@
 // Re-export ml-sdk primitives for convenient access
-pub use ml_sdk::*;
+pub use training_engine::*;
 
 // Models
 pub use crate::core::models::lstm_forecast::LSTMForecast;
