@@ -1697,6 +1697,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "ml-sdk"
+version = "0.1.0"
+dependencies = [
+ "approx",
+ "log",
+ "rand 0.8.5",
+ "rustml-core",
+ "smallvec",
+ "thiserror 2.0.17",
+]
+
+[[package]]
 name = "monostate"
 version = "0.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2604,6 +2616,7 @@ version = "0.1.0"
 dependencies = [
  "approx",
  "log",
+ "ml-sdk",
  "rand 0.8.5",
  "rustml-core",
  "smallvec",

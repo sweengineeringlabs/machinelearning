@@ -23,7 +23,7 @@ impl BackwardOp for AddBackward {
 }
 
 /// Reduce gradient back to the original shape when broadcasting occurred.
-pub(crate) fn unbroadcast(grad: &Tensor, target_shape: &[usize]) -> Tensor {
+pub fn unbroadcast(grad: &Tensor, target_shape: &[usize]) -> Tensor {
     let grad_shape = grad.shape();
     if grad_shape == target_shape {
         return grad.clone();

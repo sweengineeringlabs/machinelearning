@@ -63,7 +63,8 @@ machinelearning/
 │   ├── quantize/           # rustml-quantize — SafeTensors to GGUF pipeline
 │   ├── cli/                # rustml-cli — unified `sweai` binary
 │   └── daemon/             # swellmd — HTTP inference daemon
-├── timeseries/             # rustml-swets — time series training
+├── ml-sdk/                 # ml-sdk — autograd tensors, layers, optimizers, losses, ops
+├── timeseries/             # rustml-swets — time series models, training, data pipeline
 └── docs/                   # Project documentation
 ```
 

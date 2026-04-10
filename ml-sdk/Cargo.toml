@@ -1,16 +1,15 @@
 [package]
-name = "rustml-swets"
+name = "ml-sdk"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "SWE Time Series - ML training framework for rustml"
+description = "ML SDK - foundational building blocks: autograd tensors, layers, optimizers, losses, ops"
 
 [lib]
 path = "main/src/lib.rs"
 
 [dependencies]
-ml-sdk.workspace = true
 rustml-core.workspace = true
 thiserror.workspace = true
 rand.workspace = true

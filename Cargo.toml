@@ -12,6 +12,8 @@ members = [
     "llm/quantize",
     "llm/cli",
     "llm/daemon",
+    # ML SDK
+    "ml-sdk",
     # Time Series
     "timeseries",
 ]
@@ -58,6 +60,7 @@ rustml-tokenizer = { path = "llm/tokenizer" }
 rustml-quant = { path = "llm/quant" }
 rustml-gguf = { path = "llm/gguf" }
 rustml-swets = { path = "timeseries" }
+ml-sdk = { path = "ml-sdk" }
 swellmd = { path = "llm/daemon" }
 # Shared deps for quant/gguf crates
 bytemuck = { version = "1", features = ["extern_crate_alloc"] }

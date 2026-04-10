@@ -1,6 +1,6 @@
 # MACHINELEARNING
 
-Pure-Rust ML platform with two workspaces: LLM inference and ML SDK.
+Pure-Rust ML platform with three workspaces: LLM inference, ML SDK, and time series.
 
 ## Workspaces
 
@@ -19,11 +19,24 @@ Pure-Rust ML platform with two workspaces: LLM inference and ML SDK.
 | `llm/cli` | CLI tools — unified `sweai` binary |
 | `llm/daemon` | Inference daemon — `swellmd` HTTP service |
 
-### timeseries/ — Time Series
+### ml-sdk/ — ML SDK
 
 | Crate | Description |
 |-------|-------------|
-| `timeseries` | Training framework — N-BEATS, TCN, LSTM, Transformer, optimizers |
+| `ml-sdk` | Foundational building blocks — autograd tensors, layers, optimizers, losses, ops |
+
+Layers: Linear, Conv1d, LSTM, BatchNorm, LayerNorm, Dropout, Sequential, activations (ReLU, GELU, SiLU, Sigmoid, Tanh).
+Optimizers: Adam, AdamW, SGD with gradient clipping and LR schedulers.
+Losses: MSE, MAE, CrossEntropy, Huber, Quantile.
+Ops: matmul, add, mul, relu, sigmoid, softmax, tanh — all with autograd backward passes.
+
+### timeseries/ — Time Series Training
+
+| Crate | Description |
+|-------|-------------|
+| `timeseries` | Time series models (N-BEATS, TCN, LSTM, Transformer), training, data pipeline |
+
+Consumes `ml-sdk` for layers, optimizers, and losses. Adds domain-specific models, OHLCV data loading, feature engineering, and the Trainer loop.
 
 ## Quick Start
 
