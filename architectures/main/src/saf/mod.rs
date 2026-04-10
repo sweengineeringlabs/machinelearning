@@ -1,4 +1,4 @@
-// Re-export ml-sdk primitives for convenient access
+// Re-export training-engine primitives (includes Trainer, Metrics, Checkpoint, etc.)
 pub use training_engine::*;
 
 // Models
@@ -8,15 +8,7 @@ pub use crate::core::models::nbeats::NBeats;
 pub use crate::core::models::tcn::TCN;
 pub use crate::core::models::transformer::TimeSeriesTransformer;
 
-// Training
-pub use crate::core::training::metrics::Metrics;
-pub use crate::core::training::summary::model_summary;
-pub use crate::core::training::trainer::Trainer;
-
-// Serialization
-pub use crate::core::serde::{save_checkpoint, load_checkpoint, Checkpoint};
-
-// Data pipeline
+// Data pipeline (domain-specific)
 pub use crate::core::data::candle::OHLCVCandle;
 pub use crate::core::data::dataset::{TimeSeriesDataset, TargetColumn};
 pub use crate::core::data::dataloader::DataLoader;

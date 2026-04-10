@@ -39,6 +39,14 @@ pub use crate::core::optim::sgd::SGD;
 // LR Schedulers
 pub use crate::core::optim::schedulers::{CosineAnnealingLR, StepLR, WarmupCosineScheduler};
 
+// Training infrastructure
+pub use crate::core::training::trainer::Trainer;
+pub use crate::core::training::metrics::Metrics;
+pub use crate::core::training::summary::model_summary;
+
+// Serialization
+pub use crate::core::serde::{save_checkpoint, load_checkpoint, Checkpoint};
+
 // Backward ops (for downstream crate tape-recorded operations)
 pub use crate::core::ops::add::{unbroadcast, AddBackward};
 pub use crate::core::ops::matmul::MatMulBackward;

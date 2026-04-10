@@ -35,5 +35,13 @@ pub use crate::api::SGD;
 // LR Schedulers
 pub use crate::api::{CosineAnnealingLR, StepLR, WarmupCosineScheduler};
 
+// Training infrastructure
+pub use crate::api::Trainer;
+pub use crate::api::Metrics;
+pub use crate::api::model_summary;
+
+// Serialization
+pub use crate::api::{save_checkpoint, load_checkpoint, Checkpoint};
+
 // Backward ops (for downstream crate tape-recorded operations)
 pub use crate::api::{unbroadcast, AddBackward, MatMulBackward, MulBackward, ReLUBackward};

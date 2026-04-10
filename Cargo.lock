@@ -3253,6 +3253,7 @@ name = "training-engine"
 version = "0.1.0"
 dependencies = [
  "approx",
+ "log",
  "rand 0.8.5",
  "tensor-engine",
  "thiserror 2.0.17",
