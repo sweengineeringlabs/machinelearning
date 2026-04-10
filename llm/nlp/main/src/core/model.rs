@@ -7,7 +7,7 @@
 use crate::api::error::{NlpError, NlpResult};
 use crate::api::types::{LanguageModel, ModelConfig};
 use crate::core::weight_map::WeightMap;
-use rustml_core::{DType, QuantStrategy, QuantTarget, RuntimeConfig, Tensor, f32_vec_to_bytes};
+use tensor_engine::{DType, QuantStrategy, QuantTarget, RuntimeConfig, Tensor, f32_vec_to_bytes};
 use rustml_nn::{
     Activation, Embedding, FeedForward, KVCache, LayerNorm, Linear, MoeLayer, MultiHeadAttention,
     NormLayer, PerLayerEmbedding, PerLayerInput, PoolingStrategy, PositionEncoding, RMSNorm, RoPEFreqs,
@@ -1573,7 +1573,7 @@ impl LlmModel {
     ///
     /// Sets `use_inplace_ops` on each TransformerBlock and
     /// `use_inplace_scaling` on each attention layer.
-    pub fn set_optimization_profile(&mut self, profile: rustml_core::OptProfile) {
+    pub fn set_optimization_profile(&mut self, profile: tensor_engine::OptProfile) {
         let inplace = profile.use_inplace_ops();
         for layer in &mut self.layers {
             layer.set_use_inplace_ops(inplace);
@@ -2723,7 +2723,7 @@ mod tests {
 
     #[test]
     fn test_set_optimization_profile_baseline() {
-        use rustml_core::OptProfile;
+        use tensor_engine::OptProfile;
         let config = tiny_config();
         let mut model = LlmModel::new(&config).unwrap();
         model.set_optimization_profile(OptProfile::Baseline);
@@ -2739,7 +2739,7 @@ mod tests {
 
     #[test]
     fn test_set_optimization_profile_baseline_with_cache() {
-        use rustml_core::OptProfile;
+        use tensor_engine::OptProfile;
         let config = tiny_config();
         let mut model = LlmModel::new(&config).unwrap();
         model.set_optimization_profile(OptProfile::Baseline);
@@ -2768,7 +2768,7 @@ mod tests {
 
     #[test]
     fn test_optimization_profiles_produce_same_greedy_output() {
-        use rustml_core::OptProfile;
+        use tensor_engine::OptProfile;
         let config = tiny_config();
 
         let input =
@@ -2944,7 +2944,7 @@ mod tests {
     // ── pool_hidden_states ───────────────────────────────────────────────────
 
     fn make_hidden(data: Vec<f32>, batch: usize, seq: usize, dim: usize) -> Tensor {
-        Tensor::new(rustml_core::f32_vec_to_bytes(data), vec![batch, seq, dim], DType::F32)
+        Tensor::new(tensor_engine::f32_vec_to_bytes(data), vec![batch, seq, dim], DType::F32)
     }
 
     #[test]
@@ -3027,7 +3027,7 @@ mod tests {
     fn test_pool_hidden_states_wrong_shape_returns_error() {
         // 2-D tensor should fail
         let bad =
-            Tensor::new(rustml_core::f32_vec_to_bytes(vec![1.0, 2.0]), vec![1, 2], DType::F32);
+            Tensor::new(tensor_engine::f32_vec_to_bytes(vec![1.0, 2.0]), vec![1, 2], DType::F32);
         let r = pool_hidden_states(&bad, PoolingStrategy::Cls);
         assert!(r.is_err(), "2-D input should return an error");
     }

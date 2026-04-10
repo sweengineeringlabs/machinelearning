@@ -4,7 +4,7 @@
 use crate::api::error::{NnError, NnResult};
 use crate::core::kv_cache::KVCache;
 use crate::core::linear::Linear;
-use rustml_core::Tensor;
+use tensor_engine::Tensor;
 
 /// Cross-attention layer for encoder-decoder architectures.
 pub struct CrossAttention {

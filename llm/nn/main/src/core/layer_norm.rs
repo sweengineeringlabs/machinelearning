@@ -1,7 +1,7 @@
 //! Layer normalization implementation
 
 use crate::api::error::NnResult;
-use rustml_core::Tensor;
+use tensor_engine::Tensor;
 
 /// Layer normalization
 ///

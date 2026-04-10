@@ -1,8 +1,8 @@
 //! Shape operations: reshape, transpose, permute, contiguous, slice, select, broadcast.
 
 use crate::api::error::{TensorError, TensorResult};
-use crate::api::types::DType;
-use crate::core::shape::Shape;
+use crate::api::dtype::DType;
+use crate::core::shape_mod::shape::Shape;
 use super::tensor::{Tensor, Storage, f32_vec_to_bytes, TensorShape};
 use smallvec::SmallVec;
 use std::sync::Arc;

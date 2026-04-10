@@ -16,7 +16,7 @@ path = "main/src/bin/hub_cli.rs"
 [dependencies]
 clap.workspace = true
 anyhow.workspace = true
-rustml-core.workspace = true
+tensor-engine.workspace = true
 rustml-gguf.workspace = true
 thiserror.workspace = true
 reqwest = { workspace = true, features = ["stream"] }

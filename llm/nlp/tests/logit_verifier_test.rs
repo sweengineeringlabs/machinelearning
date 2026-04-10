@@ -14,7 +14,7 @@
 //!   Q4_0 quantization + different matmul/accumulation order produces small
 //!   divergence from llama.cpp. Observed max logit diff: 0.89, max stat rel_err: 0.019.
 
-use rustml_core::Tensor;
+use tensor_engine::Tensor;
 use rustml_gguf::GGUFFile;
 use rustml_nlp::{
     convert_tensors, gguf_config_to_model_config, LanguageModel, LlmModel,

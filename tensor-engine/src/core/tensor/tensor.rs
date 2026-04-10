@@ -1,8 +1,9 @@
 //! Multi-dtype Tensor with Arc<Storage> backend.
 
 use crate::api::error::{TensorError, TensorResult};
-use crate::api::types::{DType, Device};
-use crate::core::shape::Shape;
+use crate::api::dtype::DType; use crate::api::device::Device;
+use crate::core::shape_mod::shape::Shape;
+use bytemuck;
 use half::{bf16, f16};
 use rand::Rng;
 use smallvec::SmallVec;

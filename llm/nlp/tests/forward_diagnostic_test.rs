@@ -4,7 +4,7 @@
 //! GGUF_MODEL_PATH=/tmp/gemma3-gguf/google_gemma-3-1b-it-Q4_0.gguf \
 //!   cargo test -p rustml-nlp --release --test forward_diagnostic_test -- --nocapture
 
-use rustml_core::Tensor;
+use tensor_engine::Tensor;
 use rustml_gguf::GGUFFile;
 use rustml_nlp::{
     convert_tensors, gguf_config_to_model_config, LanguageModel, LlmModel, ModelConfig,

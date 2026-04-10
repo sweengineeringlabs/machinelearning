@@ -9,7 +9,7 @@
 use crate::api::error::NlpResult;
 use crate::api::types::{GenerationConfig, LanguageModel};
 use rand::Rng;
-use rustml_core::Tensor;
+use tensor_engine::Tensor;
 
 /// Text generator that works with any `LanguageModel` implementation.
 ///

@@ -1,4 +1,4 @@
-use rustml_core::{Tensor, DType};
+use tensor_engine::{Tensor, DType};
 
 #[test]
 fn test_create_zeros_returns_correct_shape_and_dtype() {

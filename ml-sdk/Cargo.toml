@@ -10,7 +10,7 @@ description = "ML SDK - foundational building blocks: autograd tensors, layers, 
 path = "main/src/lib.rs"
 
 [dependencies]
-rustml-core.workspace = true
+tensor-engine.workspace = true
 thiserror.workspace = true
 rand.workspace = true
 log.workspace = true

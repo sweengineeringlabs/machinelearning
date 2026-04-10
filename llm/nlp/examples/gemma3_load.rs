@@ -12,7 +12,7 @@
 //! HF_TOKEN=hf_... cargo run -p rustml-nlp --example gemma3_load
 //! ```
 
-use rustml_core::Tensor;
+use tensor_engine::Tensor;
 use rustml_hub::HubApi;
 use rustml_nlp::{
     GenerationConfig, LanguageModel, LlmModel, ModelConfig, TextGenerator,

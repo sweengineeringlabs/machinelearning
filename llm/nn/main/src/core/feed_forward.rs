@@ -4,7 +4,7 @@ use crate::api::error::NnResult;
 use crate::api::types::Activation;
 use crate::core::linear::Linear;
 use std::time::Instant;
-use rustml_core::{DType, Tensor};
+use tensor_engine::{DType, Tensor};
 
 /// Feed-forward network (MLP) used in transformer blocks.
 ///

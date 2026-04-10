@@ -5,7 +5,7 @@
 //! Usage:
 //!   cargo run -p rustml-nlp --release --example gemma3_gguf -- /path/to/model.gguf
 
-use rustml_core::Tensor;
+use tensor_engine::Tensor;
 use rustml_gguf::GGUFFile;
 use rustml_nlp::{
     convert_tensors, gguf_config_to_model_config, LlmModel, LanguageModel,

@@ -12,7 +12,7 @@ use rustml_nlp::{
     GenerationConfig, GptConfig, GptModel, NlpResult, TextGenerator,
 };
 use rustml_tokenizer::BpeTokenizer;
-use rustml_core::Tensor;
+use tensor_engine::Tensor;
 
 #[tokio::main]
 async fn main() -> NlpResult<()> {

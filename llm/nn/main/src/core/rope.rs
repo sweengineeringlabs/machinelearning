@@ -2,7 +2,7 @@
 
 use std::time::Instant;
 use crate::api::error::NnResult;
-use rustml_core::{DType, Tensor, f32_vec_to_bytes};
+use tensor_engine::{DType, Tensor, f32_vec_to_bytes};
 
 /// Apply RoPE rotation to half_dim pairs using AVX2.
 /// Writes both halves of head_dim into contiguous out slice.

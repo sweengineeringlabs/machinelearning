@@ -129,7 +129,7 @@ pub fn load_safetensors(model_id: &str, profile: OptProfile) -> Result<ModelBund
     model.set_optimization_profile(profile);
 
     if !model.output.is_quantized() {
-        let strategy = rustml_core::QuantStrategy::from_toml_file(
+        let strategy = tensor_engine::QuantStrategy::from_toml_file(
             std::path::Path::new("quantization.toml"),
         );
         match model.quantize_with_strategy(&strategy) {

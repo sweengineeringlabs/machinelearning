@@ -1,20 +1,19 @@
 [package]
-name = "rustml-core"
+name = "tensor-engine"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
 rust-version = "1.93"
 authors.workspace = true
-description = "Core tensor operations for RustML - a pure Rust machine learning library"
+description = "Shared tensor engine - multi-dtype tensors with SIMD-accelerated operations"
 
 [lib]
-path = "main/src/lib.rs"
+path = "src/lib.rs"
 
 [dependencies]
 thiserror.workspace = true
 rand.workspace = true
-rustml-quant.workspace = true
 half.workspace = true
 bytemuck.workspace = true
 rayon.workspace = true

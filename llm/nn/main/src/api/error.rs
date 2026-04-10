@@ -1,6 +1,6 @@
 //! Error types for neural network operations
 
-use rustml_core::TensorError;
+use tensor_engine::TensorError;
 use rustml_quant::QuantError;
 use thiserror::Error;
 

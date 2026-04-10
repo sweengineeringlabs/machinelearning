@@ -10,7 +10,7 @@ description = "Neural network layers for RustML including attention mechanisms"
 path = "main/src/lib.rs"
 
 [dependencies]
-rustml-core.workspace = true
+tensor-engine.workspace = true
 rustml-quant.workspace = true
 thiserror.workspace = true
 half.workspace = true

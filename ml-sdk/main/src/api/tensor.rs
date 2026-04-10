@@ -1,4 +1,4 @@
-use rustml_core::{DType, Tensor as CoreTensor, TensorError, TensorResult};
+use tensor_engine::{DType, Tensor as CoreTensor, TensorError, TensorResult};
 use crate::api::error::{SwetsError, SwetsResult};
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -37,23 +37,23 @@ impl Tensor {
         }
     }
 
-    pub fn zeros(shape: impl Into<rustml_core::Shape>) -> Self {
+    pub fn zeros(shape: impl Into<tensor_engine::Shape>) -> Self {
         Self::new(CoreTensor::zeros(shape), false)
     }
 
-    pub fn ones(shape: impl Into<rustml_core::Shape>) -> Self {
+    pub fn ones(shape: impl Into<tensor_engine::Shape>) -> Self {
         Self::new(CoreTensor::ones(shape), false)
     }
 
-    pub fn randn(shape: impl Into<rustml_core::Shape>) -> Self {
+    pub fn randn(shape: impl Into<tensor_engine::Shape>) -> Self {
         Self::new(CoreTensor::randn(shape), false)
     }
 
-    pub fn from_vec(data: Vec<f32>, shape: impl Into<rustml_core::Shape>) -> TensorResult<Self> {
+    pub fn from_vec(data: Vec<f32>, shape: impl Into<tensor_engine::Shape>) -> TensorResult<Self> {
         Ok(Self::new(CoreTensor::from_vec(data, shape)?, false))
     }
 
-    pub fn full(shape: impl Into<rustml_core::Shape>, value: f32) -> Self {
+    pub fn full(shape: impl Into<tensor_engine::Shape>, value: f32) -> Self {
         Self::new(CoreTensor::full(shape, value), false)
     }
 
@@ -354,7 +354,7 @@ impl Tensor {
         let mask_data = if self.shape() == mask.shape() {
             mask.to_vec()
         } else {
-            let target = rustml_core::Shape::new(self.shape().to_vec());
+            let target = tensor_engine::Shape::new(self.shape().to_vec());
             let broadcast_mask = mask
                 .inner
                 .broadcast_to(&target)

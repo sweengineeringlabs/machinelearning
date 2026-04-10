@@ -46,7 +46,7 @@
 
 use crate::api::error::{NlpError, NlpResult};
 use crate::api::types::GptConfig;
-use rustml_core::Tensor;
+use tensor_engine::Tensor;
 use rustml_hub::{Gpt2WeightMapper, WeightMapper};
 use rustml_nn::{CausalSelfAttention, Embedding, LayerNorm, Linear};
 use std::collections::HashMap;

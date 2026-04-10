@@ -4,7 +4,7 @@
 //! generic `WeightMap` that can be used for custom mappings.
 
 use crate::api::error::{NlpError, NlpResult};
-use rustml_core::Tensor;
+use tensor_engine::Tensor;
 use std::collections::HashMap;
 
 /// Maps HuggingFace tensor names to internal model names.

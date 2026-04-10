@@ -8,7 +8,7 @@ use crate::core::linear::Linear;
 use crate::core::rms_norm::RMSNorm;
 use crate::core::rope::{alibi_bias, compute_alibi_slopes, RoPEFreqs};
 use std::time::Instant;
-use rustml_core::{DType, Tensor};
+use tensor_engine::{DType, Tensor};
 
 /// Multi-head attention with GQA, RoPE, ALiBi, and KV-cache support.
 ///

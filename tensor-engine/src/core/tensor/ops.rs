@@ -1,8 +1,8 @@
 //! Tensor math operations: matmul, add, softmax, activations, reductions, etc.
 
 use crate::api::error::{TensorError, TensorResult};
-use crate::api::types::DType;
-use crate::core::shape::Shape;
+use crate::api::dtype::DType;
+use crate::core::shape_mod::shape::Shape;
 use super::tensor::{Tensor, f32_vec_to_bytes, TensorShape};
 use std::time::Instant;
 use smallvec::{smallvec, SmallVec};
@@ -613,7 +613,7 @@ impl Tensor {
                 }
             };
 
-            let threshold = crate::core::runtime::SOFTMAX_PAR_THRESHOLD.load(std::sync::atomic::Ordering::Relaxed);
+            let threshold = crate::core::runtime::runtime_config::SOFTMAX_PAR_THRESHOLD.load(std::sync::atomic::Ordering::Relaxed);
             if total < threshold {
                 // Sequential path: avoid rayon scheduling overhead for small tensors
                 // (e.g. attention softmax during decode: [1, H, 1, T] with H*T < threshold)
@@ -883,7 +883,7 @@ impl Tensor {
         let rhs_data = other.as_slice_f32()?;
 
         // Fast parallel gemv for M=1 (decode-time projections)
-        let gemv_threshold = crate::core::runtime::GEMV_PAR_THRESHOLD.load(std::sync::atomic::Ordering::Relaxed);
+        let gemv_threshold = crate::core::runtime::runtime_config::GEMV_PAR_THRESHOLD.load(std::sync::atomic::Ordering::Relaxed);
         if M == 1 && N >= gemv_threshold {
             let out_data = Self::gemv_parallel(lhs_data, rhs_data, &other.strides, K, N);
             if !out_data.is_empty() {
@@ -972,7 +972,7 @@ impl Tensor {
         let rhs_data = rhs.as_slice_f32()?;
 
         let total_output = batch_count * M * N;
-        let threshold = crate::core::runtime::BATCHED_MATMUL_PAR_THRESHOLD.load(std::sync::atomic::Ordering::Relaxed);
+        let threshold = crate::core::runtime::runtime_config::BATCHED_MATMUL_PAR_THRESHOLD.load(std::sync::atomic::Ordering::Relaxed);
         if total_output < threshold {
             // Sequential path: avoid rayon scheduling overhead for small batched matmuls
             // (e.g. attention Q@K^T and attn@V during decode with M=1)
@@ -1544,13 +1544,13 @@ mod tests {
         let data: Vec<f32> = (0..8192).map(|i| (i as f32) * 0.001 - 4.0).collect();
 
         // Force sequential (threshold=MAX)
-        crate::core::runtime::SOFTMAX_PAR_THRESHOLD.store(usize::MAX, Ordering::Relaxed);
+        crate::core::runtime::runtime_config::SOFTMAX_PAR_THRESHOLD.store(usize::MAX, Ordering::Relaxed);
         let t = Tensor::from_vec(data.clone(), vec![128, 64]).unwrap();
         let seq = t.softmax(-1).unwrap();
         let seq_flat = seq.as_slice_f32().unwrap().to_vec();
 
         // Force parallel (threshold=0)
-        crate::core::runtime::SOFTMAX_PAR_THRESHOLD.store(0, Ordering::Relaxed);
+        crate::core::runtime::runtime_config::SOFTMAX_PAR_THRESHOLD.store(0, Ordering::Relaxed);
         let par = t.softmax(-1).unwrap();
         let par_flat = par.as_slice_f32().unwrap();
 
@@ -1560,7 +1560,7 @@ mod tests {
         }
 
         // Restore default
-        crate::core::runtime::SOFTMAX_PAR_THRESHOLD.store(4096, Ordering::Relaxed);
+        crate::core::runtime::runtime_config::SOFTMAX_PAR_THRESHOLD.store(4096, Ordering::Relaxed);
     }
 
     #[test]
@@ -1572,12 +1572,12 @@ mod tests {
         let b = Tensor::from_vec(b_data, vec![16, 64, 32]).unwrap();
 
         // Force sequential
-        crate::core::runtime::BATCHED_MATMUL_PAR_THRESHOLD.store(usize::MAX, Ordering::Relaxed);
+        crate::core::runtime::runtime_config::BATCHED_MATMUL_PAR_THRESHOLD.store(usize::MAX, Ordering::Relaxed);
         let seq = a.batched_matmul(&b).unwrap();
         let seq_flat = seq.as_slice_f32().unwrap().to_vec();
 
         // Force parallel
-        crate::core::runtime::BATCHED_MATMUL_PAR_THRESHOLD.store(0, Ordering::Relaxed);
+        crate::core::runtime::runtime_config::BATCHED_MATMUL_PAR_THRESHOLD.store(0, Ordering::Relaxed);
         let par = a.batched_matmul(&b).unwrap();
         let par_flat = par.as_slice_f32().unwrap();
 
@@ -1587,6 +1587,6 @@ mod tests {
         }
 
         // Restore default
-        crate::core::runtime::BATCHED_MATMUL_PAR_THRESHOLD.store(4096, Ordering::Relaxed);
+        crate::core::runtime::runtime_config::BATCHED_MATMUL_PAR_THRESHOLD.store(4096, Ordering::Relaxed);
     }
 }

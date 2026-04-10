@@ -79,8 +79,8 @@ fn bench_rms_norm() {
     println!("--- 2. SIMD RMSNorm (Gemma 3: dim=1152) ---");
 
     let dim = 1152;
-    let x = rustml_core::Tensor::randn(vec![1, 1, dim]);
-    let weight = rustml_core::Tensor::ones(vec![dim]);
+    let x = tensor_engine::Tensor::randn(vec![1, 1, dim]);
+    let weight = tensor_engine::Tensor::ones(vec![dim]);
     let eps = 1e-6f32;
 
     let iterations = 100_000u64;
@@ -111,7 +111,7 @@ fn bench_rope() {
     let seq_len = 1;
 
     let rope = rustml_nn::RoPEFreqs::new(head_dim, 1024, 10000.0);
-    let x = rustml_core::Tensor::randn(vec![1, n_heads, seq_len, head_dim]);
+    let x = tensor_engine::Tensor::randn(vec![1, n_heads, seq_len, head_dim]);
 
     let iterations = 200_000u64;
 
@@ -140,8 +140,8 @@ fn bench_inplace_ops() {
     let dim = 1152;
     let iterations = 500_000u64;
 
-    let a = rustml_core::Tensor::randn(vec![1, 1, dim]);
-    let b = rustml_core::Tensor::randn(vec![1, 1, dim]);
+    let a = tensor_engine::Tensor::randn(vec![1, 1, dim]);
+    let b = tensor_engine::Tensor::randn(vec![1, 1, dim]);
 
     // Warmup
     for _ in 0..1000 {
@@ -158,7 +158,7 @@ fn bench_inplace_ops() {
     let alloc_ns = alloc_dur.as_nanos() as f64 / iterations as f64;
 
     // Pure in-place add (reuse same buffer)
-    let mut x = rustml_core::Tensor::randn(vec![1, 1, dim]);
+    let mut x = tensor_engine::Tensor::randn(vec![1, 1, dim]);
     // Warmup
     for _ in 0..1000 {
         x.add_inplace(std::hint::black_box(&b)).unwrap();
@@ -188,7 +188,7 @@ fn bench_softmax_rayon_threshold() {
 
     // Small tensor (sequential path): [1, 32, 1, 64] = 2048 elements (< 4096)
     let small_data: Vec<f32> = (0..2048).map(|i| (i as f32 * 0.01).sin()).collect();
-    let small = rustml_core::Tensor::from_vec(small_data, vec![1, 32, 1, 64]).unwrap();
+    let small = tensor_engine::Tensor::from_vec(small_data, vec![1, 32, 1, 64]).unwrap();
 
     // Warmup
     for _ in 0..1000 {
@@ -205,7 +205,7 @@ fn bench_softmax_rayon_threshold() {
 
     // Large tensor (rayon path): [1, 32, 1, 256] = 8192 elements (>= 4096)
     let large_data: Vec<f32> = (0..8192).map(|i| (i as f32 * 0.01).sin()).collect();
-    let large = rustml_core::Tensor::from_vec(large_data, vec![1, 32, 1, 256]).unwrap();
+    let large = tensor_engine::Tensor::from_vec(large_data, vec![1, 32, 1, 256]).unwrap();
 
     for _ in 0..1000 {
         let _ = std::hint::black_box(large.softmax(-1).unwrap());
@@ -235,8 +235,8 @@ fn bench_batched_matmul_rayon_threshold() {
     // total output = 32 * 1 * 128 = 4096 (boundary — sequential)
     let q_data: Vec<f32> = (0..2048).map(|i| (i as f32 * 0.01).sin()).collect();
     let kt_data: Vec<f32> = (0..262144).map(|i| (i as f32 * 0.001).sin()).collect();
-    let q = rustml_core::Tensor::from_vec(q_data, vec![32, 1, 64]).unwrap();
-    let kt = rustml_core::Tensor::from_vec(kt_data, vec![32, 64, 128]).unwrap();
+    let q = tensor_engine::Tensor::from_vec(q_data, vec![32, 1, 64]).unwrap();
+    let kt = tensor_engine::Tensor::from_vec(kt_data, vec![32, 64, 128]).unwrap();
 
     // Warmup
     for _ in 0..1000 {
@@ -255,8 +255,8 @@ fn bench_batched_matmul_rayon_threshold() {
     // total output = 32 * 1 * 64 = 2048 (sequential)
     let attn_data: Vec<f32> = (0..4096).map(|i| i as f32 * 0.001).collect();
     let v_data: Vec<f32> = (0..262144).map(|i| (i as f32 * 0.001).sin()).collect();
-    let attn = rustml_core::Tensor::from_vec(attn_data, vec![32, 1, 128]).unwrap();
-    let v = rustml_core::Tensor::from_vec(v_data, vec![32, 128, 64]).unwrap();
+    let attn = tensor_engine::Tensor::from_vec(attn_data, vec![32, 1, 128]).unwrap();
+    let v = tensor_engine::Tensor::from_vec(v_data, vec![32, 128, 64]).unwrap();
 
     for _ in 0..1000 {
         let _ = std::hint::black_box(attn.batched_matmul(&v).unwrap());
@@ -286,7 +286,7 @@ fn bench_inplace_score_scaling() {
 
     // Simulates attention scores: [1, 32, 1, 128]
     let scores_data: Vec<f32> = (0..4096).map(|i| (i as f32 * 0.1) - 200.0).collect();
-    let scores_template = rustml_core::Tensor::from_vec(scores_data, vec![1, 32, 1, 128]).unwrap();
+    let scores_template = tensor_engine::Tensor::from_vec(scores_data, vec![1, 32, 1, 128]).unwrap();
 
     // Warmup
     for _ in 0..1000 {

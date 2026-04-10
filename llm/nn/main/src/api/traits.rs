@@ -1,7 +1,7 @@
 //! Neural network traits
 
 use crate::api::error::NnResult;
-use rustml_core::Tensor;
+use tensor_engine::Tensor;
 
 /// Base attention trait
 pub trait Attention {

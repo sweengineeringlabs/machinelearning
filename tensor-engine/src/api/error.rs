@@ -53,8 +53,8 @@ pub enum TensorError {
     /// DType mismatch
     #[error("DType mismatch: expected {expected:?}, got {got:?}")]
     DTypeMismatch {
-        expected: crate::api::types::DType,
-        got: crate::api::types::DType,
+        expected: crate::api::dtype::DType,
+        got: crate::api::dtype::DType,
     },
 
     /// Not implemented

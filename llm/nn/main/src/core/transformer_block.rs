@@ -10,7 +10,7 @@ use crate::core::layer_norm::LayerNorm;
 use crate::core::moe::MoeLayer;
 use crate::core::rms_norm::RMSNorm;
 use std::time::Instant;
-use rustml_core::Tensor;
+use tensor_engine::Tensor;
 
 /// Normalization layer: either standard LayerNorm or RMSNorm.
 pub enum NormLayer {

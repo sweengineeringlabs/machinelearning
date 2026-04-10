@@ -26,8 +26,8 @@ pub enum QuantizeError {
     Json(#[from] serde_json::Error),
 }
 
-impl From<rustml_core::TensorError> for QuantizeError {
-    fn from(e: rustml_core::TensorError) -> Self {
+impl From<tensor_engine::TensorError> for QuantizeError {
+    fn from(e: tensor_engine::TensorError) -> Self {
         QuantizeError::Quantization(e.to_string())
     }
 }

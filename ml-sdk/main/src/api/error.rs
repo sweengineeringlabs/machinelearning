@@ -1,4 +1,4 @@
-use rustml_core::TensorError;
+use tensor_engine::TensorError;
 use thiserror::Error;
 
 pub type SwetsResult<T> = Result<T, SwetsError>;

@@ -3,7 +3,7 @@
 
 use crate::api::error::NnResult;
 use crate::api::traits::Freezable;
-use rustml_core::Tensor;
+use tensor_engine::Tensor;
 
 /// RMSNorm layer with optional weight offset (used by Gemma: weight + 1.0).
 #[derive(Debug, Clone)]

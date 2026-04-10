@@ -2,7 +2,7 @@
 
 use std::time::Instant;
 use crate::api::error::NnResult;
-use rustml_core::Tensor;
+use tensor_engine::Tensor;
 
 /// Embedding layer that maps token indices to dense vectors
 #[derive(Debug, Clone)]

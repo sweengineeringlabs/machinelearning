@@ -51,13 +51,13 @@ impl ModelBundle {
     }
 
     /// Load tensors from the model (converts all to F32)
-    pub fn load_tensors(&self) -> HubResult<std::collections::HashMap<String, rustml_core::Tensor>> {
+    pub fn load_tensors(&self) -> HubResult<std::collections::HashMap<String, tensor_engine::Tensor>> {
         let loader = crate::core::safetensors::SafeTensorLoader::new();
         loader.load(&self.weights_path())
     }
 
     /// Load tensors keeping original dtype via mmap (zero-copy)
-    pub fn load_tensors_mmap(&self) -> HubResult<std::collections::HashMap<String, rustml_core::Tensor>> {
+    pub fn load_tensors_mmap(&self) -> HubResult<std::collections::HashMap<String, tensor_engine::Tensor>> {
         crate::core::safetensors::load_safetensors_mmap(&self.weights_path())
     }
 }

@@ -12,7 +12,7 @@
 //!
 //! ```rust,ignore
 //! use rustml_nn::{Linear, LayerNorm, CausalSelfAttention};
-//! use rustml_core::Tensor;
+//! use tensor_engine::Tensor;
 //!
 //! let linear = Linear::new(768, 768);
 //! let output = linear.forward(&input)?;

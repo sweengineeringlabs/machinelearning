@@ -3,7 +3,7 @@
 use crate::api::error::NnResult;
 use crate::api::traits::Freezable;
 use std::time::Instant;
-use rustml_core::{DType, Tensor};
+use tensor_engine::{DType, Tensor};
 
 /// A fully connected linear layer: y = xW^T + b
 ///

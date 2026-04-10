@@ -1703,8 +1703,8 @@ dependencies = [
  "approx",
  "log",
  "rand 0.8.5",
- "rustml-core",
  "smallvec",
+ "tensor-engine",
  "thiserror 2.0.17",
 ]
 
@@ -2490,25 +2490,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustml-core"
-version = "0.1.0"
-dependencies = [
- "approx",
- "bytemuck",
- "faer",
- "half",
- "log",
- "memmap2",
- "rand 0.8.5",
- "rayon",
- "rustml-quant",
- "serde",
- "smallvec",
- "thiserror 2.0.17",
- "toml",
-]
-
-[[package]]
 name = "rustml-gguf"
 version = "0.1.0"
 dependencies = [
@@ -2536,11 +2517,11 @@ dependencies = [
  "hf-hub",
  "memmap2",
  "reqwest",
- "rustml-core",
  "rustml-gguf",
  "safetensors",
  "serde",
  "serde_json",
+ "tensor-engine",
  "thiserror 2.0.17",
  "tokio",
 ]
@@ -2556,13 +2537,13 @@ dependencies = [
  "log",
  "rand 0.8.5",
  "rayon",
- "rustml-core",
  "rustml-gguf",
  "rustml-hub",
  "rustml-nn",
  "rustml-tokenizer",
  "serde",
  "serde_json",
+ "tensor-engine",
  "thiserror 2.0.17",
  "tokio",
 ]
@@ -2574,9 +2555,9 @@ dependencies = [
  "approx",
  "half",
  "log",
- "rustml-core",
  "rustml-quant",
  "serde",
+ "tensor-engine",
  "thiserror 2.0.17",
 ]
 
@@ -2601,12 +2582,12 @@ dependencies = [
  "env_logger",
  "half",
  "log",
- "rustml-core",
  "rustml-gguf",
  "rustml-hub",
  "rustml-quant",
  "serde",
  "serde_json",
+ "tensor-engine",
  "thiserror 2.0.17",
 ]
 
@@ -2618,8 +2599,8 @@ dependencies = [
  "log",
  "ml-sdk",
  "rand 0.8.5",
- "rustml-core",
  "smallvec",
+ "tensor-engine",
  "thiserror 2.0.17",
 ]
 
@@ -2901,7 +2882,6 @@ dependencies = [
  "log",
  "rayon",
  "reqwest",
- "rustml-core",
  "rustml-gguf",
  "rustml-hub",
  "rustml-nlp",
@@ -2909,6 +2889,7 @@ dependencies = [
  "rustml-tokenizer",
  "serde",
  "serde_json",
+ "tensor-engine",
  "thiserror 2.0.17",
  "tokio",
  "tokio-stream",
@@ -2992,6 +2973,24 @@ dependencies = [
  "once_cell",
  "rustix",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "tensor-engine"
+version = "0.1.0"
+dependencies = [
+ "approx",
+ "bytemuck",
+ "faer",
+ "half",
+ "log",
+ "memmap2",
+ "rand 0.8.5",
+ "rayon",
+ "serde",
+ "smallvec",
+ "thiserror 2.0.17",
+ "toml",
 ]
 
 [[package]]

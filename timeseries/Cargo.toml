@@ -11,7 +11,7 @@ path = "main/src/lib.rs"
 
 [dependencies]
 ml-sdk.workspace = true
-rustml-core.workspace = true
+tensor-engine.workspace = true
 thiserror.workspace = true
 rand.workspace = true
 log.workspace = true

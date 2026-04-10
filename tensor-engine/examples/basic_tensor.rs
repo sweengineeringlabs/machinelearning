@@ -1,4 +1,4 @@
-use rustml_core::{Tensor, DType};
+use tensor_engine::{Tensor, DType};
 
 fn main() {
     // Create tensors
