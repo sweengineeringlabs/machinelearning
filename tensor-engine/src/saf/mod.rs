@@ -15,9 +15,10 @@ pub use crate::api::error::*;
 pub use crate::api::config_ops::ConfigOps;
 
 // Core types routed through saf/types
+// TensorPool and QuantStrategy are pub(crate) — accessed via wrapper functions only
 pub use types::{
     Tensor, TensorBuilder, Storage, f32_vec_to_bytes, f32_slice_to_bytes,
-    Shape, TensorPool,
+    Shape,
     RuntimeConfig, OptProfile,
     QuantStrategy, QuantStrategyBuilder, QuantTarget,
 };
@@ -25,6 +26,5 @@ pub use types::{
 // Wrapper functions (Rule 106 — standalone functions instead of trait re-exports)
 pub use wrappers::{
     tensor_shape, tensor_dtype, tensor_matmul, tensor_add, tensor_softmax,
-    pool_get, pool_put, pool_len, pool_is_empty,
     apply_runtime_config, warmup_thread_pool, detect_simd,
 };

@@ -1,6 +1,6 @@
-//! E2E tests for api/types re-exports.
+//! E2E tests for saf/types re-exports.
 
-use tensor_engine::{Tensor, Shape, TensorPool, TensorBuilder};
+use tensor_engine::{Tensor, Shape, TensorBuilder};
 
 /// @covers: Tensor (re-export)
 #[test]
@@ -14,13 +14,6 @@ fn test_tensor_reexport_constructible() {
 fn test_shape_reexport_constructible() {
     let s = Shape::new(vec![4, 5]);
     assert_eq!(s.ndim(), 2);
-}
-
-/// @covers: TensorPool (re-export)
-#[test]
-fn test_tensor_pool_reexport_constructible() {
-    let pool = TensorPool::new(8);
-    assert!(pool.is_empty());
 }
 
 /// @covers: TensorBuilder (re-export)

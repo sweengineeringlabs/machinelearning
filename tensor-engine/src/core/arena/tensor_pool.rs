@@ -7,8 +7,7 @@
 use crate::api::pool_ops::PoolOps;
 
 /// A pool of reusable byte buffers for tensor storage.
-// pub visibility required: re-exported as part of public surface via saf/
-pub struct TensorPool {
+pub(crate) struct TensorPool {
     buffers: Vec<Vec<u8>>,
     capacity: usize,
 }

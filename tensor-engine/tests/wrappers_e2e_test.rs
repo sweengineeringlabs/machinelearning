@@ -1,9 +1,8 @@
 //! E2E tests for SAF wrapper functions.
 
 use tensor_engine::{
-    Tensor, TensorPool, DType,
+    Tensor, DType,
     tensor_shape, tensor_dtype, tensor_matmul, tensor_add, tensor_softmax,
-    pool_get, pool_put, pool_len, pool_is_empty,
     apply_runtime_config, RuntimeConfig,
     warmup_thread_pool, detect_simd,
 };
@@ -49,36 +48,6 @@ fn test_tensor_softmax_wrapper_sums_to_one() {
     let data = s.as_slice_f32().unwrap();
     let sum: f32 = data.iter().sum();
     assert!((sum - 1.0).abs() < 1e-5, "softmax sum = {sum}, expected 1.0");
-}
-
-/// @covers: pool_get
-#[test]
-fn test_pool_get_wrapper_allocates_buffer() {
-    let mut pool = TensorPool::new(4);
-    let buf = pool_get(&mut pool, 128);
-    assert_eq!(buf.len(), 128);
-}
-
-/// @covers: pool_put
-#[test]
-fn test_pool_put_wrapper_stores_buffer() {
-    let mut pool = TensorPool::new(4);
-    pool_put(&mut pool, vec![0u8; 64]);
-    assert_eq!(pool_len(&pool), 1);
-}
-
-/// @covers: pool_len
-#[test]
-fn test_pool_len_wrapper_returns_count() {
-    let pool = TensorPool::new(4);
-    assert_eq!(pool_len(&pool), 0);
-}
-
-/// @covers: pool_is_empty
-#[test]
-fn test_pool_is_empty_wrapper_on_new_pool() {
-    let pool = TensorPool::new(4);
-    assert!(pool_is_empty(&pool));
 }
 
 /// @covers: detect_simd

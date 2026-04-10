@@ -2,9 +2,8 @@
 // These are the public surface for consumers who don't use trait objects directly.
 
 use crate::api::traits::TensorOps;
-use crate::api::traits::PoolOps;
 use crate::api::error::TensorResult;
-use super::types::{Tensor, TensorPool};
+use super::types::Tensor;
 
 /// Returns the shape of a tensor as a slice.
 pub fn tensor_shape(t: &Tensor) -> &[usize] {
@@ -29,26 +28,6 @@ pub fn tensor_add(a: &Tensor, b: &Tensor) -> TensorResult<Tensor> {
 /// Softmax along a dimension.
 pub fn tensor_softmax(t: &Tensor, dim: i64) -> TensorResult<Tensor> {
     TensorOps::softmax(t, dim)
-}
-
-/// Get a buffer of at least `size` bytes from the pool.
-pub fn pool_get(pool: &mut TensorPool, size: usize) -> Vec<u8> {
-    PoolOps::get(pool, size)
-}
-
-/// Return a buffer to the pool.
-pub fn pool_put(pool: &mut TensorPool, buf: Vec<u8>) {
-    PoolOps::put(pool, buf);
-}
-
-/// Number of buffers in the pool.
-pub fn pool_len(pool: &TensorPool) -> usize {
-    PoolOps::len(pool)
-}
-
-/// Whether the pool is empty.
-pub fn pool_is_empty(pool: &TensorPool) -> bool {
-    PoolOps::is_empty(pool)
 }
 
 /// Apply a runtime configuration globally.
@@ -86,29 +65,6 @@ mod tests {
         assert_eq!(tensor_dtype(&t), crate::api::dtype::DType::F32);
     }
 
-    /// @covers: pool_get
-    #[test]
-    fn test_pool_get_allocates_buffer() {
-        let mut pool = TensorPool::new(4);
-        let buf = pool_get(&mut pool, 128);
-        assert_eq!(buf.len(), 128);
-    }
-
-    /// @covers: pool_is_empty
-    #[test]
-    fn test_pool_is_empty_on_new_pool() {
-        let pool = TensorPool::new(4);
-        assert!(pool_is_empty(&pool));
-    }
-
-    /// @covers: pool_len
-    #[test]
-    fn test_pool_len_after_put() {
-        let mut pool = TensorPool::new(4);
-        pool_put(&mut pool, vec![0u8; 64]);
-        assert_eq!(pool_len(&pool), 1);
-    }
-
     /// @covers: tensor_matmul
     #[test]
     fn test_tensor_matmul_correct_shape() {
@@ -134,14 +90,6 @@ mod tests {
         let s = tensor_softmax(&t, -1).unwrap();
         let sum: f32 = s.as_slice_f32().unwrap().iter().sum();
         assert!((sum - 1.0).abs() < 1e-5);
-    }
-
-    /// @covers: pool_put
-    #[test]
-    fn test_pool_put_stores_buffer() {
-        let mut pool = TensorPool::new(4);
-        pool_put(&mut pool, vec![0u8; 64]);
-        assert_eq!(pool_len(&pool), 1);
     }
 
     /// @covers: apply_runtime_config
