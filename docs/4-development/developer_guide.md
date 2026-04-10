@@ -52,8 +52,8 @@ RustML is a Cargo workspace rooted at `machinelearning/`. Two workspaces: `llm/`
 ```
 machinelearning/
 ├── Cargo.toml              # Workspace root — members, shared deps, profiles
+├── tensor-engine/          # rustml-core — shared tensors, SIMD ops, dtypes, arena
 ├── llm/                    # LLM inference stack
-│   ├── core/               # rustml-core — tensors, SIMD ops, arena allocator
 │   ├── nn/                 # rustml-nn — transformer layers, attention, KV cache
 │   ├── hub/                # rustml-hub — HuggingFace download + SafeTensors
 │   ├── nlp/                # rustml-nlp — LLM models, generation, sampling

@@ -1,8 +1,9 @@
 [workspace]
 resolver = "2"
 members = [
+    # Shared tensor engine
+    "tensor-engine",
     # LLM inference stack
-    "llm/core",
     "llm/nn",
     "llm/hub",
     "llm/nlp",
@@ -52,7 +53,7 @@ approx = "0.5"
 log = "0.4"
 env_logger = "0.11"
 # Internal crates
-rustml-core = { path = "llm/core" }
+rustml-core = { path = "tensor-engine" }
 rustml-nn = { path = "llm/nn" }
 rustml-hub = { path = "llm/hub" }
 rustml-nlp = { path = "llm/nlp" }

@@ -4,11 +4,18 @@ Pure-Rust ML platform with three workspaces: LLM inference, ML SDK, and time ser
 
 ## Workspaces
 
+### tensor-engine/ — Shared Tensor Engine
+
+| Crate | Description |
+|-------|-------------|
+| `tensor-engine` | Multi-dtype tensors, SIMD ops, memory-mapped storage, shapes, runtime config |
+
+Shared foundation consumed by both `llm/` and `ml-sdk/`.
+
 ### llm/ — LLM Inference Stack
 
 | Crate | Description |
 |-------|-------------|
-| `llm/core` | Tensor engine — multi-dtype, SIMD ops, memory-mapped storage |
 | `llm/nn` | Neural network layers — attention (MHA/GQA), RoPE, RMSNorm, MoE |
 | `llm/quant` | Quantization kernels — Q4_0/Q4_1/Q8_0 with AVX2/NEON SIMD |
 | `llm/nlp` | Language models — unified arch for GPT-2, Llama, Gemma 4 |

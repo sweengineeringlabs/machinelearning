@@ -65,8 +65,8 @@ Types belong to the interface they define (`api/` or `spi/`), not a shared `comm
 ```
 machinelearning/
 ├── Cargo.toml                  # Root workspace
-├── llm/                        # LLM inference stack (10 crates)
-│   ├── core/                   # rustml-core (tensors, dtypes)
+├── tensor-engine/              # rustml-core (shared tensors, dtypes, SIMD ops)
+├── llm/                        # LLM inference stack (9 crates)
 │   ├── nn/                     # rustml-nn (layers, KVCache, attention)
 │   ├── hub/                    # rustml-hub (HuggingFace downloads, SafeTensors)
 │   ├── nlp/                    # rustml-nlp (models, generation, tokenizer bridge)
