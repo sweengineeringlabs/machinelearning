@@ -2,7 +2,7 @@ use super::strategy::QuantStrategy;
 use super::target::QuantTarget;
 
 /// Builder for constructing a [`QuantStrategy`] incrementally.
-pub struct QuantStrategyBuilder {
+pub(crate) struct QuantStrategyBuilder {
     inner: QuantStrategy,
 }
 

@@ -16,7 +16,7 @@ use crate::api::quant_ops::QuantOps;
 /// ```
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(default)]
-pub struct QuantStrategy {
+pub(crate) struct QuantStrategy {
     /// Attention Q/K/V/O projections.
     pub attention: QuantTarget,
     /// Feed-forward up/gate/down projections.
@@ -123,6 +123,13 @@ impl QuantOps for QuantStrategy {
     fn from_toml_file(path: &std::path::Path) -> Self {
         Self::from_toml_file(path)
     }
+
+    fn attention(&self) -> QuantTarget { self.attention }
+    fn feed_forward(&self) -> QuantTarget { self.feed_forward }
+    fn output(&self) -> QuantTarget { self.output }
+    fn moe(&self) -> QuantTarget { self.moe }
+    fn gate(&self) -> QuantTarget { self.gate }
+    fn min_dim(&self) -> usize { self.min_dim }
 }
 
 #[cfg(test)]

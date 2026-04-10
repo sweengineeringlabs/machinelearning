@@ -8,11 +8,8 @@
 
 pub use crate::core::tensor::{Tensor, TensorBuilder, Storage, f32_vec_to_bytes, f32_slice_to_bytes};
 pub use crate::core::shape_mod::shape::Shape;
-pub use crate::core::runtime::runtime_config::RuntimeConfig;
 pub use crate::core::runtime::opt_profile::OptProfile;
-pub use crate::core::runtime::quant::strategy::QuantStrategy;
-pub use crate::core::runtime::quant::strategy_builder::QuantStrategyBuilder;
-pub use crate::core::runtime::quant::target::QuantTarget;
+pub use crate::api::quant_target_api::QuantTarget;
 
 #[cfg(test)]
 mod tests {

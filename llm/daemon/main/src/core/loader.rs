@@ -129,11 +129,11 @@ pub fn load_safetensors(model_id: &str, profile: OptProfile) -> Result<ModelBund
     model.set_optimization_profile(profile);
 
     if !model.output.is_quantized() {
-        let strategy = tensor_engine::QuantStrategy::from_toml_file(
+        let strategy = tensor_engine::QuantConfig::from_toml_file(
             std::path::Path::new("quantization.toml"),
         );
         match model.quantize_with_strategy(&strategy) {
-            Ok(n) if n > 0 => log::info!("  Quantized {} linear layers ({:?})", n, strategy.attention),
+            Ok(n) if n > 0 => log::info!("  Quantized {} linear layers ({:?})", n, strategy.attention()),
             Ok(_) => {}
             Err(e) => log::warn!("  Weight quantization failed: {}", e),
         }

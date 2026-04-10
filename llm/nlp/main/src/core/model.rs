@@ -7,7 +7,7 @@
 use crate::api::error::{NlpError, NlpResult};
 use crate::api::types::{LanguageModel, ModelConfig};
 use crate::core::weight_map::WeightMap;
-use tensor_engine::{DType, QuantStrategy, QuantTarget, RuntimeConfig, Tensor, f32_vec_to_bytes};
+use tensor_engine::{DType, QuantConfig, QuantTarget, Tensor, f32_vec_to_bytes};
 use rustml_nn::{
     Activation, Embedding, FeedForward, KVCache, LayerNorm, Linear, MoeLayer, MultiHeadAttention,
     NormLayer, PerLayerEmbedding, PerLayerInput, PoolingStrategy, PositionEncoding, RMSNorm, RoPEFreqs,
@@ -1487,11 +1487,11 @@ impl LlmModel {
     /// Quantize weights using the legacy uniform policy.
     /// Prefer `quantize_with_strategy()` for fine-grained control.
     pub fn quantize_all_weights(&mut self, min_dim: Option<usize>) -> NlpResult<usize> {
-        let mut strategy = QuantStrategy::q8_all();
+        let mut strategy = QuantConfig::q8_all();
         if let Some(d) = min_dim {
-            strategy.min_dim = d;
+            strategy.set_min_dim(d);
         } else {
-            strategy.min_dim = self.config.dim;
+            strategy.set_min_dim(self.config.dim);
         }
         self.quantize_with_strategy(&strategy)
     }
@@ -1500,8 +1500,8 @@ impl LlmModel {
     ///
     /// Each layer class (attention, ffn, output, moe, gate) is quantized
     /// independently based on its `QuantTarget` in the strategy.
-    pub fn quantize_with_strategy(&mut self, strategy: &QuantStrategy) -> NlpResult<usize> {
-        let min_dim = strategy.min_dim;
+    pub fn quantize_with_strategy(&mut self, strategy: &QuantConfig) -> NlpResult<usize> {
+        let min_dim = strategy.min_dim();
         let mut count = 0usize;
 
         fn try_q(l: &mut Linear, target: QuantTarget, c: &mut usize, min_dim: usize) {
@@ -1520,28 +1520,33 @@ impl LlmModel {
             }
         }
 
+        let attn_target = strategy.attention();
+        let ff_target = strategy.feed_forward();
+        let out_target = strategy.output();
+        let moe_target = strategy.moe();
+
         for layer in &mut self.layers {
-            try_q(&mut layer.attention.q_proj, strategy.attention, &mut count, min_dim);
-            try_q(&mut layer.attention.k_proj, strategy.attention, &mut count, min_dim);
-            try_q(&mut layer.attention.v_proj, strategy.attention, &mut count, min_dim);
-            try_q(&mut layer.attention.out_proj, strategy.attention, &mut count, min_dim);
-            try_q(&mut layer.feed_forward.up_proj, strategy.feed_forward, &mut count, min_dim);
-            try_q(&mut layer.feed_forward.down_proj, strategy.feed_forward, &mut count, min_dim);
+            try_q(&mut layer.attention.q_proj, attn_target, &mut count, min_dim);
+            try_q(&mut layer.attention.k_proj, attn_target, &mut count, min_dim);
+            try_q(&mut layer.attention.v_proj, attn_target, &mut count, min_dim);
+            try_q(&mut layer.attention.out_proj, attn_target, &mut count, min_dim);
+            try_q(&mut layer.feed_forward.up_proj, ff_target, &mut count, min_dim);
+            try_q(&mut layer.feed_forward.down_proj, ff_target, &mut count, min_dim);
             if let Some(ref mut g) = layer.feed_forward.gate_proj {
-                try_q(g, strategy.feed_forward, &mut count, min_dim);
+                try_q(g, ff_target, &mut count, min_dim);
             }
             if let Some(ref mut moe) = layer.moe {
-                try_q(&mut moe.gate, strategy.moe, &mut count, min_dim);
+                try_q(&mut moe.gate, moe_target, &mut count, min_dim);
                 for expert in &mut moe.experts {
-                    try_q(&mut expert.up_proj, strategy.moe, &mut count, min_dim);
-                    try_q(&mut expert.down_proj, strategy.moe, &mut count, min_dim);
+                    try_q(&mut expert.up_proj, moe_target, &mut count, min_dim);
+                    try_q(&mut expert.down_proj, moe_target, &mut count, min_dim);
                     if let Some(ref mut g) = expert.gate_proj {
-                        try_q(g, strategy.moe, &mut count, min_dim);
+                        try_q(g, moe_target, &mut count, min_dim);
                     }
                 }
             }
         }
-        try_q(&mut self.output, strategy.output, &mut count, min_dim);
+        try_q(&mut self.output, out_target, &mut count, min_dim);
         Ok(count)
     }
 

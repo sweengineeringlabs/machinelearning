@@ -9,7 +9,7 @@ use clap::Args;
 use rustml_gguf::GGUFFile;
 use rustml_hub::HubApi;
 use rustml_nlp::{
-    ConfigOps, Generator, LanguageModel, LlmModel, OptProfile, convert_tensors,
+    Generator, LanguageModel, LlmModel, OptProfile, convert_tensors,
     gguf_config_to_model_config,
 };
 use rustml_tokenizer::{BpeTokenizer, GgufTokenizer, HFTokenizer, Tokenizer};
@@ -410,7 +410,7 @@ pub fn run(args: InferArgs) -> Result<()> {
     let profile = parse_opt_profile(&args.opt_profile)?;
 
     // Apply runtime config (rayon thresholds) for this profile
-    profile.runtime_config().apply()
+    profile.apply()
         .map_err(|e| anyhow::anyhow!("Failed to apply runtime config: {}", e))?;
     eprintln!("  Optimization profile: {:?}", profile);
 

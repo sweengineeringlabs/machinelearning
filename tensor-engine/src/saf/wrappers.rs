@@ -33,9 +33,13 @@ pub fn tensor_softmax(t: &Tensor, dim: i64) -> TensorResult<Tensor> {
 /// Apply a runtime configuration globally.
 ///
 /// Configures rayon thread pool, faer parallelism, and per-op thresholds.
-pub fn apply_runtime_config(config: &super::types::RuntimeConfig) -> TensorResult<()> {
+pub fn apply_runtime_config(config: &crate::core::runtime::runtime_config::RuntimeConfig) -> TensorResult<()> {
     config.apply_inner()
 }
+
+// ==================== QuantOps wrappers ====================
+
+pub use crate::core::runtime::quant::config::QuantConfig;
 
 /// Warm up the rayon thread pool by forcing all threads to wake and do work.
 pub fn warmup_thread_pool() {
@@ -95,7 +99,7 @@ mod tests {
     /// @covers: apply_runtime_config
     #[test]
     fn test_apply_runtime_config_succeeds() {
-        let config = super::super::types::RuntimeConfig::default();
+        let config = crate::core::runtime::runtime_config::RuntimeConfig::default();
         let result = apply_runtime_config(&config);
         assert!(result.is_ok());
     }

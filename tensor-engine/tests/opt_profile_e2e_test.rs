@@ -2,18 +2,10 @@
 
 use tensor_engine::OptProfile;
 
-/// @covers: OptProfile::runtime_config
+/// @covers: OptProfile::apply
 #[test]
-fn test_opt_profile_optimized_default_thresholds() {
-    let cfg = OptProfile::Optimized.runtime_config();
-    assert_eq!(cfg.softmax_par_threshold, 4096);
-}
-
-/// @covers: OptProfile::runtime_config
-#[test]
-fn test_opt_profile_baseline_max_thresholds() {
-    let cfg = OptProfile::Baseline.runtime_config();
-    assert_eq!(cfg.softmax_par_threshold, usize::MAX);
+fn test_opt_profile_optimized_applies_without_error() {
+    assert!(OptProfile::Optimized.apply().is_ok());
 }
 
 /// @covers: OptProfile::use_inplace_ops
@@ -21,4 +13,11 @@ fn test_opt_profile_baseline_max_thresholds() {
 fn test_opt_profile_baseline_disables_inplace() {
     assert!(!OptProfile::Baseline.use_inplace_ops());
     assert!(OptProfile::Optimized.use_inplace_ops());
+}
+
+/// @covers: OptProfile::use_buffered_sampling
+#[test]
+fn test_opt_profile_baseline_disables_buffered_sampling() {
+    assert!(!OptProfile::Baseline.use_buffered_sampling());
+    assert!(OptProfile::Aggressive.use_buffered_sampling());
 }

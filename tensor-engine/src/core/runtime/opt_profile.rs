@@ -14,8 +14,13 @@ pub enum OptProfile {
 }
 
 impl OptProfile {
+    /// Apply this profile's runtime configuration globally.
+    pub fn apply(&self) -> Result<(), crate::api::error::TensorError> {
+        self.runtime_config().apply_inner()
+    }
+
     /// Build a `RuntimeConfig` matching this profile.
-    pub fn runtime_config(&self) -> RuntimeConfig {
+    pub(crate) fn runtime_config(&self) -> RuntimeConfig {
         match self {
             OptProfile::Optimized => RuntimeConfig::default(),
             OptProfile::Baseline => RuntimeConfig {

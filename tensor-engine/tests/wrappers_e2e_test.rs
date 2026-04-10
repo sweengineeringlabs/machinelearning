@@ -3,7 +3,6 @@
 use tensor_engine::{
     Tensor, DType,
     tensor_shape, tensor_dtype, tensor_matmul, tensor_add, tensor_softmax,
-    apply_runtime_config, RuntimeConfig,
     warmup_thread_pool, detect_simd,
 };
 

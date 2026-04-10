@@ -19,12 +19,13 @@ pub use crate::api::config_ops::ConfigOps;
 pub use types::{
     Tensor, TensorBuilder, Storage, f32_vec_to_bytes, f32_slice_to_bytes,
     Shape,
-    RuntimeConfig, OptProfile,
-    QuantStrategy, QuantStrategyBuilder, QuantTarget,
+    OptProfile,
+    QuantTarget,
 };
 
 // Wrapper functions (Rule 106 — standalone functions instead of trait re-exports)
 pub use wrappers::{
     tensor_shape, tensor_dtype, tensor_matmul, tensor_add, tensor_softmax,
     apply_runtime_config, warmup_thread_pool, detect_simd,
+    QuantConfig,
 };

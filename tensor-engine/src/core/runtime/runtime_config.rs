@@ -13,7 +13,7 @@ pub(crate) static GEMV_PAR_THRESHOLD: AtomicUsize = AtomicUsize::new(4096);
 
 /// Runtime configuration for parallelism and thread management.
 /// Must be applied (via `apply()`) before any computation to take effect.
-pub struct RuntimeConfig {
+pub(crate) struct RuntimeConfig {
     /// Number of threads for faer and rayon parallelism.
     /// 0 means auto-detect (use all available cores).
     pub num_threads: usize,

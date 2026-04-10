@@ -6,7 +6,7 @@ use anyhow::{Result, bail};
 use clap::Parser;
 
 use swellmd::{AppState, build_router, load_gguf, load_safetensors};
-use rustml_nlp::{ConfigOps, OptProfile};
+use rustml_nlp::OptProfile;
 
 /// swellmd — HTTP daemon for RustML LLM inference.
 ///
@@ -55,7 +55,6 @@ async fn main() -> Result<()> {
 
     let profile = parse_opt_profile(&cli.opt_profile)?;
     profile
-        .runtime_config()
         .apply()
         .map_err(|e| anyhow::anyhow!("Failed to apply runtime config: {}", e))?;
 
