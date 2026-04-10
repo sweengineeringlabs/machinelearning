@@ -1,7 +1,5 @@
-use crate::api::error::SwetsResult;
-use crate::api::layer::Layer;
-use crate::api::tape::{self, BackwardOp, TapeEntry};
-use crate::api::tensor::Tensor;
+use training_engine::{SwetsResult, Layer, tape, Tensor};
+use training_engine::tape::{BackwardOp, TapeEntry};
 
 /// Parameters for a single LSTM layer.
 struct LSTMLayerParams {
@@ -159,7 +157,7 @@ impl Layer for LSTM {
         let mut output_data = vec![0.0f32; batch * seq_len * hidden];
 
         // Preload weight/bias data for performance (avoid repeated to_vec calls)
-        use crate::core::nn::lstm_weights::LstmWeights;
+        use super::lstm_weights::LstmWeights;
 
         let layer_weights: Vec<LstmWeights> = (0..self.num_layers)
             .map(|l| {
@@ -414,7 +412,7 @@ impl BackwardOp for LSTMBackward {
 
         // Recover weight data from saved tensors
         // saved[0] = input, saved[1 + l*4 + k] = weight/bias for layer l
-        use crate::core::nn::lstm_weight_data::LstmWeightData;
+        use super::lstm_weight_data::LstmWeightData;
 
         let layer_wd: Vec<LstmWeightData> = (0..num_layers)
             .map(|l| {

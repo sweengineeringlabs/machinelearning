@@ -24,7 +24,6 @@ pub use crate::api::{Conv1d, Conv1dBuilder};
 pub use crate::api::Dropout;
 pub use crate::api::LayerNorm;
 pub use crate::api::Linear;
-pub use crate::api::LSTM;
 pub use crate::api::Sequential;
 
 // Optimizers

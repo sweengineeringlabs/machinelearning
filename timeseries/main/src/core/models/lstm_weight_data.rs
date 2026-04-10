@@ -2,10 +2,10 @@
 ///
 /// Stores the raw weight vectors and the layer input size needed
 /// during backpropagation through time (BPTT).
-pub(crate) struct LstmWeightData {
-    pub(crate) w_ih: Vec<f32>,
-    pub(crate) w_hh: Vec<f32>,
-    pub(crate) layer_input_size: usize,
+pub(super) struct LstmWeightData {
+    pub(super) w_ih: Vec<f32>,
+    pub(super) w_hh: Vec<f32>,
+    pub(super) layer_input_size: usize,
 }
 
 #[cfg(test)]

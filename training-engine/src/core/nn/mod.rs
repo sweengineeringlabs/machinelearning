@@ -6,7 +6,4 @@ pub(crate) mod conv1d_builder;
 pub(crate) mod dropout;
 pub(crate) mod layer_norm;
 pub(crate) mod linear;
-pub(crate) mod lstm;
-pub(crate) mod lstm_weight_data;
-pub(crate) mod lstm_weights;
 pub(crate) mod sequential;

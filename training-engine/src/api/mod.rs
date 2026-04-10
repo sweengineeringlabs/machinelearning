@@ -28,7 +28,6 @@ pub use crate::core::nn::conv1d_builder::Conv1dBuilder;
 pub use crate::core::nn::dropout::Dropout;
 pub use crate::core::nn::layer_norm::LayerNorm;
 pub use crate::core::nn::linear::Linear;
-pub use crate::core::nn::lstm::LSTM;
 pub use crate::core::nn::sequential::Sequential;
 
 // Optimizers

@@ -2,6 +2,7 @@
 pub use training_engine::*;
 
 // Models
+pub use crate::core::models::lstm::LSTM;
 pub use crate::core::models::lstm_forecast::LSTMForecast;
 pub use crate::core::models::nbeats::NBeats;
 pub use crate::core::models::tcn::TCN;

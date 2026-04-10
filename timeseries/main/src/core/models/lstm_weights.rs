@@ -2,12 +2,12 @@
 ///
 /// Caches the raw `Vec<f32>` data extracted from weight/bias tensors
 /// to avoid repeated `to_vec()` calls during the timestep loop.
-pub(crate) struct LstmWeights {
-    pub(crate) w_ih: Vec<f32>,
-    pub(crate) w_hh: Vec<f32>,
-    pub(crate) b_ih: Vec<f32>,
-    pub(crate) b_hh: Vec<f32>,
-    pub(crate) layer_input_size: usize,
+pub(super) struct LstmWeights {
+    pub(super) w_ih: Vec<f32>,
+    pub(super) w_hh: Vec<f32>,
+    pub(super) b_ih: Vec<f32>,
+    pub(super) b_hh: Vec<f32>,
+    pub(super) layer_input_size: usize,
 }
 
 #[cfg(test)]
