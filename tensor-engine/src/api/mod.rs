@@ -5,5 +5,6 @@ pub mod error;
 pub mod pool_ops;
 pub mod quant_ops;
 pub mod quant_target_api;
+pub mod shape;
 pub mod tensor_ops;
 pub mod traits;
