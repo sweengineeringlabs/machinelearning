@@ -6,7 +6,7 @@
 //! cargo run -p rustml-nlp --example unified_model_demo
 //! ```
 
-use tensor_engine::Tensor;
+use swe_ml_tensor::Tensor;
 use rustml_nlp::{
     GenerationConfig, LanguageModel, LlmModel, ModelConfig, TextGenerator,
 };

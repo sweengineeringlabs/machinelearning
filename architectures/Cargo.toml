@@ -1,5 +1,5 @@
 [package]
-name = "architectures"
+name = "swe-ml-architectures"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -10,8 +10,8 @@ description = "Model architectures - LSTM, Transformer, TCN, N-BEATS, and time s
 path = "main/src/lib.rs"
 
 [dependencies]
-training-engine.workspace = true
-tensor-engine.workspace = true
+swe-ml-training.workspace = true
+swe-ml-tensor.workspace = true
 thiserror.workspace = true
 rand.workspace = true
 log.workspace = true

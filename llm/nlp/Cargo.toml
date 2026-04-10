@@ -16,7 +16,7 @@ path = "main/src/bin/infer.rs"
 [dependencies]
 clap.workspace = true
 anyhow.workspace = true
-tensor-engine.workspace = true
+swe-ml-tensor.workspace = true
 rustml-nn.workspace = true
 rustml-hub.workspace = true
 rustml-gguf.workspace = true

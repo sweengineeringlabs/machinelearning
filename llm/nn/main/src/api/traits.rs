@@ -1,7 +1,7 @@
 //! Neural network traits
 
 use crate::api::error::NnResult;
-use tensor_engine::Tensor;
+use swe_ml_tensor::Tensor;
 
 /// Base attention trait
 pub trait Attention {

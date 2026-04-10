@@ -1,4 +1,4 @@
-use architectures::*;
+use swe_ml_architectures::*;
 
 const EPS: f32 = 1e-3;
 const REL_TOL: f32 = 1e-2; // relative tolerance for gradient checks
@@ -53,11 +53,11 @@ fn test_matmul_gradient() {
     b.set_requires_grad(true);
 
     // Forward with tape
-    use architectures::api::tape::{TapeEntry, BackwardOp};
+    use swe_ml_architectures::api::tape::{TapeEntry, BackwardOp};
 
     let output = a.matmul_raw(&b).unwrap();
     tape::record_op(TapeEntry {
-        backward_op: Box::new(training_engine::MatMulBackward),
+        backward_op: Box::new(swe_ml_training::MatMulBackward),
         output_id: output.id(),
         input_ids: vec![a.id(), b.id()],
         saved_tensors: vec![a.clone(), b.clone()],
@@ -108,7 +108,7 @@ fn test_matmul_gradient() {
 fn test_add_gradient() {
     tape::clear_tape();
 
-    use architectures::api::tape::{TapeEntry, BackwardOp};
+    use swe_ml_architectures::api::tape::{TapeEntry, BackwardOp};
 
     let mut a = Tensor::from_vec(vec![1.0, 2.0, 3.0], vec![1, 3]).unwrap();
     a.set_requires_grad(true);
@@ -117,7 +117,7 @@ fn test_add_gradient() {
 
     let output = a.add_raw(&b).unwrap();
     tape::record_op(TapeEntry {
-        backward_op: Box::new(training_engine::AddBackward {
+        backward_op: Box::new(swe_ml_training::AddBackward {
             a_shape: a.shape().to_vec(),
             b_shape: b.shape().to_vec(),
         }),
@@ -156,7 +156,7 @@ fn test_add_gradient() {
 fn test_mul_gradient() {
     tape::clear_tape();
 
-    use architectures::api::tape::{TapeEntry, BackwardOp};
+    use swe_ml_architectures::api::tape::{TapeEntry, BackwardOp};
 
     let mut a = Tensor::from_vec(vec![2.0, 3.0], vec![1, 2]).unwrap();
     a.set_requires_grad(true);
@@ -165,7 +165,7 @@ fn test_mul_gradient() {
 
     let output = a.mul_raw(&b).unwrap();
     tape::record_op(TapeEntry {
-        backward_op: Box::new(training_engine::MulBackward),
+        backward_op: Box::new(swe_ml_training::MulBackward),
         output_id: output.id(),
         input_ids: vec![a.id(), b.id()],
         saved_tensors: vec![a.clone(), b.clone()],
@@ -213,8 +213,8 @@ fn test_mul_gradient() {
 fn test_relu_gradient() {
     tape::clear_tape();
 
-    use architectures::api::tape::{TapeEntry, BackwardOp};
-    use training_engine::ReLUBackward;
+    use swe_ml_architectures::api::tape::{TapeEntry, BackwardOp};
+    use swe_ml_training::ReLUBackward;
 
     let mut input = Tensor::from_vec(vec![-1.0, 0.5, -0.3, 2.0], vec![2, 2]).unwrap();
     input.set_requires_grad(true);

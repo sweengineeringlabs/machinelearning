@@ -1,7 +1,7 @@
 //! Weight mapping from HuggingFace to RustML model architectures
 
 use crate::api::error::{HubError, HubResult};
-use tensor_engine::Tensor;
+use swe_ml_tensor::Tensor;
 use std::collections::HashMap;
 
 /// Trait for mapping weights from HuggingFace format to RustML models

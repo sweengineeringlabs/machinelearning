@@ -10,7 +10,7 @@ use crate::api::error::SwetsResult;
 use crate::api::layer::Layer;
 use crate::api::tape::{self, BackwardOp, TapeEntry};
 use crate::api::tensor::Tensor;
-use training_engine::{GELU, Dropout, LayerNorm, Linear};
+use swe_ml_training::{GELU, Dropout, LayerNorm, Linear};
 
 // ---------------------------------------------------------------------------
 // MultiHeadAttention (FR-802)

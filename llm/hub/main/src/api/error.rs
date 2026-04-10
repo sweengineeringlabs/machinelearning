@@ -27,5 +27,5 @@ pub enum HubError {
     SafeTensorsError(#[from] crate::core::safetensors::SafeTensorsError),
 
     #[error("Tensor error: {0}")]
-    TensorError(#[from] tensor_engine::TensorError),
+    TensorError(#[from] swe_ml_tensor::TensorError),
 }

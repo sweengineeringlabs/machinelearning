@@ -10,7 +10,7 @@ use crate::api::types::LanguageModel;
 use crate::core::sampling;
 use rustml_tokenizer::Tokenizer;
 use rayon::prelude::*;
-use tensor_engine::{DType, Tensor, f32_vec_to_bytes};
+use swe_ml_tensor::{DType, Tensor, f32_vec_to_bytes};
 use rustml_nn::KVCache;
 
 /// A segment of a chat template: either a special token (looked up by name),
@@ -272,7 +272,7 @@ impl<'a> Generator<'a> {
     }
 
     /// Apply an optimization profile to this generator's sampling behavior.
-    pub fn with_optimization_profile(self, profile: tensor_engine::OptProfile) -> Self {
+    pub fn with_optimization_profile(self, profile: swe_ml_tensor::OptProfile) -> Self {
         self.with_buffered_sampling(profile.use_buffered_sampling())
     }
 
@@ -1003,7 +1003,7 @@ mod tests {
 
     #[test]
     fn test_generator_with_optimization_profile() {
-        use tensor_engine::OptProfile;
+        use swe_ml_tensor::OptProfile;
         let model = tiny_model();
         let tokenizer = ByteTokenizer;
 

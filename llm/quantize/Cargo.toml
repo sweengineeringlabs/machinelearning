@@ -15,7 +15,7 @@ name = "rustml-quantize"
 path = "main/src/main.rs"
 
 [dependencies]
-tensor-engine.workspace = true
+swe-ml-tensor.workspace = true
 rustml-quant.workspace = true
 rustml-gguf.workspace = true
 rustml-hub.workspace = true

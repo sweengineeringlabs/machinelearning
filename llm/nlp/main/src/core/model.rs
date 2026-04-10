@@ -7,7 +7,7 @@
 use crate::api::error::{NlpError, NlpResult};
 use crate::api::types::{LanguageModel, ModelConfig};
 use crate::core::weight_map::WeightMap;
-use tensor_engine::{DType, QuantConfig, QuantTarget, Tensor, f32_vec_to_bytes, quant_config_q8_all, quant_config_attention, quant_config_feed_forward, quant_config_output, quant_config_moe, quant_config_gate, quant_config_min_dim, quant_config_set_min_dim};
+use swe_ml_tensor::{DType, QuantConfig, QuantTarget, Tensor, f32_vec_to_bytes, quant_config_q8_all, quant_config_attention, quant_config_feed_forward, quant_config_output, quant_config_moe, quant_config_gate, quant_config_min_dim, quant_config_set_min_dim};
 use rustml_nn::{
     Activation, Embedding, FeedForward, KVCache, LayerNorm, Linear, MoeLayer, MultiHeadAttention,
     NormLayer, PerLayerEmbedding, PerLayerInput, PoolingStrategy, PositionEncoding, RMSNorm, RoPEFreqs,
@@ -1578,7 +1578,7 @@ impl LlmModel {
     ///
     /// Sets `use_inplace_ops` on each TransformerBlock and
     /// `use_inplace_scaling` on each attention layer.
-    pub fn set_optimization_profile(&mut self, profile: tensor_engine::OptProfile) {
+    pub fn set_optimization_profile(&mut self, profile: swe_ml_tensor::OptProfile) {
         let inplace = profile.use_inplace_ops();
         for layer in &mut self.layers {
             layer.set_use_inplace_ops(inplace);
@@ -1638,7 +1638,7 @@ impl LlmModel {
 
     pub fn warmup_decode(&self) -> NlpResult<()> {
         // First, warm up the rayon thread pool to reduce scheduling jitter
-        tensor_engine::warmup_thread_pool();
+        swe_ml_tensor::warmup_thread_pool();
 
         let mut cache = self.build_kv_cache(4);
 
@@ -2728,7 +2728,7 @@ mod tests {
 
     #[test]
     fn test_set_optimization_profile_baseline() {
-        use tensor_engine::OptProfile;
+        use swe_ml_tensor::OptProfile;
         let config = tiny_config();
         let mut model = LlmModel::new(&config).unwrap();
         model.set_optimization_profile(OptProfile::Baseline);
@@ -2744,7 +2744,7 @@ mod tests {
 
     #[test]
     fn test_set_optimization_profile_baseline_with_cache() {
-        use tensor_engine::OptProfile;
+        use swe_ml_tensor::OptProfile;
         let config = tiny_config();
         let mut model = LlmModel::new(&config).unwrap();
         model.set_optimization_profile(OptProfile::Baseline);
@@ -2773,7 +2773,7 @@ mod tests {
 
     #[test]
     fn test_optimization_profiles_produce_same_greedy_output() {
-        use tensor_engine::OptProfile;
+        use swe_ml_tensor::OptProfile;
         let config = tiny_config();
 
         let input =
@@ -2949,7 +2949,7 @@ mod tests {
     // ── pool_hidden_states ───────────────────────────────────────────────────
 
     fn make_hidden(data: Vec<f32>, batch: usize, seq: usize, dim: usize) -> Tensor {
-        Tensor::new(tensor_engine::f32_vec_to_bytes(data), vec![batch, seq, dim], DType::F32)
+        Tensor::new(swe_ml_tensor::f32_vec_to_bytes(data), vec![batch, seq, dim], DType::F32)
     }
 
     #[test]
@@ -3032,7 +3032,7 @@ mod tests {
     fn test_pool_hidden_states_wrong_shape_returns_error() {
         // 2-D tensor should fail
         let bad =
-            Tensor::new(tensor_engine::f32_vec_to_bytes(vec![1.0, 2.0]), vec![1, 2], DType::F32);
+            Tensor::new(swe_ml_tensor::f32_vec_to_bytes(vec![1.0, 2.0]), vec![1, 2], DType::F32);
         let r = pool_hidden_states(&bad, PoolingStrategy::Cls);
         assert!(r.is_err(), "2-D input should return an error");
     }

@@ -12,5 +12,5 @@ pub use crate::core::sampling::{
 };
 pub use crate::core::weight_map::WeightMap;
 pub use crate::core::gguf_bridge::{convert_tensors, gguf_config_to_model_config};
-pub use tensor_engine::OptProfile;
-pub use tensor_engine::ConfigOps;
+pub use swe_ml_tensor::OptProfile;
+pub use swe_ml_tensor::ConfigOps;

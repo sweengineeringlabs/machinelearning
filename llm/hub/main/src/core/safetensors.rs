@@ -8,7 +8,7 @@
 //! - `load_safetensors_mmap()`: zero-copy mmap, preserves original dtype
 
 use crate::api::error::HubResult;
-use tensor_engine::{DType, Tensor};
+use swe_ml_tensor::{DType, Tensor};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufReader, Read, Seek, SeekFrom};

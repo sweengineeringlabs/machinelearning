@@ -5,7 +5,7 @@
 
 use crate::api::error::NlpResult;
 use crate::api::types::{ModelConfig, RopeParameters};
-use tensor_engine::{DType, Tensor};
+use swe_ml_tensor::{DType, Tensor};
 use rustml_gguf::{GgufModelConfig, LoadedDType, LoadedTensor};
 use rustml_nn::PositionEncoding;
 use std::collections::HashMap;
@@ -127,7 +127,7 @@ pub fn gguf_config_to_model_config(gc: &GgufModelConfig) -> NlpResult<ModelConfi
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tensor_engine::f32_vec_to_bytes;
+    use swe_ml_tensor::f32_vec_to_bytes;
 
     #[test]
     fn test_loaded_tensor_to_tensor_f32() {

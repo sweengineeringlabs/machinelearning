@@ -1,7 +1,7 @@
 //! Public configuration types for NLP models
 
 use crate::api::error::{NlpError, NlpResult};
-use tensor_engine::Tensor;
+use swe_ml_tensor::Tensor;
 pub use rustml_nn::{KVCache, PositionEncoding, PoolingStrategy};
 use std::collections::HashMap;
 

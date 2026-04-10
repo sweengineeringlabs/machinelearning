@@ -1,26 +1,26 @@
 // Re-export training-engine API for backwards compatibility.
-// Since training_engine::api is private, we re-create the module structure
+// Since swe_ml_training::api is private, we re-create the module structure
 // using the public surface.
 
 pub mod error {
-    pub use training_engine::{SwetsError, SwetsResult};
+    pub use swe_ml_training::{SwetsError, SwetsResult};
 }
 
 pub mod layer {
-    pub use training_engine::Layer;
+    pub use swe_ml_training::Layer;
 }
 
 pub mod loss {
-    pub use training_engine::Loss;
+    pub use swe_ml_training::Loss;
 }
 
 pub mod optim {
-    pub use training_engine::{LRScheduler, Optimizer};
+    pub use swe_ml_training::{LRScheduler, Optimizer};
 }
 
-pub use training_engine::pool;
-pub use training_engine::tape;
+pub use swe_ml_training::pool;
+pub use swe_ml_training::tape;
 
 pub mod tensor {
-    pub use training_engine::{Tensor, TensorId};
+    pub use swe_ml_training::{Tensor, TensorId};
 }

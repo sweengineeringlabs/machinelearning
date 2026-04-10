@@ -9,7 +9,7 @@ pub type NlpResult<T> = Result<T, NlpError>;
 #[derive(Error, Debug)]
 pub enum NlpError {
     #[error("Tensor error: {0}")]
-    TensorError(#[from] tensor_engine::TensorError),
+    TensorError(#[from] swe_ml_tensor::TensorError),
 
     #[error("Neural network error: {0}")]
     NnError(#[from] rustml_nn::NnError),

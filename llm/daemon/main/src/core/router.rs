@@ -10,7 +10,7 @@ use axum::{Json, Router};
 use futures_util::stream;
 use tokio_stream::StreamExt;
 
-use tensor_engine::{DType, Tensor, f32_vec_to_bytes};
+use swe_ml_tensor::{DType, Tensor, f32_vec_to_bytes};
 use rustml_nn::PoolingStrategy;
 
 use crate::api::error::DaemonError;

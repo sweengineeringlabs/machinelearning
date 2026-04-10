@@ -3,7 +3,7 @@
 use crate::api::error::NnResult;
 use crate::core::feed_forward::FeedForward;
 use crate::core::linear::Linear;
-use tensor_engine::Tensor;
+use swe_ml_tensor::Tensor;
 
 /// Mixture-of-Experts (MoE) layer used in Mixtral-style models.
 ///

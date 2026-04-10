@@ -1,5 +1,5 @@
-use training_engine::{SwetsResult, Layer, tape, Tensor};
-use training_engine::tape::{BackwardOp, TapeEntry};
+use swe_ml_training::{SwetsResult, Layer, tape, Tensor};
+use swe_ml_training::tape::{BackwardOp, TapeEntry};
 
 /// Parameters for a single LSTM layer.
 struct LSTMLayerParams {

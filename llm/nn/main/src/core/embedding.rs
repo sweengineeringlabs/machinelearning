@@ -2,7 +2,7 @@
 
 use std::time::Instant;
 use crate::api::error::NnResult;
-use tensor_engine::Tensor;
+use swe_ml_tensor::Tensor;
 
 /// Embedding layer that maps token indices to dense vectors
 #[derive(Debug, Clone)]

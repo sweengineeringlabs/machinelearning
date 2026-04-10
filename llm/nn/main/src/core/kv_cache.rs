@@ -5,7 +5,7 @@
 
 use std::time::Instant;
 use crate::api::error::{NnError, NnResult};
-use tensor_engine::Tensor;
+use swe_ml_tensor::Tensor;
 
 /// KV Cache storing past keys and values for each layer.
 pub struct KVCache {

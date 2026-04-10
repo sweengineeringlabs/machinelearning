@@ -1,8 +1,8 @@
 [workspace]
 resolver = "2"
 members = [
-    # Shared tensor engine
-    "tensor-engine",
+    # Tensor math
+    "tensor",
     # LLM inference stack
     "llm/nn",
     "llm/hub",
@@ -13,8 +13,8 @@ members = [
     "llm/quantize",
     "llm/cli",
     "llm/daemon",
-    # Training engine
-    "training-engine",
+    # Training
+    "training",
     # Model architectures
     "architectures",
 ]
@@ -53,15 +53,15 @@ approx = "0.5"
 log = "0.4"
 env_logger = "0.11"
 # Internal crates
-tensor-engine = { path = "tensor-engine" }
+swe-ml-tensor = { path = "tensor" }
 rustml-nn = { path = "llm/nn" }
 rustml-hub = { path = "llm/hub" }
 rustml-nlp = { path = "llm/nlp" }
 rustml-tokenizer = { path = "llm/tokenizer" }
 rustml-quant = { path = "llm/quant" }
 rustml-gguf = { path = "llm/gguf" }
-architectures = { path = "architectures" }
-training-engine = { path = "training-engine" }
+swe-ml-architectures = { path = "architectures" }
+swe-ml-training = { path = "training" }
 swellmd = { path = "llm/daemon" }
 # Shared deps for quant/gguf crates
 bytemuck = { version = "1", features = ["extern_crate_alloc"] }

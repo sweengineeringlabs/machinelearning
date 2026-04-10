@@ -112,19 +112,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "architectures"
-version = "0.1.0"
-dependencies = [
- "approx",
- "log",
- "rand 0.8.5",
- "smallvec",
- "tensor-engine",
- "thiserror 2.0.17",
- "training-engine",
-]
-
-[[package]]
 name = "atomic-waker"
 version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2522,7 +2509,7 @@ dependencies = [
  "safetensors",
  "serde",
  "serde_json",
- "tensor-engine",
+ "swe-ml-tensor",
  "thiserror 2.0.17",
  "tokio",
 ]
@@ -2544,7 +2531,7 @@ dependencies = [
  "rustml-tokenizer",
  "serde",
  "serde_json",
- "tensor-engine",
+ "swe-ml-tensor",
  "thiserror 2.0.17",
  "tokio",
 ]
@@ -2558,7 +2545,7 @@ dependencies = [
  "log",
  "rustml-quant",
  "serde",
- "tensor-engine",
+ "swe-ml-tensor",
  "thiserror 2.0.17",
 ]
 
@@ -2588,7 +2575,7 @@ dependencies = [
  "rustml-quant",
  "serde",
  "serde_json",
- "tensor-engine",
+ "swe-ml-tensor",
  "thiserror 2.0.17",
 ]
 
@@ -2858,6 +2845,49 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
+name = "swe-ml-architectures"
+version = "0.1.0"
+dependencies = [
+ "approx",
+ "log",
+ "rand 0.8.5",
+ "smallvec",
+ "swe-ml-tensor",
+ "swe-ml-training",
+ "thiserror 2.0.17",
+]
+
+[[package]]
+name = "swe-ml-tensor"
+version = "0.1.2"
+dependencies = [
+ "approx",
+ "bytemuck",
+ "faer",
+ "half",
+ "log",
+ "memmap2",
+ "rand 0.8.5",
+ "rand_distr",
+ "rayon",
+ "serde",
+ "smallvec",
+ "thiserror 2.0.17",
+ "toml",
+]
+
+[[package]]
+name = "swe-ml-training"
+version = "0.1.0"
+dependencies = [
+ "approx",
+ "log",
+ "rand 0.8.5",
+ "swe-ml-tensor",
+ "thiserror 2.0.17",
+]
+
+[[package]]
 name = "swellmd"
 version = "0.1.0"
 dependencies = [
@@ -2877,7 +2907,7 @@ dependencies = [
  "rustml-tokenizer",
  "serde",
  "serde_json",
- "tensor-engine",
+ "swe-ml-tensor",
  "thiserror 2.0.17",
  "tokio",
  "tokio-stream",
@@ -2961,25 +2991,6 @@ dependencies = [
  "once_cell",
  "rustix",
  "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "tensor-engine"
-version = "0.1.2"
-dependencies = [
- "approx",
- "bytemuck",
- "faer",
- "half",
- "log",
- "memmap2",
- "rand 0.8.5",
- "rand_distr",
- "rayon",
- "serde",
- "smallvec",
- "thiserror 2.0.17",
- "toml",
 ]
 
 [[package]]
@@ -3246,17 +3257,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "db97caf9d906fbde555dd62fa95ddba9eecfd14cb388e4f491a66d74cd5fb79a"
 dependencies = [
  "once_cell",
-]
-
-[[package]]
-name = "training-engine"
-version = "0.1.0"
-dependencies = [
- "approx",
- "log",
- "rand 0.8.5",
- "tensor-engine",
- "thiserror 2.0.17",
 ]
 
 [[package]]

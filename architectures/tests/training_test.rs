@@ -1,4 +1,4 @@
-use architectures::*;
+use swe_ml_architectures::*;
 
 #[test]
 fn test_linear_regression_convergence() {
