@@ -1,42 +1,21 @@
-//! Multi-dtype Tensor with Arc<Storage> backend.
+//! Tensor implementation methods.
+//!
+//! The Tensor struct is defined in api/tensor_def.rs.
+//! This module provides all impl blocks.
 
+pub use crate::api::tensor_def::{Tensor, Storage, f32_vec_to_bytes, f32_slice_to_bytes};
+pub(crate) use crate::api::tensor_def::{TensorShape, storage_byte_len};
 use crate::api::error::{TensorError, TensorResult};
-use crate::api::dtype::DType; use crate::api::device::Device;
+use crate::api::dtype::DType;
+use crate::api::device::Device;
 use crate::api::traits::TensorOps;
 use crate::core::shape_mod::shape::Shape;
-use super::storage::{Storage, storage_byte_len};
 use bytemuck;
 use half::{bf16, f16};
 use rand::Rng;
 use smallvec::SmallVec;
 use std::fmt;
 use std::sync::Arc;
-
-/// Safely convert a Vec<f32> into a Vec<u8> without unsafe code.
-pub fn f32_vec_to_bytes(v: Vec<f32>) -> Vec<u8> {
-    match bytemuck::try_cast_vec::<f32, u8>(v) {
-        Ok(bytes) => bytes,
-        Err((_, original)) => bytemuck::cast_slice::<f32, u8>(&original).to_vec(),
-    }
-}
-
-/// Safely reinterpret an f32 slice as bytes.
-pub fn f32_slice_to_bytes(s: &[f32]) -> &[u8] {
-    bytemuck::cast_slice(s)
-}
-
-/// Internal shape type: stack-allocated for ≤4 dims.
-pub(crate) type TensorShape = SmallVec<[usize; 4]>;
-
-/// A multi-dimensional array supporting multiple data types.
-#[derive(Clone)]
-pub struct Tensor {
-    pub(crate) data: Arc<Storage>,
-    pub(crate) shape_sv: TensorShape,
-    pub(crate) strides: TensorShape,
-    pub(crate) dtype: DType,
-    pub(crate) device: Device,
-}
 
 impl Tensor {
     // ==================== Low-level constructors ====================

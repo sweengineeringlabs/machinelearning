@@ -17,7 +17,7 @@ pub use crate::api::config_ops::ConfigOps;
 // Core types routed through saf/types
 // TensorPool and QuantStrategy are pub(crate) — accessed via wrapper functions only
 pub use types::{
-    Tensor, TensorBuilder, Storage, f32_vec_to_bytes, f32_slice_to_bytes,
+    Tensor, Storage, f32_vec_to_bytes, f32_slice_to_bytes,
     Shape,
     OptProfile,
     QuantTarget,

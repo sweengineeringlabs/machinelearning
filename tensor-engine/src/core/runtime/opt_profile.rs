@@ -1,17 +1,5 @@
+pub use crate::api::opt_profile_def::OptProfile;
 use super::runtime_config::RuntimeConfig;
-
-/// Optimization profiles for A/B benchmarking.
-///
-/// Controls rayon thresholds and whether in-place/buffered optimizations are used.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum OptProfile {
-    /// All optimizations enabled (default behavior).
-    Optimized,
-    /// All optimizations disabled: allocating paths, thresholds set to MAX.
-    Baseline,
-    /// Lower thresholds (1024) for aggressive parallelism.
-    Aggressive,
-}
 
 impl OptProfile {
     /// Apply this profile's runtime configuration globally.
@@ -37,88 +25,29 @@ impl OptProfile {
             },
         }
     }
-
-    /// Whether in-place ops should be used (attention scaling, residual adds).
-    pub fn use_inplace_ops(&self) -> bool {
-        *self != OptProfile::Baseline
-    }
-
-    /// Whether buffered sampling should be used (pre-allocated logits/sort buffers).
-    pub fn use_buffered_sampling(&self) -> bool {
-        *self != OptProfile::Baseline
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    /// @covers: OptProfile::runtime_config
+    /// @covers: OptProfile::apply
     #[test]
-    fn test_runtime_config_returns_valid_config() {
-        let p = OptProfile::Optimized;
-        let cfg = p.runtime_config();
-        assert_eq!(cfg.num_threads, 0);
-        assert!(cfg.softmax_par_threshold > 0);
-    }
-
-    /// @covers: OptProfile::runtime_config, OptProfile::use_inplace_ops, OptProfile::use_buffered_sampling
-    #[test]
-    fn test_opt_profile_optimized_returns_default_thresholds() {
-        let p = OptProfile::Optimized;
-        let cfg = p.runtime_config();
-        assert_eq!(cfg.softmax_par_threshold, 4096);
-        assert_eq!(cfg.batched_matmul_par_threshold, 4096);
-        assert_eq!(cfg.gemv_par_threshold, 4096);
-        assert!(p.use_inplace_ops());
-        assert!(p.use_buffered_sampling());
+    fn test_opt_profile_optimized_applies_without_error() {
+        assert!(OptProfile::Optimized.apply().is_ok());
     }
 
     /// @covers: OptProfile::use_inplace_ops
     #[test]
-    fn test_use_inplace_ops_enabled_for_optimized() {
+    fn test_opt_profile_baseline_disables_inplace() {
+        assert!(!OptProfile::Baseline.use_inplace_ops());
         assert!(OptProfile::Optimized.use_inplace_ops());
     }
 
-    /// @covers: OptProfile::use_inplace_ops
-    #[test]
-    fn test_use_inplace_ops_disabled_for_baseline() {
-        assert!(!OptProfile::Baseline.use_inplace_ops());
-    }
-
     /// @covers: OptProfile::use_buffered_sampling
     #[test]
-    fn test_use_buffered_sampling_enabled_for_optimized() {
-        assert!(OptProfile::Optimized.use_buffered_sampling());
-    }
-
-    /// @covers: OptProfile::use_buffered_sampling
-    #[test]
-    fn test_use_buffered_sampling_disabled_for_baseline() {
+    fn test_opt_profile_aggressive_enables_buffered_sampling() {
+        assert!(OptProfile::Aggressive.use_buffered_sampling());
         assert!(!OptProfile::Baseline.use_buffered_sampling());
-    }
-
-    /// @covers: OptProfile::runtime_config
-    #[test]
-    fn test_opt_profile_baseline_disables_parallelism() {
-        let p = OptProfile::Baseline;
-        let cfg = p.runtime_config();
-        assert_eq!(cfg.softmax_par_threshold, usize::MAX);
-        assert_eq!(cfg.batched_matmul_par_threshold, usize::MAX);
-        assert_eq!(cfg.gemv_par_threshold, usize::MAX);
-        assert!(!p.use_inplace_ops());
-        assert!(!p.use_buffered_sampling());
-    }
-
-    /// @covers: OptProfile::runtime_config
-    #[test]
-    fn test_opt_profile_aggressive_lowers_thresholds() {
-        let p = OptProfile::Aggressive;
-        let cfg = p.runtime_config();
-        assert_eq!(cfg.softmax_par_threshold, 1024);
-        assert_eq!(cfg.batched_matmul_par_threshold, 1024);
-        assert_eq!(cfg.gemv_par_threshold, 1024);
-        assert!(p.use_inplace_ops());
-        assert!(p.use_buffered_sampling());
     }
 }

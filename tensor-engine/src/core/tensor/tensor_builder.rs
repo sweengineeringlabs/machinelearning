@@ -16,7 +16,7 @@ use super::tensor::{Tensor, f32_vec_to_bytes};
 ///     .zeros()
 ///     .unwrap();
 /// ```
-pub struct TensorBuilder {
+pub(crate) struct TensorBuilder {
     shape: Option<Shape>,
     dtype: DType,
     device: Device,
