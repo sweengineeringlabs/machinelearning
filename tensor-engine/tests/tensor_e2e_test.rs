@@ -1,5 +1,6 @@
 use tensor_engine::{Tensor, DType};
 
+/// @covers: Tensor::zeros
 #[test]
 fn test_create_zeros_returns_correct_shape_and_dtype() {
     let t = Tensor::zeros([2, 3]);
@@ -7,6 +8,7 @@ fn test_create_zeros_returns_correct_shape_and_dtype() {
     assert_eq!(t.dtype(), DType::F32);
 }
 
+/// @covers: Tensor::ones
 #[test]
 fn test_create_ones_returns_all_ones() {
     let t = Tensor::ones([4]);
@@ -14,6 +16,7 @@ fn test_create_ones_returns_all_ones() {
     assert!(data.iter().all(|&v| v == 1.0));
 }
 
+/// @covers: Tensor::matmul
 #[test]
 fn test_matmul_produces_correct_output_shape() {
     let a = Tensor::randn([2, 3]);
@@ -22,6 +25,7 @@ fn test_matmul_produces_correct_output_shape() {
     assert_eq!(c.shape(), &[2, 5]);
 }
 
+/// @covers: Tensor::add
 #[test]
 fn test_add_broadcasts_scalar_to_vector() {
     let a = Tensor::ones([3]);
@@ -31,6 +35,7 @@ fn test_add_broadcasts_scalar_to_vector() {
     assert!(data.iter().all(|&v| (v - 2.0).abs() < 1e-6));
 }
 
+/// @covers: Tensor::to_f16
 #[test]
 fn test_to_f16_changes_dtype() {
     let t = Tensor::ones([4]);
@@ -38,6 +43,7 @@ fn test_to_f16_changes_dtype() {
     assert_eq!(f16.dtype(), DType::F16);
 }
 
+/// @covers: Tensor::softmax
 #[test]
 fn test_softmax_output_sums_to_one() {
     let t = Tensor::from_vec(vec![1.0, 2.0, 3.0], vec![1, 3]).unwrap();

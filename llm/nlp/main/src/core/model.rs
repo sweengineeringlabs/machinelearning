@@ -1633,7 +1633,7 @@ impl LlmModel {
 
     pub fn warmup_decode(&self) -> NlpResult<()> {
         // First, warm up the rayon thread pool to reduce scheduling jitter
-        RuntimeConfig::warmup_thread_pool();
+        tensor_engine::warmup_thread_pool();
 
         let mut cache = self.build_kv_cache(4);
 

@@ -3,9 +3,16 @@
 use crate::api::error::{TensorError, TensorResult};
 use crate::api::dtype::DType;
 use crate::core::shape_mod::shape::Shape;
-use super::tensor::{Tensor, Storage, f32_vec_to_bytes, TensorShape};
+use super::storage::Storage;
+use super::tensor::{Tensor, f32_vec_to_bytes, TensorShape};
 use smallvec::SmallVec;
 use std::sync::Arc;
+
+/// Namespace marker for tensor view operations (reshape, transpose, slice, etc.).
+///
+/// All operations are implemented as `impl Tensor` methods in this module.
+/// This type exists to satisfy the one-primary-type-per-file rule.
+pub(crate) struct Views;
 
 impl Tensor {
     // ==================== Reshape ====================
@@ -532,40 +539,65 @@ impl Tensor {
 mod tests {
     use super::*;
 
+    /// @covers: Tensor::reshape
     #[test]
-    fn test_reshape() {
+    fn test_reshape_changes_shape_preserves_data() {
         let t = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0], vec![2, 3]).unwrap();
         let r = t.reshape(&[3, 2]).unwrap();
         assert_eq!(r.shape(), &[3, 2]);
         assert_eq!(r.get(&[0, 0]).unwrap(), 1.0);
     }
 
+    /// @covers: Tensor::reshape
     #[test]
-    fn test_transpose() {
+    fn test_reshape_size_mismatch_returns_error() {
+        let t = Tensor::from_vec(vec![1.0, 2.0, 3.0], vec![3]).unwrap();
+        assert!(t.reshape(&[2, 2]).is_err());
+    }
+
+    /// @covers: Tensor::transpose
+    #[test]
+    fn test_transpose_swaps_dimensions() {
         let t = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0], vec![2, 3]).unwrap();
         let tr = t.transpose(-2, -1).unwrap();
         assert_eq!(tr.shape(), &[3, 2]);
-        // After transposing [2,3], element [0,1] should be original [1,0] = 4.0
         assert_eq!(tr.get(&[0, 1]).unwrap(), 4.0);
     }
 
+    /// @covers: Tensor::select
     #[test]
-    fn test_select() {
+    fn test_select_row_reduces_dimension() {
         let t = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0], vec![2, 3]).unwrap();
         let selected = t.select(0, 1).unwrap();
         assert_eq!(selected.shape(), &[3]);
         assert_eq!(selected.to_vec(), vec![4.0, 5.0, 6.0]);
     }
 
+    /// @covers: Tensor::select
     #[test]
-    fn test_slice() {
+    fn test_select_out_of_bounds_returns_error() {
+        let t = Tensor::from_vec(vec![1.0, 2.0, 3.0], vec![3]).unwrap();
+        assert!(t.select(0, 5).is_err());
+    }
+
+    /// @covers: Tensor::slice
+    #[test]
+    fn test_slice_along_dimension() {
         let t = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0], vec![2, 3]).unwrap();
         let sliced = t.slice(1, 0, 2).unwrap();
         assert_eq!(sliced.shape(), &[2, 2]);
     }
 
+    /// @covers: Tensor::slice
     #[test]
-    fn test_broadcast() {
+    fn test_slice_invalid_range_returns_error() {
+        let t = Tensor::from_vec(vec![1.0, 2.0, 3.0], vec![3]).unwrap();
+        assert!(t.slice(0, 2, 1).is_err()); // start > end
+    }
+
+    /// @covers: Tensor::broadcast_to
+    #[test]
+    fn test_broadcast_to_expands_dimensions() {
         let a = Tensor::from_vec(vec![1.0, 2.0, 3.0], vec![1, 3]).unwrap();
         let target = Shape::new(vec![2, 3]);
         let b = a.broadcast_to(&target).unwrap();
@@ -573,8 +605,9 @@ mod tests {
         assert_eq!(b.get(&[1, 0]).unwrap(), 1.0);
     }
 
+    /// @covers: Tensor::tril
     #[test]
-    fn test_tril() {
+    fn test_tril_creates_lower_triangular() {
         let t = Tensor::tril(3);
         assert_eq!(t.shape(), &[3, 3]);
         assert_eq!(t.get(&[0, 1]).unwrap(), 0.0);
@@ -582,12 +615,85 @@ mod tests {
         assert_eq!(t.get(&[2, 2]).unwrap(), 1.0);
     }
 
+    /// @covers: Tensor::unsqueeze, Tensor::squeeze
     #[test]
-    fn test_unsqueeze_squeeze() {
+    fn test_unsqueeze_then_squeeze_roundtrip() {
         let t = Tensor::from_vec(vec![1.0, 2.0, 3.0], vec![3]).unwrap();
         let u = t.unsqueeze(0).unwrap();
         assert_eq!(u.shape(), &[1, 3]);
         let s = u.squeeze(0).unwrap();
         assert_eq!(s.shape(), &[3]);
+    }
+
+    /// @covers: Tensor::permute
+    #[test]
+    fn test_permute_reorders_dims() {
+        let t = Tensor::from_vec(
+            (0..24).map(|i| i as f32).collect(),
+            vec![2, 3, 4],
+        ).unwrap();
+        let p = t.permute(&[2, 0, 1]).unwrap();
+        assert_eq!(p.shape(), &[4, 2, 3]);
+    }
+
+    /// @covers: Tensor::contiguous
+    #[test]
+    fn test_contiguous_on_contiguous_is_noop() {
+        let t = Tensor::ones(vec![2, 3]);
+        let c = t.contiguous().unwrap();
+        assert!(c.is_contiguous());
+        assert_eq!(c.shape(), &[2, 3]);
+    }
+
+    /// @covers: Tensor::t
+    #[test]
+    fn test_t_shorthand_transposes_last_two() {
+        let t = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0], vec![2, 3]).unwrap();
+        let tr = t.t().unwrap();
+        assert_eq!(tr.shape(), &[3, 2]);
+    }
+
+    /// @covers: Tensor::t
+    #[test]
+    fn test_t_1d_returns_error() {
+        let t = Tensor::from_vec(vec![1.0, 2.0], vec![2]).unwrap();
+        assert!(t.t().is_err());
+    }
+
+    /// @covers: Tensor::slice_rows
+    #[test]
+    fn test_slice_rows_extracts_range() {
+        let t = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0], vec![3, 2]).unwrap();
+        let s = t.slice_rows(1, 3).unwrap();
+        assert_eq!(s.shape(), &[2, 2]);
+    }
+
+    /// @covers: Tensor::slice_sequence
+    #[test]
+    fn test_slice_sequence_extracts_subrange() {
+        let data: Vec<f32> = (0..24).map(|i| i as f32).collect();
+        let t = Tensor::from_vec(data, vec![1, 2, 3, 4]).unwrap();
+        let s = t.slice_sequence(0, 2).unwrap();
+        assert_eq!(s.shape(), &[1, 2, 2, 4]);
+    }
+
+    /// @covers: Tensor::broadcast_to_shape
+    #[test]
+    fn test_broadcast_to_shape_internal() {
+        let t = Tensor::from_vec(vec![1.0, 2.0], vec![1, 2]).unwrap();
+        let target = Shape::new(vec![3, 2]);
+        let b = t.broadcast_to(&target).unwrap();
+        assert_eq!(b.shape(), &[3, 2]);
+    }
+
+    /// @covers: Tensor::slice_assign_sequence
+    #[test]
+    fn test_slice_assign_sequence_updates_region() {
+        let data: Vec<f32> = vec![0.0; 24];
+        let mut t = Tensor::from_vec(data, vec![1, 2, 3, 4]).unwrap();
+        let src_data: Vec<f32> = vec![1.0; 8];
+        let src = Tensor::from_vec(src_data, vec![1, 2, 1, 4]).unwrap();
+        t.slice_assign_sequence(1, &src).unwrap();
+        assert_eq!(t.get(&[0, 0, 1, 0]).unwrap(), 1.0);
     }
 }

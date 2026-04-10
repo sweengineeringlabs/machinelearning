@@ -153,6 +153,7 @@ impl AsRef<[usize]> for Shape {
 mod tests {
     use super::*;
 
+    /// @covers: Shape::new, Shape::ndim, Shape::numel, Shape::size
     #[test]
     fn test_shape_basic() {
         let shape = Shape::new(vec![2, 3, 4]);
@@ -162,11 +163,142 @@ mod tests {
         assert_eq!(shape.size(-1), Some(4));
     }
 
+    /// @covers: Shape::broadcast_with
     #[test]
     fn test_broadcast() {
         let a = Shape::new(vec![2, 1, 4]);
         let b = Shape::new(vec![3, 4]);
         let c = a.broadcast_with(&b);
         assert_eq!(c, Some(Shape::new(vec![2, 3, 4])));
+    }
+
+    /// @covers: Shape::scalar
+    #[test]
+    fn test_scalar_has_zero_dims() {
+        let s = Shape::scalar();
+        assert!(s.is_scalar());
+        assert_eq!(s.ndim(), 0);
+    }
+
+    /// @covers: Shape::numel
+    #[test]
+    fn test_numel_product_of_dims() {
+        let s = Shape::new(vec![2, 3, 4]);
+        assert_eq!(s.numel(), 24);
+    }
+
+    /// @covers: Shape::size
+    #[test]
+    fn test_size_negative_indexing() {
+        let s = Shape::new(vec![2, 3, 4]);
+        assert_eq!(s.size(-1), Some(4));
+        assert_eq!(s.size(-3), Some(2));
+        assert_eq!(s.size(-4), None);
+    }
+
+    /// @covers: Shape::with_dim
+    #[test]
+    fn test_with_dim_inserts_at_correct_position() {
+        let s = Shape::new(vec![2, 3]);
+        let expanded = s.with_dim(1, 5).unwrap();
+        assert_eq!(expanded.dims(), &[2, 5, 3]);
+    }
+
+    /// @covers: Shape::squeeze
+    #[test]
+    fn test_squeeze_removes_size_one_dim() {
+        let s = Shape::new(vec![2, 1, 3]);
+        let squeezed = s.squeeze(1).unwrap();
+        assert_eq!(squeezed.dims(), &[2, 3]);
+    }
+
+    /// @covers: Shape::squeeze
+    #[test]
+    fn test_squeeze_non_one_dim_returns_none() {
+        let s = Shape::new(vec![2, 3]);
+        assert!(s.squeeze(0).is_none());
+    }
+
+    /// @covers: Shape::broadcast_with
+    #[test]
+    fn test_broadcast_incompatible_returns_none() {
+        let a = Shape::new(vec![2, 3]);
+        let b = Shape::new(vec![4, 5]);
+        assert!(a.broadcast_with(&b).is_none());
+    }
+
+    /// @covers: Shape (Display)
+    #[test]
+    fn test_shape_display_format() {
+        let s = Shape::new(vec![2, 3]);
+        assert_eq!(format!("{}", s), "[2, 3]");
+    }
+
+    /// @covers: Shape (From<Vec<usize>>)
+    #[test]
+    fn test_shape_from_vec() {
+        let s: Shape = vec![4, 5].into();
+        assert_eq!(s.dims(), &[4, 5]);
+    }
+
+    /// @covers: Shape (From<[usize; N]>)
+    #[test]
+    fn test_shape_from_array() {
+        let s: Shape = [2, 3, 4].into();
+        assert_eq!(s.ndim(), 3);
+    }
+
+    /// @covers: Shape::new
+    #[test]
+    fn test_new_stores_dimensions() {
+        let s = Shape::new(vec![10, 20]);
+        assert_eq!(s.dims(), &[10, 20]);
+    }
+
+    /// @covers: Shape::ndim
+    #[test]
+    fn test_ndim_returns_dimension_count() {
+        assert_eq!(Shape::new(vec![2, 3, 4]).ndim(), 3);
+        assert_eq!(Shape::scalar().ndim(), 0);
+    }
+
+    /// @covers: Shape::is_scalar
+    #[test]
+    fn test_is_scalar_true_for_empty_dims() {
+        assert!(Shape::scalar().is_scalar());
+        assert!(!Shape::new(vec![1]).is_scalar());
+    }
+
+    /// @covers: Shape::normalize_dim
+    #[test]
+    fn test_normalize_dim_positive_and_negative() {
+        let s = Shape::new(vec![2, 3, 4]);
+        assert_eq!(s.normalize_dim(0), Some(0));
+        assert_eq!(s.normalize_dim(-1), Some(2));
+        assert_eq!(s.normalize_dim(3), None);
+    }
+
+    /// @covers: Shape::fmt
+    #[test]
+    fn test_fmt_debug_shows_shape_prefix() {
+        let s = Shape::new(vec![2, 3]);
+        let dbg = format!("{:?}", s);
+        assert!(dbg.contains("Shape"), "debug should contain 'Shape': {}", dbg);
+    }
+
+    /// @covers: Shape::as_ref
+    #[test]
+    fn test_as_ref_returns_dims_slice() {
+        let s = Shape::new(vec![5, 6]);
+        let r: &[usize] = s.as_ref();
+        assert_eq!(r, &[5, 6]);
+    }
+
+    /// @covers: Shape::broadcast_with
+    #[test]
+    fn test_broadcast_with_same_shape() {
+        let a = Shape::new(vec![2, 3]);
+        let b = Shape::new(vec![2, 3]);
+        assert_eq!(a.broadcast_with(&b), Some(Shape::new(vec![2, 3])));
     }
 }

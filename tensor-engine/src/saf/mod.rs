@@ -1,16 +1,30 @@
 // SAF — public surface re-exports
+//
+// All re-exports come from api/ (never from core/ directly).
+// Traits are NOT re-exported — standalone wrapper functions are provided instead.
 
-// API types
+mod types;
+mod wrappers;
+
+// API enum/error types
 pub use crate::api::dtype::*;
 pub use crate::api::device::*;
 pub use crate::api::error::*;
-pub use crate::api::traits::*;
 
-// Core types exposed via saf (implementation types needed by consumers)
-pub use crate::core::tensor::{Tensor, Storage, f32_vec_to_bytes, f32_slice_to_bytes};
-pub use crate::core::shape_mod::shape::Shape;
-pub use crate::core::arena::tensor_pool::TensorPool;
-pub use crate::core::runtime::runtime_config::RuntimeConfig;
-pub use crate::core::runtime::opt_profile::OptProfile;
-pub use crate::core::runtime::quant_strategy::QuantStrategy;
-pub use crate::core::runtime::quant_target::QuantTarget;
+// ConfigOps trait — allows .apply() on RuntimeConfig via trait method
+pub use crate::api::config_ops::ConfigOps;
+
+// Core types routed through saf/types
+pub use types::{
+    Tensor, TensorBuilder, Storage, f32_vec_to_bytes, f32_slice_to_bytes,
+    Shape, TensorPool,
+    RuntimeConfig, OptProfile,
+    QuantStrategy, QuantStrategyBuilder, QuantTarget,
+};
+
+// Wrapper functions (Rule 106 — standalone functions instead of trait re-exports)
+pub use wrappers::{
+    tensor_shape, tensor_dtype, tensor_matmul, tensor_add, tensor_softmax,
+    pool_get, pool_put, pool_len, pool_is_empty,
+    apply_runtime_config, warmup_thread_pool, detect_simd,
+};

@@ -9,7 +9,7 @@ use clap::Args;
 use rustml_gguf::GGUFFile;
 use rustml_hub::HubApi;
 use rustml_nlp::{
-    Generator, LanguageModel, LlmModel, OptProfile, convert_tensors,
+    ConfigOps, Generator, LanguageModel, LlmModel, OptProfile, convert_tensors,
     gguf_config_to_model_config,
 };
 use rustml_tokenizer::{BpeTokenizer, GgufTokenizer, HFTokenizer, Tokenizer};

@@ -28,3 +28,59 @@ impl DType {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// @covers: size
+    #[test]
+    fn test_dtype_size_f32_is_four_bytes() {
+        assert_eq!(DType::F32.size(), 4);
+    }
+
+    /// @covers: size
+    #[test]
+    fn test_dtype_size_f16_is_two_bytes() {
+        assert_eq!(DType::F16.size(), 2);
+    }
+
+    /// @covers: size
+    #[test]
+    fn test_dtype_size_bf16_is_two_bytes() {
+        assert_eq!(DType::BF16.size(), 2);
+    }
+
+    /// @covers: size
+    #[test]
+    fn test_dtype_size_i8_is_one_byte() {
+        assert_eq!(DType::I8.size(), 1);
+    }
+
+    /// @covers: size
+    #[test]
+    fn test_dtype_size_u8_is_one_byte() {
+        assert_eq!(DType::U8.size(), 1);
+    }
+
+    /// @covers: size
+    #[test]
+    fn test_dtype_size_quantized_types_return_zero() {
+        assert_eq!(DType::Q8_0.size(), 0);
+        assert_eq!(DType::Q4_0.size(), 0);
+        assert_eq!(DType::Q4_1.size(), 0);
+    }
+
+    /// @covers: size
+    #[test]
+    fn test_dtype_default_is_f32() {
+        assert_eq!(DType::default(), DType::F32);
+    }
+
+    /// @covers: size
+    #[test]
+    fn test_dtype_clone_preserves_equality() {
+        let d = DType::BF16;
+        assert_eq!(d, d.clone());
+    }
+}

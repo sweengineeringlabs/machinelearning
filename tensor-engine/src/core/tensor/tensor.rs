@@ -2,7 +2,9 @@
 
 use crate::api::error::{TensorError, TensorResult};
 use crate::api::dtype::DType; use crate::api::device::Device;
+use crate::api::traits::TensorOps;
 use crate::core::shape_mod::shape::Shape;
+use super::storage::{Storage, storage_byte_len};
 use bytemuck;
 use half::{bf16, f16};
 use rand::Rng;
@@ -21,43 +23,6 @@ pub fn f32_vec_to_bytes(v: Vec<f32>) -> Vec<u8> {
 /// Safely reinterpret an f32 slice as bytes.
 pub fn f32_slice_to_bytes(s: &[f32]) -> &[u8] {
     bytemuck::cast_slice(s)
-}
-
-/// Underlying storage for tensor data.
-pub enum Storage {
-    Owned(Vec<u8>),
-    View {
-        parent: Arc<Tensor>,
-        offset: usize,
-        len: usize,
-    },
-    MMap {
-        mmap: Arc<memmap2::Mmap>,
-        offset: usize,
-        len: usize,
-    },
-}
-
-impl fmt::Debug for Storage {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Storage::Owned(v) => write!(f, "Owned({} bytes)", v.len()),
-            Storage::View { offset, len, .. } => {
-                write!(f, "View(offset={}, len={})", offset, len)
-            }
-            Storage::MMap { offset, len, .. } => {
-                write!(f, "MMap(offset={}, len={})", offset, len)
-            }
-        }
-    }
-}
-
-fn storage_byte_len(s: &Storage) -> usize {
-    match s {
-        Storage::Owned(v) => v.len(),
-        Storage::View { len, .. } => *len,
-        Storage::MMap { len, .. } => *len,
-    }
 }
 
 /// Internal shape type: stack-allocated for ≤4 dims.
@@ -813,50 +778,308 @@ impl fmt::Display for Tensor {
     }
 }
 
+// ==================== Trait impls ====================
+
+impl TensorOps for Tensor {
+    fn shape(&self) -> &[usize] {
+        self.shape()
+    }
+
+    fn dtype(&self) -> DType {
+        self.dtype()
+    }
+
+    fn matmul(&self, other: &Self) -> TensorResult<Self> {
+        self.matmul(other)
+    }
+
+    fn add(&self, other: &Self) -> TensorResult<Self> {
+        self.add(other)
+    }
+
+    fn softmax(&self, dim: i64) -> TensorResult<Self> {
+        self.softmax(dim)
+    }
+}
+
 // ==================== Tests ====================
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    /// @covers: Tensor::from_vec
     #[test]
-    fn test_tensor_creation() {
+    fn test_from_vec_correct_shape_and_dtype() {
         let t = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2]).unwrap();
         assert_eq!(t.shape(), &[2, 2]);
         assert_eq!(t.numel(), 4);
         assert_eq!(t.dtype(), DType::F32);
     }
 
+    /// @covers: Tensor::from_vec
     #[test]
-    fn test_zeros_ones() {
+    fn test_from_vec_shape_mismatch_returns_error() {
+        let r = Tensor::from_vec(vec![1.0, 2.0], vec![3]);
+        assert!(r.is_err(), "expected ShapeMismatch error");
+    }
+
+    /// @covers: Tensor::zeros, Tensor::ones
+    #[test]
+    fn test_zeros_sum_is_zero_and_ones_sum_is_numel() {
         let zeros = Tensor::zeros(vec![2, 3]);
         assert_eq!(zeros.sum_all(), 0.0);
-
         let ones = Tensor::ones(vec![2, 3]);
         assert_eq!(ones.sum_all(), 6.0);
     }
 
+    /// @covers: Tensor::new
     #[test]
-    fn test_multi_dtype() {
-        // Create a raw-bytes tensor
-        let data = vec![0u8; 64]; // 16 f32 zeros
+    fn test_new_raw_bytes_correct_shape_and_dtype() {
+        let data = vec![0u8; 64];
         let t = Tensor::new(data, SmallVec::from_slice(&[4, 4]), DType::F32);
         assert_eq!(t.shape(), &[4, 4]);
         assert_eq!(t.dtype(), DType::F32);
     }
 
+    /// @covers: Tensor::to_vec
     #[test]
-    fn test_to_vec() {
+    fn test_to_vec_returns_original_data() {
         let t = Tensor::from_vec(vec![1.0, 2.0, 3.0], vec![3]).unwrap();
         assert_eq!(t.to_vec(), vec![1.0, 2.0, 3.0]);
     }
 
+    /// @covers: Tensor::get
     #[test]
-    fn test_get() {
+    fn test_get_returns_correct_elements() {
         let t = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2]).unwrap();
         assert_eq!(t.get(&[0, 0]).unwrap(), 1.0);
         assert_eq!(t.get(&[0, 1]).unwrap(), 2.0);
         assert_eq!(t.get(&[1, 0]).unwrap(), 3.0);
         assert_eq!(t.get(&[1, 1]).unwrap(), 4.0);
+    }
+
+    /// @covers: Tensor::get
+    #[test]
+    fn test_get_out_of_bounds_returns_error() {
+        let t = Tensor::from_vec(vec![1.0, 2.0], vec![2]).unwrap();
+        assert!(t.get(&[5]).is_err());
+    }
+
+    /// @covers: Tensor::get
+    #[test]
+    fn test_get_wrong_number_of_indices_returns_error() {
+        let t = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2]).unwrap();
+        assert!(t.get(&[0]).is_err());
+    }
+
+    /// @covers: Tensor::full
+    #[test]
+    fn test_full_fills_with_given_value() {
+        let t = Tensor::full(vec![3], 7.0);
+        assert_eq!(t.to_vec(), vec![7.0, 7.0, 7.0]);
+    }
+
+    /// @covers: Tensor::eye
+    #[test]
+    fn test_eye_creates_identity_matrix() {
+        let t = Tensor::eye(3);
+        assert_eq!(t.get(&[0, 0]).unwrap(), 1.0);
+        assert_eq!(t.get(&[0, 1]).unwrap(), 0.0);
+        assert_eq!(t.get(&[1, 1]).unwrap(), 1.0);
+    }
+
+    /// @covers: Tensor::empty
+    #[test]
+    fn test_empty_has_zero_elements() {
+        let t = Tensor::empty();
+        assert_eq!(t.numel(), 0);
+    }
+
+    /// @covers: Tensor::ndim
+    #[test]
+    fn test_ndim_returns_dimension_count() {
+        let t = Tensor::zeros(vec![2, 3, 4]);
+        assert_eq!(t.ndim(), 3);
+    }
+
+    /// @covers: Tensor::is_contiguous
+    #[test]
+    fn test_freshly_created_tensor_is_contiguous() {
+        let t = Tensor::ones(vec![2, 3]);
+        assert!(t.is_contiguous());
+    }
+
+    /// @covers: Tensor::arange
+    #[test]
+    fn test_arange_produces_correct_sequence() {
+        let t = Tensor::arange(0.0, 3.0, 1.0).unwrap();
+        assert_eq!(t.to_vec(), vec![0.0, 1.0, 2.0]);
+    }
+
+    /// @covers: Tensor::arange
+    #[test]
+    fn test_arange_zero_step_returns_error() {
+        assert!(Tensor::arange(0.0, 5.0, 0.0).is_err());
+    }
+
+    /// @covers: Tensor::as_slice_f32
+    #[test]
+    fn test_as_slice_f32_wrong_dtype_returns_error() {
+        let t = Tensor::new(vec![0, 0], SmallVec::from_slice(&[1]), DType::F16);
+        assert!(t.as_slice_f32().is_err());
+    }
+
+    /// @covers: Tensor::to_f16
+    #[test]
+    fn test_to_f16_changes_dtype() {
+        let t = Tensor::ones(vec![4]);
+        let h = t.to_f16().unwrap();
+        assert_eq!(h.dtype(), DType::F16);
+    }
+
+    /// @covers: Tensor::device
+    #[test]
+    fn test_device_default_is_cpu() {
+        let t = Tensor::zeros(vec![1]);
+        assert_eq!(t.device(), crate::api::device::Device::Cpu);
+    }
+
+    /// @covers: TensorOps (trait impl)
+    #[test]
+    fn test_tensor_ops_trait_shape_delegates_correctly() {
+        use crate::api::traits::TensorOps;
+        let t = Tensor::zeros(vec![3, 4]);
+        assert_eq!(TensorOps::shape(&t), &[3, 4]);
+    }
+
+    /// @covers: Tensor::to_f32
+    #[test]
+    fn test_to_f32_identity_for_f32_tensor() {
+        let t = Tensor::from_vec(vec![1.0, 2.0], vec![2]).unwrap();
+        let r = t.to_f32().unwrap();
+        assert_eq!(r.dtype(), DType::F32);
+        assert_eq!(r.to_vec(), vec![1.0, 2.0]);
+    }
+
+    /// @covers: Tensor::into_bytes
+    #[test]
+    fn test_into_bytes_returns_owned_data() {
+        let t = Tensor::from_vec(vec![1.0f32], vec![1]).unwrap();
+        let bytes = t.into_bytes().unwrap();
+        assert_eq!(bytes.len(), 4);
+    }
+
+    /// @covers: Tensor::iter
+    #[test]
+    fn test_iter_yields_all_elements() {
+        let t = Tensor::from_vec(vec![1.0, 2.0, 3.0], vec![3]).unwrap();
+        let vals: Vec<f32> = t.iter().collect();
+        assert_eq!(vals, vec![1.0, 2.0, 3.0]);
+    }
+
+    /// @covers: Tensor::as_raw_bytes
+    #[test]
+    fn test_as_raw_bytes_returns_byte_slice() {
+        let t = Tensor::from_vec(vec![1.0f32, 2.0], vec![2]).unwrap();
+        let bytes = t.as_raw_bytes().unwrap();
+        assert_eq!(bytes.len(), 8); // 2 * 4 bytes
+    }
+
+    /// @covers: Tensor::as_mut_slice_f32
+    #[test]
+    fn test_as_mut_slice_f32_allows_mutation() {
+        let mut t = Tensor::from_vec(vec![1.0, 2.0, 3.0], vec![3]).unwrap();
+        {
+            let slice = t.as_mut_slice_f32().unwrap();
+            slice[0] = 99.0;
+        }
+        assert_eq!(t.get(&[0]).unwrap(), 99.0);
+    }
+
+    /// @covers: Tensor::element_count
+    #[test]
+    fn test_element_count_returns_product_of_dims() {
+        let t = Tensor::zeros(vec![2, 3, 4]);
+        assert_eq!(t.element_count(), 24);
+    }
+
+    /// @covers: Tensor::new_aligned
+    #[test]
+    fn test_new_aligned_creates_zeroed_tensor() {
+        let t = Tensor::new_aligned(vec![2, 3], DType::F32);
+        assert_eq!(t.shape(), &[2, 3]);
+        assert_eq!(t.dtype(), DType::F32);
+        let data = t.as_slice_f32().unwrap();
+        assert!(data.iter().all(|&v| v == 0.0));
+    }
+
+    /// @covers: Tensor::triu
+    #[test]
+    fn test_triu_creates_upper_triangular_matrix() {
+        let t = Tensor::triu(3);
+        assert_eq!(t.shape(), &[3, 3]);
+        assert_eq!(t.get(&[0, 0]).unwrap(), 1.0);
+        assert_eq!(t.get(&[0, 2]).unwrap(), 1.0);
+        assert_eq!(t.get(&[1, 0]).unwrap(), 0.0);
+    }
+
+    /// @covers: Tensor::tril
+    #[test]
+    fn test_tril_creates_lower_triangular_matrix() {
+        let t = Tensor::tril(3);
+        assert_eq!(t.shape(), &[3, 3]);
+        assert_eq!(t.get(&[0, 0]).unwrap(), 1.0);
+        assert_eq!(t.get(&[0, 1]).unwrap(), 0.0);
+        assert_eq!(t.get(&[2, 2]).unwrap(), 1.0);
+    }
+
+    /// @covers: Tensor::randn
+    #[test]
+    fn test_randn_produces_correct_shape() {
+        let t = Tensor::randn(vec![2, 3]);
+        assert_eq!(t.shape(), &[2, 3]);
+        assert_eq!(t.dtype(), DType::F32);
+    }
+
+    /// @covers: Tensor::from_mmap
+    #[test]
+    fn test_from_mmap_placeholder_does_not_panic() {
+        // from_mmap requires an actual mmap'd file; just test the constructor path
+        // by creating a temp file. This verifies the code path compiles and runs.
+        use std::io::Write;
+        let dir = std::env::temp_dir();
+        let path = dir.join("tensor_test_mmap.bin");
+        let data = vec![0u8; 48]; // 12 f32s
+        std::fs::write(&path, &data).unwrap();
+        let file = std::fs::File::open(&path).unwrap();
+        let mmap = unsafe { memmap2::MmapOptions::new().map(&file).unwrap() };
+        let t = Tensor::from_mmap(
+            std::sync::Arc::new(mmap),
+            0,
+            48,
+            smallvec::smallvec![3usize, 4],
+            DType::F32,
+        );
+        assert_eq!(t.shape(), &[3, 4]);
+        std::fs::remove_file(&path).ok();
+    }
+
+    /// @covers: f32_vec_to_bytes
+    #[test]
+    fn test_f32_vec_to_bytes_roundtrip() {
+        let v = vec![1.0f32, 2.0, 3.0];
+        let bytes = f32_vec_to_bytes(v.clone());
+        assert_eq!(bytes.len(), 12);
+        let t = Tensor::new(bytes, smallvec::smallvec![3usize], DType::F32);
+        assert_eq!(t.as_slice_f32().unwrap(), &v[..]);
+    }
+
+    /// @covers: f32_slice_to_bytes
+    #[test]
+    fn test_f32_slice_to_bytes_length() {
+        let s = [1.0f32, 2.0];
+        let bytes = f32_slice_to_bytes(&s);
+        assert_eq!(bytes.len(), 8);
     }
 }

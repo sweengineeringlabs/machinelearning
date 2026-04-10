@@ -1,5 +1,6 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 use rayon::prelude::*;
+use crate::api::traits::ConfigOps;
 
 /// Global threshold for switching softmax from sequential to parallel (rayon).
 pub(crate) static SOFTMAX_PAR_THRESHOLD: AtomicUsize = AtomicUsize::new(4096);
@@ -37,7 +38,7 @@ impl Default for RuntimeConfig {
 
 impl RuntimeConfig {
     /// Apply this runtime configuration globally.
-    pub fn apply(&self) -> Result<(), crate::api::error::TensorError> {
+    pub(crate) fn apply_inner(&self) -> Result<(), crate::api::error::TensorError> {
         use faer::{Parallelism, set_global_parallelism};
 
         if self.num_threads == 0 {
@@ -66,7 +67,7 @@ impl RuntimeConfig {
     }
 
     /// Detect available SIMD instruction sets.
-    pub fn detect_simd() -> &'static str {
+    pub(crate) fn detect_simd() -> &'static str {
         #[cfg(target_arch = "x86_64")]
         {
             if is_x86_feature_detected!("avx2") {
@@ -84,7 +85,7 @@ impl RuntimeConfig {
     }
 
     /// Warm up the rayon thread pool by forcing all threads to wake and do work.
-    pub fn warmup_thread_pool() {
+    pub(crate) fn warmup_thread_pool() {
         let n_threads = rayon::current_num_threads();
         let work_size = n_threads * 1024;
         let mut buffer: Vec<f32> = vec![1.0; work_size];
@@ -102,10 +103,17 @@ impl RuntimeConfig {
     }
 }
 
+impl ConfigOps for RuntimeConfig {
+    fn apply(&self) -> Result<(), crate::api::error::TensorError> {
+        self.apply_inner()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    /// @covers: RuntimeConfig::default
     #[test]
     fn test_default_returns_standard_thresholds() {
         let config = RuntimeConfig::default();
@@ -115,9 +123,32 @@ mod tests {
         assert_eq!(config.gemv_par_threshold, 4096);
     }
 
+    /// @covers: RuntimeConfig::detect_simd
     #[test]
     fn test_detect_simd_returns_nonempty() {
         let simd = RuntimeConfig::detect_simd();
         assert!(!simd.is_empty());
+    }
+
+    /// @covers: RuntimeConfig::apply_inner
+    #[test]
+    fn test_apply_inner_does_not_panic() {
+        let config = RuntimeConfig::default();
+        let result = config.apply_inner();
+        assert!(result.is_ok());
+    }
+
+    /// @covers: RuntimeConfig::warmup_thread_pool
+    #[test]
+    fn test_warmup_thread_pool_does_not_panic() {
+        RuntimeConfig::warmup_thread_pool();
+    }
+
+    /// @covers: ConfigOps::apply
+    #[test]
+    fn test_apply_trait_delegates_to_inner() {
+        let config = RuntimeConfig::default();
+        let result = config.apply();
+        assert!(result.is_ok());
     }
 }

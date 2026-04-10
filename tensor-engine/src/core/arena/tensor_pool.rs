@@ -4,7 +4,10 @@
 /// overhead. Buffers returned via `put()` are kept in a pool and returned by
 /// `get()` when a matching or larger buffer is available.
 
+use crate::api::pool_ops::PoolOps;
+
 /// A pool of reusable byte buffers for tensor storage.
+// pub visibility required: re-exported as part of public surface via saf/
 pub struct TensorPool {
     buffers: Vec<Vec<u8>>,
     capacity: usize,
@@ -67,10 +70,29 @@ impl TensorPool {
     }
 }
 
+impl PoolOps for TensorPool {
+    fn get(&mut self, size: usize) -> Vec<u8> {
+        self.get(size)
+    }
+
+    fn put(&mut self, buf: Vec<u8>) {
+        self.put(buf);
+    }
+
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    fn is_empty(&self) -> bool {
+        self.is_empty()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    /// @covers: new
     #[test]
     fn test_pool_new() {
         let pool = TensorPool::new(4);
@@ -78,15 +100,17 @@ mod tests {
         assert!(pool.is_empty());
     }
 
+    /// @covers: get
     #[test]
-    fn test_pool_get_allocates() {
+    fn test_get_allocates_new_buffer() {
         let mut pool = TensorPool::new(4);
         let buf = pool.get(100);
         assert_eq!(buf.len(), 100);
     }
 
+    /// @covers: put
     #[test]
-    fn test_pool_put_and_reuse() {
+    fn test_put_stores_buffer_for_reuse() {
         let mut pool = TensorPool::new(4);
         let buf = pool.get(100);
         pool.put(buf);
@@ -99,6 +123,7 @@ mod tests {
         assert_eq!(pool.len(), 0);
     }
 
+    /// @covers: put
     #[test]
     fn test_pool_capacity_limit() {
         let mut pool = TensorPool::new(2);
@@ -108,6 +133,35 @@ mod tests {
         assert_eq!(pool.len(), 2);
     }
 
+    /// @covers: is_empty
+    #[test]
+    fn test_is_empty_true_when_no_buffers() {
+        let pool = TensorPool::new(4);
+        assert!(pool.is_empty());
+    }
+
+    /// @covers: is_empty
+    #[test]
+    fn test_is_empty_false_after_put() {
+        let mut pool = TensorPool::new(4);
+        pool.put(vec![0u8; 64]);
+        assert!(!pool.is_empty());
+    }
+
+    /// @covers: len
+    #[test]
+    fn test_len_reflects_buffered_count() {
+        let mut pool = TensorPool::new(4);
+        assert_eq!(pool.len(), 0);
+        pool.put(vec![0u8; 100]);
+        assert_eq!(pool.len(), 1);
+        pool.put(vec![0u8; 200]);
+        assert_eq!(pool.len(), 2);
+        let _ = pool.get(50);
+        assert_eq!(pool.len(), 1);
+    }
+
+    /// @covers: get
     #[test]
     fn test_pool_best_fit() {
         let mut pool = TensorPool::new(4);

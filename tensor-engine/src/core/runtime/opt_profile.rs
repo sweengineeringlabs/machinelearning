@@ -48,6 +48,16 @@ impl OptProfile {
 mod tests {
     use super::*;
 
+    /// @covers: OptProfile::runtime_config
+    #[test]
+    fn test_runtime_config_returns_valid_config() {
+        let p = OptProfile::Optimized;
+        let cfg = p.runtime_config();
+        assert_eq!(cfg.num_threads, 0);
+        assert!(cfg.softmax_par_threshold > 0);
+    }
+
+    /// @covers: OptProfile::runtime_config, OptProfile::use_inplace_ops, OptProfile::use_buffered_sampling
     #[test]
     fn test_opt_profile_optimized_returns_default_thresholds() {
         let p = OptProfile::Optimized;
@@ -59,6 +69,31 @@ mod tests {
         assert!(p.use_buffered_sampling());
     }
 
+    /// @covers: OptProfile::use_inplace_ops
+    #[test]
+    fn test_use_inplace_ops_enabled_for_optimized() {
+        assert!(OptProfile::Optimized.use_inplace_ops());
+    }
+
+    /// @covers: OptProfile::use_inplace_ops
+    #[test]
+    fn test_use_inplace_ops_disabled_for_baseline() {
+        assert!(!OptProfile::Baseline.use_inplace_ops());
+    }
+
+    /// @covers: OptProfile::use_buffered_sampling
+    #[test]
+    fn test_use_buffered_sampling_enabled_for_optimized() {
+        assert!(OptProfile::Optimized.use_buffered_sampling());
+    }
+
+    /// @covers: OptProfile::use_buffered_sampling
+    #[test]
+    fn test_use_buffered_sampling_disabled_for_baseline() {
+        assert!(!OptProfile::Baseline.use_buffered_sampling());
+    }
+
+    /// @covers: OptProfile::runtime_config
     #[test]
     fn test_opt_profile_baseline_disables_parallelism() {
         let p = OptProfile::Baseline;
@@ -70,6 +105,7 @@ mod tests {
         assert!(!p.use_buffered_sampling());
     }
 
+    /// @covers: OptProfile::runtime_config
     #[test]
     fn test_opt_profile_aggressive_lowers_thresholds() {
         let p = OptProfile::Aggressive;

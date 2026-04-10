@@ -1,4 +1,5 @@
-use super::quant_target::QuantTarget;
+use super::target::QuantTarget;
+use crate::api::quant_ops::QuantOps;
 
 /// Quantization strategy: per-layer-type policies loaded from TOML.
 ///
@@ -85,13 +86,13 @@ impl QuantStrategy {
     /// Load from a TOML string.
     pub fn from_toml(toml_str: &str) -> Result<Self, String> {
         #[derive(serde::Deserialize)]
-        struct Wrapper {
+        struct QuantStrategyToml {
             #[serde(default)]
             quantization: QuantStrategy,
         }
-        let wrapper: Wrapper = toml::from_str(toml_str)
+        let parsed: QuantStrategyToml = toml::from_str(toml_str)
             .map_err(|e| format!("Failed to parse quantization config: {}", e))?;
-        Ok(wrapper.quantization)
+        Ok(parsed.quantization)
     }
 
     /// Load from a TOML file path. Falls back to default if file doesn't exist.
@@ -106,10 +107,29 @@ impl QuantStrategy {
     }
 }
 
+impl QuantOps for QuantStrategy {
+    fn none() -> Self {
+        Self::none()
+    }
+
+    fn q8_all() -> Self {
+        Self::q8_all()
+    }
+
+    fn from_toml(toml_str: &str) -> Result<Self, String> {
+        Self::from_toml(toml_str)
+    }
+
+    fn from_toml_file(path: &std::path::Path) -> Self {
+        Self::from_toml_file(path)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    /// @covers: QuantStrategy::default
     #[test]
     fn test_quant_strategy_default_is_q8_all() {
         let s = QuantStrategy::default();
@@ -118,6 +138,7 @@ mod tests {
         assert_eq!(s.output, QuantTarget::Q8_0);
     }
 
+    /// @covers: QuantStrategy::none
     #[test]
     fn test_quant_strategy_none_skips_all() {
         let s = QuantStrategy::none();
@@ -127,6 +148,7 @@ mod tests {
         assert_eq!(s.moe, QuantTarget::None);
     }
 
+    /// @covers: QuantStrategy::from_toml
     #[test]
     fn test_quant_strategy_from_toml_parses_mixed_targets() {
         let toml = r#"
@@ -144,6 +166,7 @@ min_dim = 1536
         assert_eq!(s.min_dim, 1536);
     }
 
+    /// @covers: QuantStrategy::from_toml
     #[test]
     fn test_quant_strategy_from_toml_partial_uses_defaults() {
         let toml = r#"
@@ -155,10 +178,38 @@ output = "none"
         assert_eq!(s.output, QuantTarget::None);
     }
 
+    /// @covers: QuantStrategy::from_toml
     #[test]
     fn test_quant_strategy_from_toml_empty_returns_defaults() {
         let s = QuantStrategy::from_toml("").unwrap();
         assert_eq!(s.attention, QuantTarget::Q8_0);
         assert_eq!(s.output, QuantTarget::Q8_0);
+    }
+
+    /// @covers: QuantStrategy::q8_preserve_output
+    #[test]
+    fn test_q8_preserve_output_keeps_output_in_f32() {
+        let s = QuantStrategy::q8_preserve_output();
+        assert_eq!(s.attention, QuantTarget::Q8_0);
+        assert_eq!(s.feed_forward, QuantTarget::Q8_0);
+        assert_eq!(s.output, QuantTarget::None);
+    }
+
+    /// @covers: QuantStrategy::f16_all
+    #[test]
+    fn test_f16_all_sets_all_to_f16() {
+        let s = QuantStrategy::f16_all();
+        assert_eq!(s.attention, QuantTarget::F16);
+        assert_eq!(s.feed_forward, QuantTarget::F16);
+        assert_eq!(s.output, QuantTarget::F16);
+        assert_eq!(s.moe, QuantTarget::F16);
+        assert_eq!(s.gate, QuantTarget::F16);
+    }
+
+    /// @covers: QuantStrategy::from_toml_file
+    #[test]
+    fn test_from_toml_file_missing_returns_default() {
+        let s = QuantStrategy::from_toml_file(std::path::Path::new("/nonexistent.toml"));
+        assert_eq!(s.attention, QuantTarget::Q8_0);
     }
 }
