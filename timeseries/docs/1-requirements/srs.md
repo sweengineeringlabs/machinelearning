@@ -295,6 +295,16 @@ Issues identified during design review that must be resolved before or during im
 
 **Mitigation:** Either add a `StatefulLayer` trait, or have LSTM manage state internally with a `reset_state()` method.
 
+### 5.6 In-Place Operations Bypass Autograd
+
+**Problem:** In-place mutation methods (`relu_inplace`, `map_inplace`) on `Tensor` do not record operations on the gradient tape. If called on a tensor that participates in the training graph, backward pass gradients will be silently incorrect — the autograd graph references pre-mutation data that no longer exists.
+
+**Impact:** Silent gradient corruption during training, producing wrong parameter updates with no error or warning. Difficult to diagnose because forward pass output appears correct.
+
+**Mitigation (implemented):** Both `relu_inplace` and `map_inplace` assert at runtime that `!(self.requires_grad && is_grad_enabled())`. Calling them on a grad-tracked tensor while the tape is active panics immediately with a descriptive message directing the caller to use the allocating variant (`relu()`) instead. The `FeedForward` layer in `rustml-nn` auto-selects the correct path: `relu_inplace` during inference, `relu()` during training.
+
+**Residual risk:** The guard is a runtime assertion, not a compile-time guarantee. New in-place methods added in the future must include the same guard, or use `map_inplace` (which already guards) as their implementation.
+
 ---
 
 ## 6. Project Structure
