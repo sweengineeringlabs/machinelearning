@@ -343,36 +343,35 @@ The quantization summary prints "Skipped (kept F32)" but skipped tensors are act
 Added 2026-04-11. Gemma 3 1B runs ~1-2s/token on CPU. These optimizations target that bottleneck.
 
 ### P1: Aggressive quantization for SafeTensors path
-- **Problem**: SafeTensors models load as f16, not Q4_0/Q8_0. GGUF models are pre-quantized but SafeTensors are not being quantized aggressively enough.
-- **Fix**: Investigate why `quantize_with_strategy()` doesn't apply Q4_0 to attention/FFN weights during SafeTensors loading. The SIMD Q4 kernels exist but aren't being used.
+- **Architecture done**: `rustml-quantizer` crate with `Quantizer` trait, `ConfigQuantizer` provider, wired into daemon/cli
+- **Remaining**: Write a `quantization.toml` that targets Q4_0 for attention/FFN weights. Test quality impact vs Q8_0. Investigate why SafeTensors loads as F16 instead of applying Q4_0 SIMD kernels.
 - **Expected impact**: ~2x speedup (halved memory bandwidth)
 
 ### P2: Verify fused QKV + fused gate+up activation
-- **Problem**: Weight fusion (`fuse_qkv_weights`, `fuse_gate_up_weights`) may not trigger for all architectures during SafeTensors loading.
-- **Fix**: Audit the loading path. Ensure fusion runs after quantization for Gemma 3, Llama, etc.
+- **Architecture done**: `QkvFuser` and `GateUpFuser` implement `Fuser` trait, wired into daemon GGUF and SafeTensors paths
+- **Remaining**: Profile to verify fusion triggers on all architectures (Gemma 3, Llama, Falcon). Log fusion counts per model. Ensure fusion runs after quantization.
 - **Expected impact**: 2-3x fewer matmul dispatches per layer
 
 ### P3: Batch prefill optimization
-- **Problem**: Verify that full-sequence prefill uses single matmul (not token-by-token).
-- **Fix**: Audit `forward_pass()` vs `forward_with_cache_pass()` usage during prompt processing.
+- **Architecture done**: `rustml-prefill` crate with `Prefill` trait, `BatchPrefill` provider
+- **Remaining**: Profile `forward_pass()` vs `forward_with_cache_pass()` during prompt processing. Verify batch matmul is actually used (not token-by-token). Wire `BatchPrefill` into generator.
 - **Expected impact**: Linear speedup for prompt processing (not decode)
 
 ### P4: Rayon thread pool tuning
-- **Problem**: Default rayon threads may not match CPU core count. Softmax/matmul parallelism thresholds tuned for specific dimensions.
-- **Fix**: Profile with different thread counts. Auto-detect optimal parallelism for the host CPU.
+- **Architecture done**: `rustml-thread-config` crate with `ThreadConfig` trait, `AutoThreadConfig` provider, logged at daemon startup
+- **Remaining**: Benchmark different thread counts on target hardware. Tune `matmul_parallel_threshold` and `softmax_parallel_threshold`. Add CLI flag `--threads N`.
 - **Expected impact**: Variable, depends on core count and workload
 
 ### P5: Memory-mapped weights (native in gguf/ and hub/)
-- **Problem**: All weights loaded into RAM upfront. For large models this increases startup time and memory pressure.
-- **Fix**: Add `GGUFFile::parse_mmap(path)` to `gguf/` and `HubBundle::load_tensors_mmap()` to `hub/`. Support `Arc<Mmap>` as tensor backing store in `tensor/`. No wrapper crate — format crates own their loading strategies natively.
-- **Expected impact**: Faster startup, lower RSS for partially-used models
-- **Crates**: `gguf/`, `hub/`, `tensor/`
+- **Architecture done**: `GGUFFile::load_tensors_mmap()` implemented in `gguf/`. `Tensor::from_mmap()` and `Storage::MMap` already in `tensor/`. Zero-copy for F32/F16/Q8/Q4 tensors.
+- **Remaining**: Switch embedding server and daemon to use `load_tensors_mmap` instead of `load_tensors`. Add `HubBundle::load_tensors_mmap()` for SafeTensors. Measure startup time and RSS difference.
+- **Crates**: `gguf/` (done), `hub/` (remaining), consumers (one-line switch)
 
 ### P6: GPU acceleration (Vulkan)
-- **Problem**: CPU inference is fundamentally bandwidth-limited. Even with Q4 quantization and SIMD, a 1B model does ~1-2s/token.
-- **Fix**: Implement Vulkan compute shaders for matmul, attention, softmax. Vulkan works on any GPU (NVIDIA, AMD, Intel integrated).
+- **Architecture done**: `rustml-compute` crate with `ComputeBackend` trait, `CpuBackend` provider (wraps existing ops), `VulkanBackend` stub
+- **Remaining**: Implement Vulkan compute shaders for matmul, softmax, GELU, SiLU. Buffer management, shader compilation pipeline, device selection. Wire `ComputeBackend` into `inference/layers/` to replace CPU tensor ops.
 - **Expected impact**: 10-50x speedup for matmul-bound workloads
-- **Complexity**: Major project — new crate, shader compilation, buffer management, synchronization
+- **Complexity**: Major project
 
 ---
 
