@@ -1,0 +1,23 @@
+[package]
+name = "rustml-model"
+description = "LLM model definitions, weight loading, and forward pass"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lib]
+path = "main/src/lib.rs"
+
+[dependencies]
+swe-ml-tensor.workspace = true
+swe-ml-embedding.workspace = true
+rustml-nn.workspace = true
+rustml-hub.workspace = true
+rustml-gguf.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+rayon.workspace = true
+log.workspace = true

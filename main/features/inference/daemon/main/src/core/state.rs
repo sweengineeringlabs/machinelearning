@@ -1,4 +1,5 @@
-use rustml_nlp::{Generator, LanguageModel, LlmModel, OptProfile};
+use rustml_model::{LanguageModel, LlmModel, OptProfile};
+use rustml_generation::Generator;
 use rustml_tokenizer::Tokenizer;
 
 /// Loaded model bundle: model + tokenizer + metadata needed for generation.

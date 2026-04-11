@@ -5,7 +5,7 @@ use anyhow::{Context, Result};
 
 use rustml_gguf::GGUFFile;
 use rustml_hub::HubApi;
-use rustml_nlp::{
+use rustml_model::{
     LlmModel, ModelConfig, OptProfile, build_safetensors_model, convert_tensors,
     gguf_config_to_model_config,
 };

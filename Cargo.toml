@@ -10,7 +10,8 @@ members = [
     # LLM inference stack
     "main/features/inference/nn",
     "main/features/inference/hub",
-    "main/features/inference/nlp",
+    "main/features/inference/model",
+    "main/features/inference/generation",
     "main/features/inference/tokenizer",
     "main/features/inference/quant",
     "main/features/inference/gguf",
@@ -62,7 +63,8 @@ swe-ml-nn-layer = { path = "main/features/nn-layer" }
 swe-ml-embedding = { path = "main/features/embedding" }
 rustml-nn = { path = "main/features/inference/nn" }
 rustml-hub = { path = "main/features/inference/hub" }
-rustml-nlp = { path = "main/features/inference/nlp" }
+rustml-model = { path = "main/features/inference/model" }
+rustml-generation = { path = "main/features/inference/generation" }
 rustml-tokenizer = { path = "main/features/inference/tokenizer" }
 rustml-quant = { path = "main/features/inference/quant" }
 rustml-gguf = { path = "main/features/inference/gguf" }

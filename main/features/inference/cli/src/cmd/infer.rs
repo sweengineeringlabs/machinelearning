@@ -8,10 +8,11 @@ use clap::Args;
 
 use rustml_gguf::GGUFFile;
 use rustml_hub::HubApi;
-use rustml_nlp::{
-    Generator, LanguageModel, LlmModel, OptProfile, convert_tensors,
+use rustml_model::{
+    LanguageModel, LlmModel, OptProfile, convert_tensors,
     gguf_config_to_model_config,
 };
+use rustml_generation::Generator;
 use rustml_tokenizer::{BpeTokenizer, GgufTokenizer, HFTokenizer, Tokenizer};
 
 #[derive(Args)]
@@ -315,7 +316,7 @@ fn run_generation(
 }
 
 fn run_interactive(
-    generator: &rustml_nlp::Generator,
+    generator: &rustml_generation::Generator,
     tokenizer: &(dyn rustml_tokenizer::Tokenizer + Sync),
     max_tokens: usize,
 ) -> Result<()> {
@@ -445,7 +446,7 @@ fn run_safetensors(
         .load_config_sync()
         .with_context(|| "Failed to load config.json")?;
     let model_type = json_config["model_type"].as_str().unwrap_or("").to_string();
-    let config = rustml_nlp::ModelConfig::from_json_value(&json_config)
+    let config = rustml_model::ModelConfig::from_json_value(&json_config)
         .with_context(|| "Failed to parse model config")?;
     eprintln!(
         "  Config: arch={}, dim={}, layers={}, heads={}, vocab={}",
@@ -460,7 +461,7 @@ fn run_safetensors(
     eprintln!("  {} tensors loaded", weights.len());
 
     eprintln!("  Building model...");
-    let mut model = rustml_nlp::build_safetensors_model(&model_type, &config, weights)
+    let mut model = rustml_model::build_safetensors_model(&model_type, &config, weights)
         .with_context(|| format!("Failed to build {} model", if model_type.is_empty() { "gpt2" } else { &model_type }))?;
     model.set_optimization_profile(profile);
 

@@ -6,7 +6,7 @@ use anyhow::{Result, bail};
 use clap::Parser;
 
 use swellmd::{AppState, build_router, load_gguf, load_safetensors};
-use rustml_nlp::OptProfile;
+use rustml_model::OptProfile;
 
 /// swellmd — HTTP daemon for RustML LLM inference.
 ///
