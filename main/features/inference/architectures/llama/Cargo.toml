@@ -1,0 +1,13 @@
+[package]
+name = "rustml-arch-llama"
+description = "llama architecture builder for rustml-model"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+rustml-model.workspace = true
+rustml-inference-layers.workspace = true
+swe-ml-tensor.workspace = true

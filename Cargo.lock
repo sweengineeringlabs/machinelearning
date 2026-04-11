@@ -2333,6 +2333,69 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustml-arch-bert"
+version = "0.1.0"
+dependencies = [
+ "rustml-inference-layers",
+ "rustml-model",
+ "swe-ml-tensor",
+]
+
+[[package]]
+name = "rustml-arch-falcon"
+version = "0.1.0"
+dependencies = [
+ "rustml-inference-layers",
+ "rustml-model",
+ "swe-ml-tensor",
+]
+
+[[package]]
+name = "rustml-arch-gemma3"
+version = "0.1.0"
+dependencies = [
+ "rustml-inference-layers",
+ "rustml-model",
+ "swe-ml-tensor",
+]
+
+[[package]]
+name = "rustml-arch-gemma4"
+version = "0.1.0"
+dependencies = [
+ "rustml-inference-layers",
+ "rustml-model",
+ "swe-ml-tensor",
+]
+
+[[package]]
+name = "rustml-arch-gpt2"
+version = "0.1.0"
+dependencies = [
+ "rustml-inference-layers",
+ "rustml-model",
+ "swe-ml-tensor",
+]
+
+[[package]]
+name = "rustml-arch-llama"
+version = "0.1.0"
+dependencies = [
+ "rustml-inference-layers",
+ "rustml-model",
+ "swe-ml-tensor",
+]
+
+[[package]]
+name = "rustml-arch-mixtral"
+version = "0.1.0"
+dependencies = [
+ "rustml-inference-layers",
+ "rustml-model",
+ "swe-ml-tensor",
+]
+
+[[package]]
 name = "rustml-arch-nomic-bert"
 version = "0.1.0"
 dependencies = [

@@ -24,6 +24,13 @@ members = [
     # Training
     "main/features/training",
     # Inference architecture builders
+    "main/features/inference/architectures/llama",
+    "main/features/inference/architectures/gpt2",
+    "main/features/inference/architectures/falcon",
+    "main/features/inference/architectures/mixtral",
+    "main/features/inference/architectures/gemma3",
+    "main/features/inference/architectures/gemma4",
+    "main/features/inference/architectures/bert",
     "main/features/inference/architectures/nomic_bert",
     # Training model architectures
     "main/features/architectures",
@@ -71,6 +78,13 @@ swe-ml-embed-server = { path = "main/features/embedding/server" }
 rustml-inference-layers = { path = "main/features/inference/layers" }
 rustml-hub = { path = "main/features/hub" }
 rustml-model = { path = "main/features/inference/model" }
+rustml-arch-llama = { path = "main/features/inference/architectures/llama" }
+rustml-arch-gpt2 = { path = "main/features/inference/architectures/gpt2" }
+rustml-arch-falcon = { path = "main/features/inference/architectures/falcon" }
+rustml-arch-mixtral = { path = "main/features/inference/architectures/mixtral" }
+rustml-arch-gemma3 = { path = "main/features/inference/architectures/gemma3" }
+rustml-arch-gemma4 = { path = "main/features/inference/architectures/gemma4" }
+rustml-arch-bert = { path = "main/features/inference/architectures/bert" }
 rustml-arch-nomic-bert = { path = "main/features/inference/architectures/nomic_bert" }
 rustml-generation = { path = "main/features/inference/generation" }
 rustml-tokenizer = { path = "main/features/inference/tokenizer" }
