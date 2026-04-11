@@ -18,6 +18,7 @@ application_type = "lib"
 
 [dependencies]
 swe-ml-tensor.workspace = true
+swe-ml-nn-layer.workspace = true
 thiserror.workspace = true
 rand.workspace = true
 log.workspace = true

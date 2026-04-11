@@ -20,6 +20,9 @@ pub enum SwetsError {
     #[error("Invalid configuration: {0}")]
     InvalidConfig(String),
 
+    #[error("Layer error: {0}")]
+    Layer(String),
+
     #[error("Training error: {0}")]
     TrainingError(String),
 }

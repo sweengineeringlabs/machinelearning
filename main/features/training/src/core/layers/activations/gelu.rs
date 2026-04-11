@@ -3,6 +3,7 @@ use crate::api::layer::Layer;
 use crate::api::tape::{self, TapeEntry};
 use crate::api::tensor::Tensor;
 use crate::core::layers::activations::gelu_backward::GELUBackward;
+use swe_ml_nn_layer::{Activation, Gelu as GeluImpl};
 
 pub struct GELU;
 
@@ -20,18 +21,10 @@ impl Default for GELU {
 
 impl Layer for GELU {
     fn forward(&mut self, input: &Tensor) -> SwetsResult<Tensor> {
-        let x_data = input.to_vec();
-        let sqrt_2_over_pi: f32 = (2.0_f32 / std::f32::consts::PI).sqrt();
+        let core_output = GeluImpl.forward(input.inner())
+            .map_err(|e| crate::api::error::SwetsError::Layer(e.to_string()))?;
 
-        let output_data: Vec<f32> = x_data
-            .iter()
-            .map(|&x| {
-                let inner = sqrt_2_over_pi * (x + 0.044715 * x * x * x);
-                0.5 * x * (1.0 + inner.tanh())
-            })
-            .collect();
-
-        let output = Tensor::from_vec(output_data, input.shape().to_vec())?;
+        let output = Tensor::from_vec(core_output.to_vec(), input.shape().to_vec())?;
 
         if tape::is_recording() {
             let entry = TapeEntry {

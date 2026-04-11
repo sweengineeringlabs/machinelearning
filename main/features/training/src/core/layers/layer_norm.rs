@@ -2,11 +2,15 @@ use crate::api::error::SwetsResult;
 use crate::api::layer::Layer;
 use crate::api::tape::{self, BackwardOp, TapeEntry};
 use crate::api::tensor::Tensor;
+use swe_ml_nn_layer::{DefaultLayerNorm, Norm};
 
 /// Layer Normalization (FR-306).
 ///
 /// Normalizes over the last dimension of the input, then applies an affine
 /// transform: `output = gamma * normalized + beta`.
+///
+/// Delegates the forward math to `swe_ml_nn_layer::DefaultLayerNorm` and
+/// wraps the result with autograd tape recording.
 ///
 /// Reference: Ba, Kiros, Hinton - "Layer Normalization" (2016)
 pub struct LayerNorm {
@@ -71,38 +75,19 @@ impl Layer for LayerNorm {
             last_dim, norm_size
         );
 
-        let data = input.to_vec();
-        let n = data.len() / last_dim; // number of "rows" to normalize
-        let d = last_dim as f32;
+        // Rebuild inner with current gamma/beta weights so parameter updates propagate
+        let inner = DefaultLayerNorm::from_weights(
+            self.gamma.inner().clone(),
+            self.beta.inner().clone(),
+            self.eps,
+        ).map_err(|e| crate::api::error::SwetsError::Layer(e.to_string()))?;
 
-        let mut normalized_data = vec![0.0f32; data.len()];
-        let mut output_data = vec![0.0f32; data.len()];
-        let gamma_data = self.gamma.to_vec();
-        let beta_data = self.beta.to_vec();
+        let (core_output, core_normalized) = inner
+            .forward_with_normalized(input.inner())
+            .map_err(|e| crate::api::error::SwetsError::Layer(e.to_string()))?;
 
-        for i in 0..n {
-            let start = i * last_dim;
-            let end = start + last_dim;
-            let row = &data[start..end];
-
-            // Compute mean
-            let mean: f32 = row.iter().sum::<f32>() / d;
-
-            // Compute variance
-            let var: f32 = row.iter().map(|&x| (x - mean) * (x - mean)).sum::<f32>() / d;
-
-            let inv_std = 1.0 / (var + self.eps).sqrt();
-
-            // Normalize and apply affine
-            for j in 0..last_dim {
-                let norm_val = (row[j] - mean) * inv_std;
-                normalized_data[start + j] = norm_val;
-                output_data[start + j] = gamma_data[j] * norm_val + beta_data[j];
-            }
-        }
-
-        let output = Tensor::from_vec(output_data, shape.clone())?;
-        let normalized = Tensor::from_vec(normalized_data, shape)?;
+        let output = Tensor::from_vec(core_output.to_vec(), shape.clone())?;
+        let normalized = Tensor::from_vec(core_normalized.to_vec(), shape)?;
 
         if tape::is_recording() {
             let entry = TapeEntry {

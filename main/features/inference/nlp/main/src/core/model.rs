@@ -1874,7 +1874,7 @@ impl LlmModel {
         if let Some(ref ple) = self.ple {
             total += ple.shared_embedding.weight.numel();
             total += ple.model_projection.weight.numel();
-            total += ple.projection_norm.weight.numel();
+            total += ple.projection_norm.weight().numel();
             for gate in &ple.gates {
                 total += gate.weight.numel();
             }
@@ -1882,7 +1882,7 @@ impl LlmModel {
                 total += proj.weight.numel();
             }
             for norm in &ple.post_norms {
-                total += norm.weight.numel();
+                total += norm.weight().numel();
             }
         }
 

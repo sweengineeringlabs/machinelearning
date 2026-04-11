@@ -3,22 +3,24 @@ resolver = "2"
 members = [
     # Tensor math
     "main/features/tensor",
+    # Shared NN layer primitives
+    "main/features/nn-layer",
     # LLM inference stack
-    "main/features/llm/nn",
-    "main/features/llm/hub",
-    "main/features/llm/nlp",
-    "main/features/llm/tokenizer",
-    "main/features/llm/quant",
-    "main/features/llm/gguf",
-    "main/features/llm/quantize",
-    "main/features/llm/cli",
-    "main/features/llm/daemon",
+    "main/features/inference/nn",
+    "main/features/inference/hub",
+    "main/features/inference/nlp",
+    "main/features/inference/tokenizer",
+    "main/features/inference/quant",
+    "main/features/inference/gguf",
+    "main/features/inference/quantize",
+    "main/features/inference/cli",
+    "main/features/inference/daemon",
     # Training
     "main/features/training",
     # Model architectures
     "main/features/architectures",
 ]
-exclude = ["main/features/llm"]
+exclude = ["main/features/inference"]
 
 [workspace.package]
 version = "0.1.0"
@@ -54,15 +56,16 @@ log = "0.4"
 env_logger = "0.11"
 # Internal crates
 swe-ml-tensor = { path = "main/features/tensor" }
-rustml-nn = { path = "main/features/llm/nn" }
-rustml-hub = { path = "main/features/llm/hub" }
-rustml-nlp = { path = "main/features/llm/nlp" }
-rustml-tokenizer = { path = "main/features/llm/tokenizer" }
-rustml-quant = { path = "main/features/llm/quant" }
-rustml-gguf = { path = "main/features/llm/gguf" }
+swe-ml-nn-layer = { path = "main/features/nn-layer" }
+rustml-nn = { path = "main/features/inference/nn" }
+rustml-hub = { path = "main/features/inference/hub" }
+rustml-nlp = { path = "main/features/inference/nlp" }
+rustml-tokenizer = { path = "main/features/inference/tokenizer" }
+rustml-quant = { path = "main/features/inference/quant" }
+rustml-gguf = { path = "main/features/inference/gguf" }
 swe-ml-architectures = { path = "main/features/architectures" }
 swe-ml-training = { path = "main/features/training" }
-swellmd = { path = "main/features/llm/daemon" }
+swellmd = { path = "main/features/inference/daemon" }
 # Shared deps for quant/gguf crates
 bytemuck = { version = "1", features = ["extern_crate_alloc"] }
 half = { version = "2.3", features = ["bytemuck"] }

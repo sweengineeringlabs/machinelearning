@@ -1,0 +1,12 @@
+[package]
+name = "swe-ml-nn-layer"
+description = "Shared neural network layer primitives — normalization and activations"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+swe-ml-tensor.workspace = true
+thiserror.workspace = true

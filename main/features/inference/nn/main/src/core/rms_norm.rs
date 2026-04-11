@@ -1,52 +1,71 @@
-//! RMSNorm: x * weight / rms(x). Used by Llama-family models.
-//! Unlike LayerNorm, does not subtract mean and has no bias parameter.
+//! RMSNorm — delegates math to swe-ml-nn-layer, adds inference-specific features.
+//!
+//! Inference extensions beyond the shared crate:
+//! - `forward_inplace`: zero-alloc path when input is uniquely owned
+//! - `Freezable`: parameter freezing for fine-tuning
 
 use crate::api::error::NnResult;
 use crate::api::traits::Freezable;
+use swe_ml_nn_layer::{DefaultRmsNorm, Norm};
 use swe_ml_tensor::Tensor;
 
 /// RMSNorm layer with optional weight offset (used by Gemma: weight + 1.0).
+///
+/// Delegates the core computation to `swe_ml_nn_layer::DefaultRmsNorm` and
+/// adds inference-specific features (in-place forward, parameter freezing).
 #[derive(Debug, Clone)]
 pub struct RMSNorm {
-    pub weight: Tensor,
-    pub eps: f32,
-    pub offset: f32,
+    inner: DefaultRmsNorm,
     pub frozen: bool,
 }
 
 impl RMSNorm {
     /// Create a new RMSNorm with weights initialized to 1.
     pub fn new(dim: usize, eps: f32) -> Self {
-        let weight = Tensor::ones(vec![dim]);
-        Self { weight, eps, offset: 0.0, frozen: false }
+        Self {
+            inner: DefaultRmsNorm::new(dim, eps),
+            frozen: false,
+        }
     }
 
     /// Create from a pre-loaded weight tensor.
     pub fn from_weight(weight: Tensor, eps: f32) -> Self {
-        Self { weight, eps, offset: 0.0, frozen: false }
+        Self {
+            inner: DefaultRmsNorm::from_weight(weight, eps),
+            frozen: false,
+        }
     }
 
     /// Create from a pre-loaded weight tensor with an additive offset.
     ///
     /// Gemma models use `offset = 1.0` so the effective weight is `w + 1.0`.
     pub fn from_weight_with_offset(weight: Tensor, eps: f32, offset: f32) -> Self {
-        Self { weight, eps, offset, frozen: false }
+        Self {
+            inner: DefaultRmsNorm::from_weight_with_offset(weight, eps, offset),
+            frozen: false,
+        }
+    }
+
+    /// Returns a reference to the weight tensor.
+    pub fn weight(&self) -> &Tensor {
+        self.inner.weight()
+    }
+
+    /// Returns the epsilon value.
+    pub fn eps(&self) -> f32 {
+        self.inner.eps()
     }
 
     /// Returns (total_params, frozen_params).
     pub fn parameter_count(&self) -> (usize, usize) {
-        let total = self.weight.numel();
+        let total = self.inner.weight().numel();
         let frozen = if self.frozen { total } else { 0 };
         (total, frozen)
     }
 
     pub fn forward(&self, x: &Tensor) -> NnResult<Tensor> {
-        if self.offset == 0.0 {
-            Ok(x.rms_norm(&self.weight, self.eps)?)
-        } else {
-            let w = self.weight.add_scalar(self.offset);
-            Ok(x.rms_norm(&w, self.eps)?)
-        }
+        Ok(self.inner.forward(x)
+            .map_err(|e| crate::api::error::NnError::InvalidConfig(e.to_string()))?)
     }
 
     /// In-place RMSNorm: overwrites `x` with `rms_norm(x, weight, eps)`.
@@ -54,11 +73,14 @@ impl RMSNorm {
     /// Avoids an output allocation when the caller owns the tensor uniquely
     /// (Arc refcount == 1). Falls back to a copy otherwise.
     pub fn forward_inplace(&self, x: &mut Tensor) -> NnResult<()> {
-        if self.offset == 0.0 {
-            Ok(x.rms_norm_inplace(&self.weight, self.eps)?)
+        // Compute via the shared implementation, then overwrite in-place
+        let offset = self.inner.offset();
+        let weight = self.inner.weight();
+        if offset == 0.0 {
+            Ok(x.rms_norm_inplace(weight, self.inner.eps())?)
         } else {
-            let w = self.weight.add_scalar(self.offset);
-            Ok(x.rms_norm_inplace(&w, self.eps)?)
+            let w = weight.add_scalar(offset);
+            Ok(x.rms_norm_inplace(&w, self.inner.eps())?)
         }
     }
 }

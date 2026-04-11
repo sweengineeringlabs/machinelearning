@@ -2545,6 +2545,7 @@ dependencies = [
  "log",
  "rustml-quant",
  "serde",
+ "swe-ml-nn-layer",
  "swe-ml-tensor",
  "thiserror 2.0.17",
 ]
@@ -2854,6 +2855,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "swe-ml-nn-layer"
+version = "0.1.0"
+dependencies = [
+ "swe-ml-tensor",
+ "thiserror 2.0.17",
+]
+
+[[package]]
 name = "swe-ml-tensor"
 version = "0.1.2"
 dependencies = [
@@ -2879,6 +2888,7 @@ dependencies = [
  "approx",
  "log",
  "rand 0.8.5",
+ "swe-ml-nn-layer",
  "swe-ml-tensor",
  "thiserror 2.0.17",
 ]

@@ -3,6 +3,7 @@ use crate::api::layer::Layer;
 use crate::api::tape::{self, TapeEntry};
 use crate::api::tensor::Tensor;
 use crate::core::layers::activations::silu_backward::SiLUBackward;
+use swe_ml_nn_layer::{Activation, Silu as SiluImpl};
 
 pub struct SiLU;
 
@@ -20,17 +21,10 @@ impl Default for SiLU {
 
 impl Layer for SiLU {
     fn forward(&mut self, input: &Tensor) -> SwetsResult<Tensor> {
-        let x_data = input.to_vec();
+        let core_output = SiluImpl.forward(input.inner())
+            .map_err(|e| crate::api::error::SwetsError::Layer(e.to_string()))?;
 
-        let output_data: Vec<f32> = x_data
-            .iter()
-            .map(|&x| {
-                let sig = 1.0 / (1.0 + (-x).exp());
-                x * sig
-            })
-            .collect();
-
-        let output = Tensor::from_vec(output_data, input.shape().to_vec())?;
+        let output = Tensor::from_vec(core_output.to_vec(), input.shape().to_vec())?;
 
         if tape::is_recording() {
             let entry = TapeEntry {

@@ -42,7 +42,7 @@ impl NormLayer {
     pub fn parameter_count(&self) -> (usize, usize) {
         match self {
             NormLayer::LayerNorm(ln) => {
-                let total = ln.weight.numel() + ln.bias.numel();
+                let total = ln.weight().numel() + ln.bias().numel();
                 (total, 0)
             }
             NormLayer::RMSNorm(rn) => rn.parameter_count(),
