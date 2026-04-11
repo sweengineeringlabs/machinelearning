@@ -2849,12 +2849,8 @@ name = "swe-ml-architectures"
 version = "0.1.0"
 dependencies = [
  "approx",
- "log",
  "rand 0.8.5",
- "smallvec",
- "swe-ml-tensor",
  "swe-ml-training",
- "thiserror 2.0.17",
 ]
 
 [[package]]

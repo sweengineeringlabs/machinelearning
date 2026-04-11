@@ -4,18 +4,21 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
+rust-version = "1.93"
+authors.workspace = true
 description = "Model architectures - LSTM, Transformer, TCN, N-BEATS, and time series data pipeline"
+keywords = ["machine-learning", "time-series", "lstm", "transformer", "neural-network"]
+categories = ["science", "mathematics"]
 
 [lib]
-path = "main/src/lib.rs"
+path = "src/lib.rs"
+
+[package.metadata.struct-engine]
+application_type = "lib"
 
 [dependencies]
 swe-ml-training.workspace = true
-swe-ml-tensor.workspace = true
-thiserror.workspace = true
 rand.workspace = true
-log.workspace = true
-smallvec.workspace = true
 
 [dev-dependencies]
 approx.workspace = true
