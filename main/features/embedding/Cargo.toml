@@ -10,3 +10,4 @@ repository.workspace = true
 [dependencies]
 swe-ml-tensor.workspace = true
 thiserror.workspace = true
+serde.workspace = true

@@ -27,6 +27,7 @@ chrono.workspace = true
 thiserror.workspace = true
 rayon.workspace = true
 swe-ml-tensor.workspace = true
+swe-ml-embedding.workspace = true
 rustml-nn.workspace = true
 rustml-nlp.workspace = true
 rustml-hub.workspace = true
