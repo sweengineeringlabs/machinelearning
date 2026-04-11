@@ -1,7 +1,7 @@
 [quantization]
-attention = "f16"
-feed_forward = "f16"
-output = "f16"
-gate = "f16"
-moe = "f16"
+attention = "q8_0"
+feed_forward = "q8_0"
+output = "q8_0"
+gate = "q8_0"
+moe = "q8_0"
 min_dim = 0
