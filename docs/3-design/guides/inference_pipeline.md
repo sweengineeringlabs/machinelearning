@@ -326,6 +326,81 @@ Each model repeats the transformer layer block a fixed number of times:
 
 The layer count comes from `ModelConfig.n_layers`, read from the model's config at load time.
 
+## Data Flow: Who Owns What
+
+The model owns its weight tensors. External crates ask the model for results — they don't reach into the model's internals.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Daemon as inference/daemon
+    participant Gen as inference/generation
+    participant Model as inference/model
+    participant Emb as embedding/
+    participant Tensor as tensor/
+
+    User->>Daemon: POST /v1/embeddings {"input": "The cat sat"}
+    Daemon->>Model: tokenize → [0, 1, 2]
+    
+    Note over Model: Model owns all weight tensors<br/>(loaded from GGUF/SafeTensors)
+    
+    Model->>Tensor: embed_tokens.weight.select(0, token_id)
+    Tensor-->>Model: token vectors [3, 768]
+    
+    loop 26 transformer layers
+        Model->>Tensor: RMSNorm(hidden)
+        Model->>Tensor: Q×Kᵀ/√d, softmax, ×V (attention)
+        Model->>Tensor: RMSNorm(hidden)
+        Model->>Tensor: SiLU(x×W_gate) ⊙ (x×W_up) × W_down (FFN)
+    end
+    
+    Model-->>Daemon: hidden states [3, 768]
+    Daemon->>Emb: l2_normalize(pooled_vector)
+    Daemon-->>User: {"embedding": [0.02, 0.005, -0.69, ...]}
+```
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Daemon as inference/daemon
+    participant Gen as inference/generation
+    participant Model as inference/model
+    participant Tensor as tensor/
+
+    User->>Daemon: POST /v1/chat/completions {"messages": [...]}
+    Daemon->>Gen: Generator.generate(prompt)
+    
+    loop for each new token
+        Gen->>Model: model.forward_with_cache(token, kv_cache)
+        
+        Note over Model: Model owns all weight tensors
+        
+        Model->>Tensor: embed_tokens.weight.select(0, token_id)
+        Tensor-->>Model: token vector [1, 768]
+        
+        loop 26 transformer layers
+            Model->>Tensor: RMSNorm, Attention (with KV cache), RMSNorm, FFN
+        end
+        
+        Model-->>Gen: logits [1, vocab_size]
+        Gen->>Gen: sample next token (top-k, top-p, temperature)
+    end
+    
+    Gen-->>Daemon: generated tokens
+    Daemon-->>User: {"choices": [{"message": {"content": "on the mat"}}]}
+```
+
+### Key principle
+
+The model is the single owner of weight tensors. It loads them from disk, stores them, and uses them for computation. External crates interact through the model's public API:
+
+- `model.forward(input_ids)` → logits
+- `model.forward_with_cache(input_ids, cache)` → logits (autoregressive)
+- `model.embed(input_ids, strategy)` → pooled embedding vector
+- `model.encode(input_ids)` → hidden states
+
+No crate reaches into the model to access weight tensors directly. The embedding weight lookup, attention projections, FFN computations — all happen inside the model. `embedding/` provides the API types and normalization for the HTTP endpoint, not the lookup itself.
+
 ## Crate Dependency Graph
 
 ```mermaid
@@ -334,8 +409,12 @@ graph LR
         tensor["tensor/"]
         norm["normalization/"]
         act["activation/"]
-        emb["embedding/"]
         hub["hub/"]
+    end
+
+    subgraph Embedding["embedding/"]
+        emb_types["API types + l2_normalize"]
+        emb_daemon["daemon (planned)"]
     end
 
     subgraph Inference["inference/"]
@@ -351,12 +430,10 @@ graph LR
 
     tensor --> norm
     tensor --> act
-    tensor --> emb
     tensor --> layers
     norm --> layers
     norm --> training
     act --> training
-    emb --> model
     layers --> model
     hub --> model
     gguf --> model
@@ -364,7 +441,8 @@ graph LR
     tok --> gen
     model --> daemon
     gen --> daemon
-    emb --> daemon
+    model --> emb_daemon
+    emb_types --> daemon
 
     training["training/"]
     arch["architectures/"]
@@ -388,3 +466,79 @@ graph LR
 | Weight loading | `hub/` | Downloads from HuggingFace, loads SafeTensors |
 | GGUF loading | `inference/gguf/` | Parses GGUF format model files |
 | Tokenization | `inference/tokenizer/` | Text to token IDs (BPE, SentencePiece, HF) |
+
+---
+
+## Appendix: Weight Tensors
+
+Weight tensors are learned parameter matrices stored in model files. During training, an optimizer adjusts these values to minimize loss. During inference, they are fixed — loaded from disk and used as-is.
+
+### What is a weight tensor?
+
+A multi-dimensional array of floating-point numbers that the model multiplies with or indexes into during computation. Every layer has them. They are the model's knowledge — without them, the architecture is just a sequence of empty operations.
+
+### Weight tensors in a single transformer layer
+
+For one layer of Gemma 3 1B (`d_model=1152`, `d_kv=256`, `hidden_dim=6912`):
+
+```mermaid
+graph TD
+    subgraph Layer["Transformer Layer i"]
+        subgraph Norms["Normalization"]
+            AN["attn_norm.weight<br/>[1152]<br/>RMSNorm scale"]
+            FN["ffn_norm.weight<br/>[1152]<br/>RMSNorm scale"]
+        end
+
+        subgraph Attn["Attention Projections"]
+            QP["q_proj.weight<br/>[1152, 1152]<br/>Input → queries"]
+            KP["k_proj.weight<br/>[1152, 256]<br/>Input → keys"]
+            VP["v_proj.weight<br/>[1152, 256]<br/>Input → values"]
+            OP["o_proj.weight<br/>[1152, 1152]<br/>Attention output → hidden"]
+        end
+
+        subgraph FFN["Feed-Forward Projections"]
+            GP["gate_proj.weight<br/>[1152, 6912]<br/>Gating projection"]
+            UP["up_proj.weight<br/>[1152, 6912]<br/>Up projection"]
+            DP["down_proj.weight<br/>[6912, 1152]<br/>Down projection"]
+        end
+    end
+```
+
+### Complete weight inventory (Gemma 3 1B)
+
+| Weight | Shape | Count | Purpose |
+|--------|-------|-------|---------|
+| `embed_tokens.weight` | [262144, 1152] | 1 | Token ID → vector lookup |
+| `layers.{i}.attn_norm.weight` | [1152] | 26 | RMSNorm before attention |
+| `layers.{i}.q_proj.weight` | [1152, 1152] | 26 | Query projection |
+| `layers.{i}.k_proj.weight` | [1152, 256] | 26 | Key projection |
+| `layers.{i}.v_proj.weight` | [1152, 256] | 26 | Value projection |
+| `layers.{i}.o_proj.weight` | [1152, 1152] | 26 | Output projection |
+| `layers.{i}.ffn_norm.weight` | [1152] | 26 | RMSNorm before FFN |
+| `layers.{i}.gate_proj.weight` | [1152, 6912] | 26 | FFN gate |
+| `layers.{i}.up_proj.weight` | [1152, 6912] | 26 | FFN up |
+| `layers.{i}.down_proj.weight` | [6912, 1152] | 26 | FFN down |
+| `norm.weight` | [1152] | 1 | Final RMSNorm |
+| `lm_head.weight` | [262144, 1152] | 1 | Hidden → vocab logits (often tied to embed_tokens) |
+
+**Total:** 1 embedding + (26 × 10 per-layer) + 1 final norm + 1 output head = **263 weight tensors**
+
+### How weights are stored
+
+| Format | Source | How it works |
+|--------|--------|-------------|
+| SafeTensors | HuggingFace Hub | JSON header + raw float arrays, memory-mappable |
+| GGUF | llama.cpp ecosystem | Binary header + quantized blocks (Q4, Q8), single file |
+
+Both formats map weight names to tensor data. The model loader reads the format, remaps HuggingFace weight names to internal names (via `WeightMap`), and constructs `LlmModel` from the tensors.
+
+### Where weights live in the codebase
+
+```
+hub/           → downloads model files from HuggingFace
+inference/gguf/      → parses GGUF format
+inference/model/     → loads weights into LlmModel (owns them)
+tensor/        → the Tensor type that holds the data
+```
+
+The model is the single owner. No other crate accesses weight tensors directly.
