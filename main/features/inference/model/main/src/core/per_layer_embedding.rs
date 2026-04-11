@@ -1,7 +1,7 @@
 //! PerLayerEmbedding — Gemma 4 per-layer input injection.
 
 use crate::api::error::ModelResult;
-use swe_ml_embedding::{DefaultEmbedding, Embed};
+use crate::core::token_embedding::TokenEmbedding;
 use swe_ml_tensor::Tensor;
 use rustml_inference_layers::{Linear, RMSNorm};
 
@@ -20,7 +20,7 @@ pub trait PerLayerInput {
 /// context projection, then each decoder layer gates and projects its slice.
 #[derive(Debug, Clone)]
 pub struct PerLayerEmbedding {
-    pub shared_embedding: DefaultEmbedding,
+    pub shared_embedding: TokenEmbedding,
     pub ple_dim: usize,
     pub model_projection: Linear,
     pub projection_norm: RMSNorm,
@@ -34,7 +34,7 @@ pub struct PerLayerEmbedding {
 
 impl PerLayerEmbedding {
     pub fn from_weights(
-        shared_embedding: DefaultEmbedding,
+        shared_embedding: TokenEmbedding,
         ple_dim: usize,
         model_dim: usize,
         model_projection: Linear,
@@ -131,7 +131,7 @@ mod tests {
         let model_dim = 64;
         let vocab = 100;
 
-        let shared = DefaultEmbedding::new(vocab, num_layers * ple_dim);
+        let shared = TokenEmbedding::new(vocab, num_layers * ple_dim);
         let model_proj = Linear::new(model_dim, num_layers * ple_dim);
         let proj_norm = RMSNorm::new(ple_dim, 1e-6);
         let gates = (0..num_layers).map(|_| Linear::new(model_dim, ple_dim)).collect();
@@ -157,7 +157,7 @@ mod tests {
 
     #[test]
     fn test_ple_dim_mismatch_rejected() {
-        let shared = DefaultEmbedding::new(100, 30);
+        let shared = TokenEmbedding::new(100, 30);
         let model_proj = Linear::new(64, 32);
         let proj_norm = RMSNorm::new(16, 1e-6);
         let gates = vec![Linear::new(64, 16), Linear::new(64, 16)];

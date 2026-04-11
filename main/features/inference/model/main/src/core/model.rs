@@ -13,15 +13,15 @@ use rustml_inference_layers::{
     NormLayer, PoolingStrategy, PositionEncoding, RMSNorm, RoPEFreqs,
     TransformerBlock,
 };
-use swe_ml_embedding::{DefaultEmbedding, Embed};
+use crate::core::token_embedding::TokenEmbedding;
 use crate::core::per_layer_embedding::{PerLayerEmbedding, PerLayerInput};
 use std::collections::HashMap;
 use std::time::Instant;
 
 /// Unified language model supporting multiple architectures.
 pub struct LlmModel {
-    pub token_embedding: DefaultEmbedding,
-    pub pos_embedding: Option<DefaultEmbedding>,
+    pub token_embedding: TokenEmbedding,
+    pub pos_embedding: Option<TokenEmbedding>,
     /// Embedding LayerNorm (BERT: applied after token + position embedding sum).
     pub embd_norm: Option<NormLayer>,
     /// Per-Layer Input injection (Gemma 4 PLE).
@@ -64,14 +64,14 @@ impl LlmModel {
         }
 
         let pos_embedding = if position_encoding == PositionEncoding::Learned {
-            Some(DefaultEmbedding::new(max_seq_len, d_model))
+            Some(TokenEmbedding::new(max_seq_len, d_model))
         } else {
             None
         };
 
         let ple = if let Some(ple_dim) = config.hidden_size_per_layer_input {
             let vocab_size_ple = config.vocab_size_per_layer_input.unwrap_or(vocab_size);
-            let shared = DefaultEmbedding::new(vocab_size_ple, num_layers * ple_dim);
+            let shared = TokenEmbedding::new(vocab_size_ple, num_layers * ple_dim);
             let model_proj = Linear::new(d_model, num_layers * ple_dim);
             let proj_norm = RMSNorm::new(ple_dim, eps);
             let gates = (0..num_layers).map(|_| Linear::new(d_model, ple_dim)).collect();
@@ -85,7 +85,7 @@ impl LlmModel {
         };
 
         Ok(Self {
-            token_embedding: DefaultEmbedding::new(vocab_size, d_model),
+            token_embedding: TokenEmbedding::new(vocab_size, d_model),
             pos_embedding,
             embd_norm: None,
             ple,
@@ -137,13 +137,13 @@ impl LlmModel {
                 })
         };
 
-        let token_embedding = DefaultEmbedding::from_weights(get_tensor("token_embedding.weight")?)?;
+        let token_embedding = TokenEmbedding::from_weights(get_tensor("token_embedding.weight")?)?;
 
         let pos_embedding = if position_encoding == PositionEncoding::Learned {
             if let Ok(pos_weight) = get_tensor("pos_embedding.weight") {
-                Some(DefaultEmbedding::from_weights(pos_weight)?)
+                Some(TokenEmbedding::from_weights(pos_weight)?)
             } else {
-                Some(DefaultEmbedding::new(max_seq_len, d_model))
+                Some(TokenEmbedding::new(max_seq_len, d_model))
             }
         } else {
             None
@@ -308,13 +308,13 @@ impl LlmModel {
         let get_tensor_opt =
             |key: &str| -> Option<Tensor> { weights.get(key).and_then(|t| t.to_f32().ok()) };
 
-        let token_embedding = DefaultEmbedding::from_weights(get_tensor("token_embedding.weight")?)?;
+        let token_embedding = TokenEmbedding::from_weights(get_tensor("token_embedding.weight")?)?;
 
         let pos_embedding = if position_encoding == PositionEncoding::Learned {
             if let Ok(pos_weight) = get_tensor("pos_embedding.weight") {
-                Some(DefaultEmbedding::from_weights(pos_weight)?)
+                Some(TokenEmbedding::from_weights(pos_weight)?)
             } else {
-                Some(DefaultEmbedding::new(max_seq_len, d_model))
+                Some(TokenEmbedding::new(max_seq_len, d_model))
             }
         } else {
             None
@@ -460,7 +460,7 @@ impl LlmModel {
         let get_tensor_opt =
             |key: &str| -> Option<Tensor> { weights.get(key).and_then(|t| t.to_f32().ok()) };
 
-        let token_embedding = DefaultEmbedding::from_weights(get_tensor("token_embedding.weight")?)?;
+        let token_embedding = TokenEmbedding::from_weights(get_tensor("token_embedding.weight")?)?;
 
         let mut layers = Vec::with_capacity(num_layers);
         for i in 0..num_layers {
@@ -609,7 +609,7 @@ impl LlmModel {
                 })
         };
 
-        let token_embedding = DefaultEmbedding::from_weights(get_tensor("token_embedding.weight")?)?;
+        let token_embedding = TokenEmbedding::from_weights(get_tensor("token_embedding.weight")?)?;
 
         let mut layers = Vec::with_capacity(num_layers);
         for i in 0..num_layers {
@@ -762,7 +762,7 @@ impl LlmModel {
                 })
         };
 
-        let token_embedding = DefaultEmbedding::from_weights(get_tensor("token_embedding.weight")?)?;
+        let token_embedding = TokenEmbedding::from_weights(get_tensor("token_embedding.weight")?)?;
 
         let offset = config.rms_norm_offset.unwrap_or(1.0);
 
@@ -933,10 +933,10 @@ impl LlmModel {
                 })
         };
 
-        let token_embedding = DefaultEmbedding::from_weights(get_tensor("token_embedding.weight")?)?;
+        let token_embedding = TokenEmbedding::from_weights(get_tensor("token_embedding.weight")?)?;
 
         let ple = if let Some(ple_dim) = config.hidden_size_per_layer_input {
-            let shared_emb = DefaultEmbedding::from_weights(get_tensor("ple_shared_embedding.weight")?)?;
+            let shared_emb = TokenEmbedding::from_weights(get_tensor("ple_shared_embedding.weight")?)?;
             let model_proj = Linear::from_weights(
                 get_weight("ple_model_projection.weight")?, None,
             )?;
@@ -1168,12 +1168,12 @@ impl LlmModel {
         let get_tensor_opt =
             |key: &str| -> Option<Tensor> { weights.get(key).and_then(|t| t.to_f32().ok()) };
 
-        let token_embedding = DefaultEmbedding::from_weights(get_tensor("token_embedding.weight")?)?;
+        let token_embedding = TokenEmbedding::from_weights(get_tensor("token_embedding.weight")?)?;
 
         let pos_embedding = if let Ok(pos_weight) = get_tensor("pos_embedding.weight") {
-            Some(DefaultEmbedding::from_weights(pos_weight)?)
+            Some(TokenEmbedding::from_weights(pos_weight)?)
         } else {
-            Some(DefaultEmbedding::new(max_seq_len, d_model))
+            Some(TokenEmbedding::new(max_seq_len, d_model))
         };
 
         // Embedding LayerNorm (token_embd_norm)
@@ -1301,10 +1301,10 @@ impl LlmModel {
                 .and_then(|t| Ok(t.to_f32()?))
         };
 
-        let token_embedding = DefaultEmbedding::from_weights(get_tensor("token_embedding.weight")?)?;
+        let token_embedding = TokenEmbedding::from_weights(get_tensor("token_embedding.weight")?)?;
 
         // No position embeddings — Nomic-BERT uses RoPE
-        let pos_embedding: Option<DefaultEmbedding> = None;
+        let pos_embedding: Option<TokenEmbedding> = None;
 
         // Embedding LayerNorm (token_embd_norm)
         let embd_norm = if let (Ok(w), Ok(b)) =
