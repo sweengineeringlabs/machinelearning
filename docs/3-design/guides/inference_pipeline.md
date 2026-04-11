@@ -8,98 +8,79 @@ Given input `"The cat sat"`, the model predicts the next token `" on"`.
 
 ## Pipeline
 
-```
-"The cat sat"
-     │
-     ▼
-┌─────────────────────────────────────────┐
-│ EMBEDDING (embedding/)                  │
-│                                         │
-│  Token IDs: [The]=0  [cat]=1  [sat]=2   │
-│  Look up 3 rows from weight matrix      │
-│  → 3 dense vectors, each 768 floats     │
-└─────────────────────────────────────────┘
-     │  shape: [3, 768]
-     ▼
-┌─────────────────────────────────────────┐
-│ NORMALIZATION (normalization/)          │
-│                                         │
-│  RMSNorm: divide each vector by its RMS │
-│  Stabilizes values before attention     │
-│  [0.23, -1.5, 0.8, ...] → [-0.3, ...]  │
-└─────────────────────────────────────────┘
-     │
-     ▼
-┌─────────────────────────────────────────┐
-│ ATTENTION (inference/layers/)           │
-│                                         │
-│  Q = input × W_q  (what am I seeking?)  │
-│  K = input × W_k  (what do I contain?)  │
-│  V = input × W_v  (what is my value?)   │
-│                                         │
-│  ┌─── ROPE (inference/layers/rope.rs) ─┐│
-│  │ Rotate Q and K by position angle    ││
-│  │ so the model knows token order:     ││
-│  │  pos 0 → rotate 0°                 ││
-│  │  pos 1 → rotate θ°                 ││
-│  │  pos 2 → rotate 2θ°                ││
-│  │                                     ││
-│  │ SIMD: AVX2 processes 8 floats/cycle ││
-│  │ Same math, 8x throughput            ││
-│  └─────────────────────────────────────┘│
-│                                         │
-│  Scores = Q × K^T / sqrt(d)            │
-│                                         │
-│  "sat" attends to:                      │
-│    "The" → 0.1  (low relevance)         │
-│    "cat" → 0.7  (high — what sat?)      │
-│    "sat" → 0.2  (moderate — self)       │
-│                                         │
-│  Output = softmax(scores) × V           │
-│  → weighted mix of all token values     │
-└─────────────────────────────────────────┘
-     │
-     ▼
-┌─────────────────────────────────────────┐
-│ NORMALIZATION (normalization/)          │
-│  RMSNorm again — stabilize before FFN   │
-└─────────────────────────────────────────┘
-     │
-     ▼
-┌─────────────────────────────────────────┐
-│ FEED-FORWARD / MLP (inference/layers/) │
-│                                         │
-│  ACTIVATION (activation/):              │
-│    gate = SiLU(input × W_gate)          │
-│    SiLU adds nonlinearity:              │
-│    silu(x) = x × sigmoid(x)            │
-│                                         │
-│  up  = input × W_up                     │
-│  out = (gate * up) × W_down             │
-│                                         │
-│  QUANTIZED KERNEL (quant/):             │
-│    Weights stored as 4-bit integers     │
-│    SIMD dot product: Q4 × Q8            │
-│    4x less memory bandwidth             │
-└─────────────────────────────────────────┘
-     │
-     ▼
-  (...repeat for each layer...)
-     │
-     ▼
-┌─────────────────────────────────────────┐
-│ OUTPUT (inference/model/)               │
-│                                         │
-│  hidden × embedding^T → logits          │
-│  logits[" on"] = 8.3  ← highest         │
-│  logits["the"] = 2.1                    │
-│  → predict " on"                        │
-└─────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    Input["&quot;The cat sat&quot;"]
+
+    subgraph EMB["EMBEDDING · embedding/"]
+        E1["Token IDs: [The]=0 [cat]=1 [sat]=2"]
+        E2["Look up 3 rows from weight matrix"]
+        E3["→ 3 dense vectors, each 768 floats"]
+        E1 --> E2 --> E3
+    end
+
+    subgraph LAYER["TRANSFORMER LAYER × n_layers"]
+        subgraph NORM1["NORMALIZATION · normalization/"]
+            N1["RMSNorm: divide each vector by its RMS<br/>Stabilizes values before attention"]
+        end
+
+        subgraph ATTN["ATTENTION · inference/layers/"]
+            A1["Q = input × W_q · what am I seeking?"]
+            A2["K = input × W_k · what do I contain?"]
+            A3["V = input × W_v · what is my value?"]
+
+            subgraph ROPE["ROPE · inference/layers/rope.rs"]
+                R1["Rotate Q and K by position angle"]
+                R2["pos 0 → 0° · pos 1 → θ° · pos 2 → 2θ°"]
+                R3["SIMD: AVX2 processes 8 floats/cycle"]
+                R1 --> R2 --> R3
+            end
+
+            A4["Scores = Q × Kᵀ / √d"]
+            A5["&quot;sat&quot; attends to:<br/>The → 0.1 · cat → 0.7 · sat → 0.2"]
+            A6["Output = softmax(scores) × V"]
+
+            A1 --> ROPE
+            A2 --> ROPE
+            ROPE --> A4 --> A5 --> A6
+        end
+
+        subgraph NORM2["NORMALIZATION · normalization/"]
+            N2["RMSNorm again — stabilize before FFN"]
+        end
+
+        subgraph FFN["FEED-FORWARD · inference/layers/"]
+            subgraph ACT["ACTIVATION · activation/"]
+                F1["gate = SiLU(input × W_gate)<br/>silu(x) = x × sigmoid(x)"]
+            end
+            F2["up = input × W_up"]
+            F3["out = (gate × up) × W_down"]
+
+            subgraph QUANT["QUANTIZED KERNEL · quant/"]
+                Q1["Weights stored as 4-bit integers<br/>SIMD dot product: Q4 × Q8<br/>4x less memory bandwidth"]
+            end
+
+            ACT --> F3
+            F2 --> F3
+            F3 --> QUANT
+        end
+
+        NORM1 --> ATTN --> NORM2 --> FFN
+    end
+
+    subgraph OUT["OUTPUT · inference/model/"]
+        O1["hidden × embeddingᵀ → logits"]
+        O2["logits[&quot; on&quot;] = 8.3 ← highest"]
+        O3["→ predict &quot; on&quot;"]
+        O1 --> O2 --> O3
+    end
+
+    Input --> EMB --> LAYER --> OUT
 ```
 
 ## Layer Count
 
-Each model repeats the normalization → attention → normalization → FFN block a fixed number of times:
+Each model repeats the transformer layer block a fixed number of times:
 
 | Model | Layers | Parameters |
 |-------|--------|------------|
@@ -111,6 +92,51 @@ Each model repeats the normalization → attention → normalization → FFN blo
 The layer count comes from `ModelConfig.n_layers`, read from the model's config at load time.
 
 ## Crate Mapping
+
+```mermaid
+graph LR
+    subgraph Shared["Shared Primitives"]
+        tensor["tensor/"]
+        norm["normalization/"]
+        act["activation/"]
+        emb["embedding/"]
+        hub["hub/"]
+    end
+
+    subgraph Inference["inference/"]
+        layers["layers/"]
+        model["model/"]
+        gen["generation/"]
+        quant["quant/"]
+        gguf["gguf/"]
+        tok["tokenizer/"]
+        daemon["daemon/"]
+        cli["cli/"]
+    end
+
+    tensor --> norm
+    tensor --> act
+    tensor --> emb
+    tensor --> layers
+    norm --> layers
+    norm --> training
+    act --> training
+    emb --> model
+    layers --> model
+    hub --> model
+    gguf --> model
+    model --> gen
+    tok --> gen
+    model --> daemon
+    gen --> daemon
+    emb --> daemon
+
+    training["training/"]
+    arch["architectures/"]
+    training --> arch
+```
+
+## Crate Reference
 
 | Step | Crate | What it does |
 |------|-------|-------------|
