@@ -1,0 +1,6 @@
+# SEA workspace configuration (L1)
+#
+# Whitelist overrides for the workspace root (main/).
+
+[whitelist]
+allow = ["scripts"]
