@@ -81,9 +81,11 @@ pub fn load_gguf(path: &Path, profile: OptProfile) -> Result<ModelBundle> {
         .with_context(|| format!("Failed to build {} model", config.architecture))?;
     model.set_optimization_profile(profile);
 
-    let fused_qkv = model.fuse_qkv_weights();
+    use rustml_quantizer::Fuser;
+    let qkv_fuser = rustml_quantizer::QkvFuser;
+    let fused_qkv = qkv_fuser.fuse(&mut model);
     if fused_qkv > 0 {
-        log::info!("  Fused {} QKV projection triples", fused_qkv);
+        log::info!("  {}: {} triples", qkv_fuser.describe(), fused_qkv);
     }
 
     warmup(&mut model);

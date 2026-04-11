@@ -7,6 +7,8 @@ use clap::Parser;
 
 use swellmd::{AppState, build_router, load_gguf, load_safetensors};
 use rustml_model::OptProfile;
+use rustml_thread_config::ThreadConfig;
+use rustml_compute::ComputeBackend;
 
 /// swellmd — HTTP daemon for RustML LLM inference.
 ///
@@ -57,6 +59,14 @@ async fn main() -> Result<()> {
     profile
         .apply()
         .map_err(|e| anyhow::anyhow!("Failed to apply runtime config: {}", e))?;
+
+    // Apply thread configuration
+    let thread_config = rustml_thread_config::AutoThreadConfig::new();
+    log::info!("Thread config: {} threads ({})", thread_config.num_threads(), thread_config.describe());
+
+    // Log compute backend
+    let compute = rustml_compute::CpuBackend;
+    log::info!("Compute backend: {}", compute.name());
 
     let bundle = if let Some(ref model_id) = cli.safetensors {
         load_safetensors(model_id, profile)?
