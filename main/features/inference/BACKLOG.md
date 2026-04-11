@@ -340,6 +340,10 @@ The quantization summary prints "Skipped (kept F32)" but skipped tensors are act
 
 ## Inference Speed Improvements
 
+### P0: F16 matmul overhead (RESOLVED)
+- **Root cause**: F32 matmul already uses SIMD via faer. F16 was slow because `linear.rs` converted F16→F32 on every forward call. The real fix: quantize F16→Q8_0 at load time (now default via quantization.toml), and allow Q8/Q4 quantizers to accept F16 input directly.
+- **Status**: Fixed. Quantizers now auto-convert F16/BF16→F32 before quantizing.
+
 Added 2026-04-11. Gemma 3 1B runs ~1-2s/token on CPU. These optimizations target that bottleneck.
 
 ### P1: Aggressive quantization for SafeTensors path

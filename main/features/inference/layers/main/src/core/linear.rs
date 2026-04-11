@@ -112,6 +112,9 @@ impl Linear {
     /// Requires in_features divisible by 32 (Q8_0 block size).
     /// No-op if weight is already quantized or alignment is not met.
     pub fn quantize_weight_q8(&mut self) -> NnResult<()> {
+        if self.weight.dtype() == DType::F16 || self.weight.dtype() == DType::BF16 {
+            self.weight = self.weight.to_f32()?;
+        }
         if self.weight.dtype() != DType::F32 {
             return Ok(());
         }
@@ -128,6 +131,9 @@ impl Linear {
     /// Requires in_features divisible by 32 (Q4_0 block size).
     /// No-op if weight is already quantized or alignment is not met.
     pub fn quantize_weight_q4_0(&mut self) -> NnResult<()> {
+        if self.weight.dtype() == DType::F16 || self.weight.dtype() == DType::BF16 {
+            self.weight = self.weight.to_f32()?;
+        }
         if self.weight.dtype() != DType::F32 {
             return Ok(());
         }
@@ -144,6 +150,9 @@ impl Linear {
     /// Requires in_features divisible by 32 (Q4_1 block size).
     /// No-op if weight is already quantized or alignment is not met.
     pub fn quantize_weight_q4_1(&mut self) -> NnResult<()> {
+        if self.weight.dtype() == DType::F16 || self.weight.dtype() == DType::BF16 {
+            self.weight = self.weight.to_f32()?;
+        }
         if self.weight.dtype() != DType::F32 {
             return Ok(());
         }
