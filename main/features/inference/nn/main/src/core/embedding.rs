@@ -1,11 +1,8 @@
-//! Embedding re-export and PerLayerEmbedding (Gemma 4 inference-specific).
+//! PerLayerEmbedding — Gemma 4 inference-specific per-layer input injection.
 
 use crate::api::error::NnResult;
-use swe_ml_embedding::Embed;
+use swe_ml_embedding::{DefaultEmbedding, Embed};
 use swe_ml_tensor::Tensor;
-
-/// Re-export `DefaultEmbedding` as `Embedding` — no wrapper needed.
-pub use swe_ml_embedding::DefaultEmbedding as Embedding;
 
 use crate::api::traits::PerLayerInput;
 use crate::core::linear::Linear;
@@ -15,41 +12,18 @@ use crate::core::rms_norm::RMSNorm;
 ///
 /// Pre-computes a combined per-layer input tensor from token identity and
 /// context projection, then each decoder layer gates and projects its slice.
-///
-/// Pre-computation (once, before layers):
-/// ```text
-/// token_id   = embed_tokens_per_layer(ids) * sqrt(ple_dim)        → [B,S, L*D_ple]
-///              reshape → [B, S, L, D_ple]
-/// context    = model_projection(embeds) / sqrt(model_dim)          → [B,S, L*D_ple]
-///              reshape → [B, S, L, D_ple]
-///              projection_norm(context)
-/// combined   = (context + token_id) / sqrt(2)                      → [B, S, L, D_ple]
-/// ```
-///
-/// Per decoder layer i:
-/// ```text
-/// residual   = hidden
-/// gate       = gelu(gate_proj[i](hidden))                          → [B,S, D_ple]
-/// gated      = gate * combined[:,:,i,:]                            → [B,S, D_ple]
-/// projected  = projection[i](gated)                                → [B,S, D_model]
-/// normed     = post_norm[i](projected)
-/// hidden     = residual + normed
-/// ```
 #[derive(Debug, Clone)]
 pub struct PerLayerEmbedding {
     /// Shared embedding `[vocab, num_layers * ple_dim]`, scaled by sqrt(ple_dim)
-    pub shared_embedding: Embedding,
+    pub shared_embedding: DefaultEmbedding,
     /// Per-layer dimension (slice width)
     pub ple_dim: usize,
     /// Context projection: model_dim → num_layers * ple_dim
     pub model_projection: Linear,
     /// Norm applied to context projection slices
     pub projection_norm: RMSNorm,
-    /// Scale factor for model projection: 1/sqrt(model_dim)
     model_projection_scale: f32,
-    /// Scale factor for embedding: sqrt(ple_dim)
     embedding_scale: f32,
-    /// Scale factor for combination: 1/sqrt(2)
     input_scale: f32,
     /// Per-layer gate projections: model_dim → ple_dim
     pub gates: Vec<Linear>,
@@ -60,9 +34,8 @@ pub struct PerLayerEmbedding {
 }
 
 impl PerLayerEmbedding {
-    /// Construct from pre-loaded weights.
     pub fn from_weights(
-        shared_embedding: Embedding,
+        shared_embedding: DefaultEmbedding,
         ple_dim: usize,
         model_dim: usize,
         model_projection: Linear,
@@ -98,15 +71,13 @@ impl PerLayerEmbedding {
         })
     }
 
-    /// Pre-compute the combined per-layer input tensor.
     pub fn prepare(&self, indices: &Tensor, inputs_embeds: &Tensor) -> NnResult<Tensor> {
         let shape = indices.shape();
         let batch = shape[0];
         let seq = shape[1];
         let n_layers = self.gates.len();
 
-        let token_id = self.shared_embedding.forward(indices)
-            .map_err(|e| crate::api::error::NnError::InvalidConfig(e.to_string()))?
+        let token_id = self.shared_embedding.forward(indices)?
             .mul_scalar(self.embedding_scale);
 
         let context = self.model_projection.forward(inputs_embeds)?
@@ -122,7 +93,6 @@ impl PerLayerEmbedding {
         Ok(combined)
     }
 
-    /// Inject pre-computed per-layer input into hidden state for a given layer.
     pub fn inject_prepared(&self, per_layer_inputs: &Tensor, hidden: &Tensor, layer: usize) -> NnResult<Tensor> {
         let shape = per_layer_inputs.shape();
         let batch = shape[0];
@@ -154,7 +124,6 @@ impl PerLayerInput for PerLayerEmbedding {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use swe_ml_embedding::Embed;
 
     #[test]
     fn test_ple_inject_shape() {
@@ -163,7 +132,7 @@ mod tests {
         let model_dim = 64;
         let vocab = 100;
 
-        let shared = Embedding::new(vocab, num_layers * ple_dim);
+        let shared = DefaultEmbedding::new(vocab, num_layers * ple_dim);
         let model_proj = Linear::new(model_dim, num_layers * ple_dim);
         let proj_norm = RMSNorm::new(ple_dim, 1e-6);
         let gates = (0..num_layers).map(|_| Linear::new(model_dim, ple_dim)).collect();
@@ -189,7 +158,7 @@ mod tests {
 
     #[test]
     fn test_ple_dim_mismatch_rejected() {
-        let shared = Embedding::new(100, 30); // 30 != 2 * 16
+        let shared = DefaultEmbedding::new(100, 30); // 30 != 2 * 16
         let model_proj = Linear::new(64, 32);
         let proj_norm = RMSNorm::new(16, 1e-6);
         let gates = vec![Linear::new(64, 16), Linear::new(64, 16)];
@@ -198,21 +167,5 @@ mod tests {
         assert!(PerLayerEmbedding::from_weights(
             shared, 16, 64, model_proj, proj_norm, gates, projs, norms,
         ).is_err());
-    }
-
-    #[test]
-    fn test_embedding_forward() {
-        let embedding = Embedding::new(100, 32);
-        let indices = Tensor::from_vec(vec![0.0, 5.0, 10.0, 50.0], vec![2, 2]).unwrap();
-        let output = embedding.forward(&indices).unwrap();
-        assert_eq!(output.shape(), &[2, 2, 32]);
-    }
-
-    #[test]
-    fn test_embedding_1d() {
-        let embedding = Embedding::new(100, 64);
-        let indices = Tensor::from_vec(vec![1.0, 2.0, 3.0], vec![3]).unwrap();
-        let output = embedding.forward(&indices).unwrap();
-        assert_eq!(output.shape(), &[3, 64]);
     }
 }

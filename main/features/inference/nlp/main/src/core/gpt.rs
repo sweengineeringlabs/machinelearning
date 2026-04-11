@@ -48,7 +48,8 @@ use crate::api::error::{NlpError, NlpResult};
 use crate::api::types::GptConfig;
 use swe_ml_tensor::Tensor;
 use rustml_hub::{Gpt2WeightMapper, WeightMapper};
-use rustml_nn::{CausalSelfAttention, Embed, Embedding, LayerNorm, Linear};
+use rustml_nn::{CausalSelfAttention, LayerNorm, Linear};
+use swe_ml_embedding::{DefaultEmbedding, Embed};
 use std::collections::HashMap;
 
 /// GPT-2 MLP (Feed-Forward Network)
@@ -212,9 +213,9 @@ pub struct GptModel {
     /// Model configuration
     pub config: GptConfig,
     /// Token embeddings
-    pub wte: Embedding,
+    pub wte: DefaultEmbedding,
     /// Position embeddings
-    pub wpe: Embedding,
+    pub wpe: DefaultEmbedding,
     /// Transformer blocks
     pub blocks: Vec<GptBlock>,
     /// Final layer normalization
@@ -224,8 +225,8 @@ pub struct GptModel {
 impl GptModel {
     /// Create a new randomly initialized GPT model
     pub fn new(config: GptConfig) -> Self {
-        let wte = Embedding::new(config.vocab_size, config.n_embd);
-        let wpe = Embedding::new(config.n_positions, config.n_embd);
+        let wte = DefaultEmbedding::new(config.vocab_size, config.n_embd);
+        let wpe = DefaultEmbedding::new(config.n_positions, config.n_embd);
         let blocks: Vec<GptBlock> = (0..config.n_layer)
             .map(|_| GptBlock::new(&config))
             .collect();
@@ -266,8 +267,8 @@ impl GptModel {
         };
 
         // Load embeddings
-        let wte = Embedding::from_weights(get_weight("wte.weight")?)?;
-        let wpe = Embedding::from_weights(get_weight("wpe.weight")?)?;
+        let wte = DefaultEmbedding::from_weights(get_weight("wte.weight")?)?;
+        let wpe = DefaultEmbedding::from_weights(get_weight("wpe.weight")?)?;
 
         // Load transformer blocks
         let blocks: Result<Vec<GptBlock>, _> = (0..config.n_layer)
