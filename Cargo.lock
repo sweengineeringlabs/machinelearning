@@ -2746,9 +2746,20 @@ dependencies = [
 name = "swe-ml-embedding"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "axum",
+ "clap",
+ "env_logger",
+ "log",
+ "rustml-gguf",
+ "rustml-inference-layers",
+ "rustml-model",
+ "rustml-tokenizer",
  "serde",
+ "serde_json",
  "swe-ml-tensor",
  "thiserror 2.0.17",
+ "tokio",
 ]
 
 [[package]]
