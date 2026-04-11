@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source "$(cd "$(dirname "$0")/.." && pwd)/lib/common.sh"
+source "$(cd "$(dirname "$0")" && pwd)/lib/common.sh"
 
 PLATFORM=$(detect_platform)
 echo "==> Detected platform: $PLATFORM"

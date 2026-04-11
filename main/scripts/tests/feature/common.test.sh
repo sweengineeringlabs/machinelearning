@@ -2,7 +2,7 @@
 # Unit tests for lib/common.sh
 
 TESTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-REPO_ROOT="$(cd "$TESTS_DIR/../.." && pwd)"
+REPO_ROOT="$(cd "$TESTS_DIR/../../../.." && pwd)"
 
 # -- detect_platform --------------------------------------------------
 
@@ -10,7 +10,7 @@ test_detect_platform_returns_valid_platform() {
   local result
   result=$(
     set +euo pipefail
-    source "$REPO_ROOT/lib/common.sh"
+    source "$REPO_ROOT/main/scripts/lib/common.sh"
     detect_platform
   )
   assert_match "$result" "^(wsl|linux|macos|mingw)$" "detect_platform should return wsl, linux, macos, or mingw"
@@ -23,7 +23,7 @@ test_verify_toolchain_succeeds_when_cargo_exists() {
   tmpout=$(mktemp); tmperr=$(mktemp)
   (
     set +euo pipefail
-    source "$REPO_ROOT/lib/common.sh"
+    source "$REPO_ROOT/main/scripts/lib/common.sh"
     verify_toolchain
   ) >"$tmpout" 2>"$tmperr"
   local ec=$?
@@ -38,7 +38,7 @@ test_verify_toolchain_succeeds_when_cargo_exists() {
 test_load_env_sets_vars_from_env_file() {
   local tmpdir result
   tmpdir=$(mktemp -d)
-  cp -r "$REPO_ROOT/lib" "$tmpdir/lib"
+  cp -r "$REPO_ROOT/main/scripts/lib" "$tmpdir/lib"
   echo 'TEST_VAR_FROM_ENV=hello_from_env' > "$tmpdir/.env"
 
   result=$(
@@ -56,7 +56,7 @@ test_load_env_sets_vars_from_env_file() {
 test_load_env_ignores_comment_lines() {
   local tmpdir result
   tmpdir=$(mktemp -d)
-  cp -r "$REPO_ROOT/lib" "$tmpdir/lib"
+  cp -r "$REPO_ROOT/main/scripts/lib" "$tmpdir/lib"
   printf '# this is a comment\nACTUAL_VAR=real_value\n' > "$tmpdir/.env"
 
   result=$(
@@ -74,7 +74,7 @@ test_load_env_ignores_comment_lines() {
 test_load_env_handles_quoted_values() {
   local tmpdir result
   tmpdir=$(mktemp -d)
-  cp -r "$REPO_ROOT/lib" "$tmpdir/lib"
+  cp -r "$REPO_ROOT/main/scripts/lib" "$tmpdir/lib"
   echo 'QUOTED_VAR="hello world"' > "$tmpdir/.env"
 
   result=$(
@@ -92,7 +92,7 @@ test_load_env_handles_quoted_values() {
 test_load_env_noops_when_file_missing() {
   local tmpdir
   tmpdir=$(mktemp -d)
-  cp -r "$REPO_ROOT/lib" "$tmpdir/lib"
+  cp -r "$REPO_ROOT/main/scripts/lib" "$tmpdir/lib"
 
   local ec
   (
@@ -113,7 +113,7 @@ test_crate_package_maps_short_names() {
   local result
   result=$(
     set +euo pipefail
-    source "$REPO_ROOT/lib/common.sh"
+    source "$REPO_ROOT/main/scripts/lib/common.sh"
     crate_package "core"
   )
   assert_eq "rustml-core" "$result" "crate_package core should map to rustml-core"
@@ -123,7 +123,7 @@ test_crate_package_maps_tokenizer() {
   local result
   result=$(
     set +euo pipefail
-    source "$REPO_ROOT/lib/common.sh"
+    source "$REPO_ROOT/main/scripts/lib/common.sh"
     crate_package "tokenizer"
   )
   assert_eq "rustml-tokenizer" "$result" "crate_package tokenizer should map to rustml-tokenizer"
@@ -133,7 +133,7 @@ test_crate_package_passes_through_unknown() {
   local result
   result=$(
     set +euo pipefail
-    source "$REPO_ROOT/lib/common.sh"
+    source "$REPO_ROOT/main/scripts/lib/common.sh"
     crate_package "some-other-crate"
   )
   assert_eq "some-other-crate" "$result" "crate_package should pass through unknown names"
