@@ -1,6 +1,5 @@
 //! Error types for neural network operations
 
-use swe_ml_embedding::EmbeddingError;
 use swe_ml_tensor::TensorError;
 use rustml_quant::QuantError;
 use thiserror::Error;
@@ -16,9 +15,6 @@ pub enum NnError {
 
     #[error("Quantization error: {0}")]
     QuantError(#[from] QuantError),
-
-    #[error("Embedding error: {0}")]
-    EmbeddingError(#[from] EmbeddingError),
 
     #[error("Invalid configuration: {0}")]
     InvalidConfig(String),

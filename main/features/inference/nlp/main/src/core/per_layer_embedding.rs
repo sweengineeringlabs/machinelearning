@@ -1,12 +1,18 @@
-//! PerLayerEmbedding — Gemma 4 inference-specific per-layer input injection.
+//! PerLayerEmbedding — Gemma 4 per-layer input injection.
 
-use crate::api::error::NnResult;
+use crate::api::error::NlpResult;
 use swe_ml_embedding::{DefaultEmbedding, Embed};
 use swe_ml_tensor::Tensor;
+use rustml_nn::{Linear, RMSNorm};
 
-use crate::api::traits::PerLayerInput;
-use crate::core::linear::Linear;
-use crate::core::rms_norm::RMSNorm;
+/// Per-layer input injection trait.
+///
+/// Given token indices and the current hidden state, produce an updated
+/// hidden state that incorporates per-layer embedding information.
+pub trait PerLayerInput {
+    fn inject(&self, indices: &Tensor, hidden: &Tensor, layer: usize) -> NlpResult<Tensor>;
+    fn num_layers(&self) -> usize;
+}
 
 /// Per-Layer Embedding (PLE) for Gemma 4.
 ///
@@ -14,22 +20,15 @@ use crate::core::rms_norm::RMSNorm;
 /// context projection, then each decoder layer gates and projects its slice.
 #[derive(Debug, Clone)]
 pub struct PerLayerEmbedding {
-    /// Shared embedding `[vocab, num_layers * ple_dim]`, scaled by sqrt(ple_dim)
     pub shared_embedding: DefaultEmbedding,
-    /// Per-layer dimension (slice width)
     pub ple_dim: usize,
-    /// Context projection: model_dim → num_layers * ple_dim
     pub model_projection: Linear,
-    /// Norm applied to context projection slices
     pub projection_norm: RMSNorm,
     model_projection_scale: f32,
     embedding_scale: f32,
     input_scale: f32,
-    /// Per-layer gate projections: model_dim → ple_dim
     pub gates: Vec<Linear>,
-    /// Per-layer projections: ple_dim → model_dim
     pub projections: Vec<Linear>,
-    /// Per-layer post-PLE norms on the projected output
     pub post_norms: Vec<RMSNorm>,
 }
 
@@ -43,16 +42,16 @@ impl PerLayerEmbedding {
         gates: Vec<Linear>,
         projections: Vec<Linear>,
         post_norms: Vec<RMSNorm>,
-    ) -> NnResult<Self> {
+    ) -> NlpResult<Self> {
         let n = gates.len();
         if projections.len() != n || post_norms.len() != n {
-            return Err(crate::api::error::NnError::InvalidConfig(
+            return Err(crate::api::error::NlpError::ModelError(
                 "PLE gates, projections, and post_norms must have the same length".into(),
             ));
         }
         let expected_dim = n * ple_dim;
         if shared_embedding.embedding_dim() != expected_dim {
-            return Err(crate::api::error::NnError::InvalidConfig(format!(
+            return Err(crate::api::error::NlpError::ModelError(format!(
                 "Shared PLE embedding dim {} != num_layers({}) * ple_dim({})",
                 shared_embedding.embedding_dim(), n, ple_dim,
             )));
@@ -71,7 +70,7 @@ impl PerLayerEmbedding {
         })
     }
 
-    pub fn prepare(&self, indices: &Tensor, inputs_embeds: &Tensor) -> NnResult<Tensor> {
+    pub fn prepare(&self, indices: &Tensor, inputs_embeds: &Tensor) -> NlpResult<Tensor> {
         let shape = indices.shape();
         let batch = shape[0];
         let seq = shape[1];
@@ -93,7 +92,7 @@ impl PerLayerEmbedding {
         Ok(combined)
     }
 
-    pub fn inject_prepared(&self, per_layer_inputs: &Tensor, hidden: &Tensor, layer: usize) -> NnResult<Tensor> {
+    pub fn inject_prepared(&self, per_layer_inputs: &Tensor, hidden: &Tensor, layer: usize) -> NlpResult<Tensor> {
         let shape = per_layer_inputs.shape();
         let batch = shape[0];
         let seq = shape[1];
@@ -110,7 +109,7 @@ impl PerLayerEmbedding {
 }
 
 impl PerLayerInput for PerLayerEmbedding {
-    fn inject(&self, indices: &Tensor, hidden: &Tensor, layer: usize) -> NnResult<Tensor> {
+    fn inject(&self, indices: &Tensor, hidden: &Tensor, layer: usize) -> NlpResult<Tensor> {
         let dummy_embeds = hidden;
         let per_layer_inputs = self.prepare(indices, dummy_embeds)?;
         self.inject_prepared(&per_layer_inputs, hidden, layer)
@@ -158,7 +157,7 @@ mod tests {
 
     #[test]
     fn test_ple_dim_mismatch_rejected() {
-        let shared = DefaultEmbedding::new(100, 30); // 30 != 2 * 16
+        let shared = DefaultEmbedding::new(100, 30);
         let model_proj = Linear::new(64, 32);
         let proj_norm = RMSNorm::new(16, 1e-6);
         let gates = vec![Linear::new(64, 16), Linear::new(64, 16)];

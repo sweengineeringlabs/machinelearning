@@ -1,4 +1,5 @@
 pub mod generation;
+pub mod per_layer_embedding;
 pub mod generator;
 pub mod gguf_bridge;
 pub mod gpt;
