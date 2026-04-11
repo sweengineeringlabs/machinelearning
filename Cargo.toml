@@ -20,6 +20,10 @@ members = [
     "main/features/inference/gguf",
     "main/features/inference/quantize",
     "main/features/inference/quantizer",
+    "main/features/inference/prefill",
+    "main/features/inference/thread-config",
+    "main/features/inference/weight-loader",
+    "main/features/inference/compute",
     "main/features/inference/cli",
     "main/features/inference/daemon",
     # Training
@@ -79,6 +83,10 @@ swe-ml-embed-server = { path = "main/features/embedding/server" }
 rustml-inference-layers = { path = "main/features/inference/layers" }
 rustml-hub = { path = "main/features/hub" }
 rustml-quantizer = { path = "main/features/inference/quantizer" }
+rustml-prefill = { path = "main/features/inference/prefill" }
+rustml-thread-config = { path = "main/features/inference/thread-config" }
+rustml-weight-loader = { path = "main/features/inference/weight-loader" }
+rustml-compute = { path = "main/features/inference/compute" }
 rustml-model = { path = "main/features/inference/model" }
 rustml-arch-llama = { path = "main/features/inference/architectures/llama" }
 rustml-arch-gpt2 = { path = "main/features/inference/architectures/gpt2" }

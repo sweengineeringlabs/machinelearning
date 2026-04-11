@@ -1,0 +1,13 @@
+[package]
+name = "rustml-weight-loader"
+description = "Weight loading strategies — RAM vs memory-mapped"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+rustml-model.workspace = true
+swe-ml-tensor.workspace = true
+log.workspace = true

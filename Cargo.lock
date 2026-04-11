@@ -2430,6 +2430,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustml-compute"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "rustml-model",
+ "swe-ml-tensor",
+]
+
+[[package]]
 name = "rustml-generation"
 version = "0.1.0"
 dependencies = [
@@ -2511,6 +2520,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustml-prefill"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "rustml-inference-layers",
+ "rustml-model",
+ "swe-ml-tensor",
+]
+
+[[package]]
 name = "rustml-quant"
 version = "0.1.0"
 dependencies = [
@@ -2551,6 +2570,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustml-thread-config"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "rayon",
+ "rustml-model",
+ "swe-ml-tensor",
+]
+
+[[package]]
 name = "rustml-tokenizer"
 version = "0.1.0"
 dependencies = [
@@ -2561,6 +2590,15 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.17",
  "tokenizers",
+]
+
+[[package]]
+name = "rustml-weight-loader"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "rustml-model",
+ "swe-ml-tensor",
 ]
 
 [[package]]

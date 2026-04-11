@@ -1,0 +1,13 @@
+[package]
+name = "rustml-compute"
+description = "Compute backend — CPU and GPU acceleration"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+rustml-model.workspace = true
+swe-ml-tensor.workspace = true
+log.workspace = true
