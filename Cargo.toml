@@ -8,7 +8,8 @@ members = [
     # Activation
     "main/features/activation",
     # Embedding
-    "main/features/embedding",
+    "main/features/embedding/conversion",
+    "main/features/embedding/server",
     # LLM inference stack
     "main/features/inference/layers",
     "main/features/hub",
@@ -25,7 +26,7 @@ members = [
     # Model architectures
     "main/features/architectures",
 ]
-exclude = ["main/features/inference"]
+exclude = ["main/features/inference", "main/features/embedding"]
 
 [workspace.package]
 version = "0.1.0"
@@ -63,7 +64,8 @@ env_logger = "0.11"
 swe-ml-tensor = { path = "main/features/tensor" }
 swe-ml-normalization = { path = "main/features/normalization" }
 swe-ml-activation = { path = "main/features/activation" }
-swe-ml-embedding = { path = "main/features/embedding" }
+swe-ml-embedding = { path = "main/features/embedding/conversion" }
+swe-ml-embed-server = { path = "main/features/embedding/server" }
 rustml-inference-layers = { path = "main/features/inference/layers" }
 rustml-hub = { path = "main/features/hub" }
 rustml-model = { path = "main/features/inference/model" }

@@ -5,8 +5,8 @@ use std::sync::Arc;
 use anyhow::Result;
 use clap::Parser;
 
-use swe_ml_embedding::daemon::loader::load_gguf;
-use swe_ml_embedding::daemon::router::build_embedding_router;
+use swe_ml_embed_server::load_gguf;
+use swe_ml_embed_server::build_embedding_router;
 
 /// swe-ml-embed — HTTP daemon for embedding models.
 ///

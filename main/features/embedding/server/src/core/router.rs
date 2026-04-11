@@ -8,11 +8,11 @@ use axum::{Json, Router};
 use swe_ml_tensor::{DType, Tensor, f32_vec_to_bytes};
 use rustml_inference_layers::PoolingStrategy;
 
-use crate::api::types::{
-    EmbeddingData, EmbeddingUsage, EmbeddingsRequest, EmbeddingsResponse,
+use swe_ml_embedding::{
+    EmbeddingData, EmbeddingUsage, EmbeddingsRequest, EmbeddingsResponse, l2_normalize,
 };
-use crate::core::normalize::l2_normalize;
-use crate::daemon::state::EmbeddingState;
+use crate::api::error::EmbeddingApiError;
+use crate::core::state::EmbeddingState;
 
 /// Build the embedding-only router.
 pub fn build_embedding_router(state: Arc<EmbeddingState>) -> Router {
@@ -110,23 +110,3 @@ async fn embeddings(
     Ok(Json(response))
 }
 
-/// Simple error type for the embedding API.
-#[derive(Debug)]
-pub struct EmbeddingApiError(pub String);
-
-impl std::fmt::Display for EmbeddingApiError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl axum::response::IntoResponse for EmbeddingApiError {
-    fn into_response(self) -> axum::response::Response {
-        let body = serde_json::json!({ "error": { "message": self.0 } });
-        (
-            axum::http::StatusCode::BAD_REQUEST,
-            axum::Json(body),
-        )
-            .into_response()
-    }
-}

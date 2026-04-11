@@ -2743,7 +2743,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "swe-ml-embedding"
+name = "swe-ml-embed-server"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -2757,9 +2757,18 @@ dependencies = [
  "rustml-tokenizer",
  "serde",
  "serde_json",
+ "swe-ml-embedding",
+ "swe-ml-tensor",
+ "tokio",
+]
+
+[[package]]
+name = "swe-ml-embedding"
+version = "0.1.0"
+dependencies = [
+ "serde",
  "swe-ml-tensor",
  "thiserror 2.0.17",
- "tokio",
 ]
 
 [[package]]
