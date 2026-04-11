@@ -338,6 +338,43 @@ The quantization summary prints "Skipped (kept F32)" but skipped tensors are act
 
 ---
 
+## Inference Speed Improvements
+
+Added 2026-04-11. Gemma 3 1B runs ~1-2s/token on CPU. These optimizations target that bottleneck.
+
+### P1: Aggressive quantization for SafeTensors path
+- **Problem**: SafeTensors models load as f16, not Q4_0/Q8_0. GGUF models are pre-quantized but SafeTensors are not being quantized aggressively enough.
+- **Fix**: Investigate why `quantize_with_strategy()` doesn't apply Q4_0 to attention/FFN weights during SafeTensors loading. The SIMD Q4 kernels exist but aren't being used.
+- **Expected impact**: ~2x speedup (halved memory bandwidth)
+
+### P2: Verify fused QKV + fused gate+up activation
+- **Problem**: Weight fusion (`fuse_qkv_weights`, `fuse_gate_up_weights`) may not trigger for all architectures during SafeTensors loading.
+- **Fix**: Audit the loading path. Ensure fusion runs after quantization for Gemma 3, Llama, etc.
+- **Expected impact**: 2-3x fewer matmul dispatches per layer
+
+### P3: Batch prefill optimization
+- **Problem**: Verify that full-sequence prefill uses single matmul (not token-by-token).
+- **Fix**: Audit `forward_pass()` vs `forward_with_cache_pass()` usage during prompt processing.
+- **Expected impact**: Linear speedup for prompt processing (not decode)
+
+### P4: Rayon thread pool tuning
+- **Problem**: Default rayon threads may not match CPU core count. Softmax/matmul parallelism thresholds tuned for specific dimensions.
+- **Fix**: Profile with different thread counts. Auto-detect optimal parallelism for the host CPU.
+- **Expected impact**: Variable, depends on core count and workload
+
+### P5: Memory-mapped weights (GGUF)
+- **Problem**: All weights loaded into RAM upfront. For large models this increases startup time and memory pressure.
+- **Fix**: Use mmap for GGUF weights — read from disk on demand, let OS manage page cache.
+- **Expected impact**: Faster startup, lower RSS for partially-used models
+
+### P6: GPU acceleration (Vulkan)
+- **Problem**: CPU inference is fundamentally bandwidth-limited. Even with Q4 quantization and SIMD, a 1B model does ~1-2s/token.
+- **Fix**: Implement Vulkan compute shaders for matmul, attention, softmax. Vulkan works on any GPU (NVIDIA, AMD, Intel integrated).
+- **Expected impact**: 10-50x speedup for matmul-bound workloads
+- **Complexity**: Major project — new crate, shader compilation, buffer management, synchronization
+
+---
+
 ## Test Commands
 
 ```bash
