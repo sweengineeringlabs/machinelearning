@@ -4,7 +4,7 @@ members = [
     # Tensor math
     "main/features/tensor",
     # Shared NN layer primitives
-    "main/features/nn-layer",
+    "main/features/normalization",
     # Embedding
     "main/features/embedding",
     # LLM inference stack
@@ -59,7 +59,7 @@ log = "0.4"
 env_logger = "0.11"
 # Internal crates
 swe-ml-tensor = { path = "main/features/tensor" }
-swe-ml-nn-layer = { path = "main/features/nn-layer" }
+swe-ml-normalization = { path = "main/features/normalization" }
 swe-ml-embedding = { path = "main/features/embedding" }
 rustml-inference-layers = { path = "main/features/inference/layers" }
 rustml-hub = { path = "main/features/hub" }

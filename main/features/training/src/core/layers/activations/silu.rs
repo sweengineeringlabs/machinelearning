@@ -3,7 +3,7 @@ use crate::api::layer::Layer;
 use crate::api::tape::{self, TapeEntry};
 use crate::api::tensor::Tensor;
 use crate::core::layers::activations::silu_backward::SiLUBackward;
-use swe_ml_nn_layer::{Activation, Silu as SiluImpl};
+use swe_ml_normalization::{Activation, Silu as SiluImpl};
 
 pub struct SiLU;
 

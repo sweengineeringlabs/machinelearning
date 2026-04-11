@@ -1,6 +1,6 @@
 [package]
-name = "swe-ml-nn-layer"
-description = "Shared neural network layer primitives — normalization and activations"
+name = "swe-ml-normalization"
+description = "Normalization and activation primitives — LayerNorm, RMSNorm, GELU, SiLU"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

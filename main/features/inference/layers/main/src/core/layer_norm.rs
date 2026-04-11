@@ -1,7 +1,7 @@
 //! Layer normalization implementation — delegates math to swe-ml-nn-layer.
 
 use crate::api::error::NnResult;
-use swe_ml_nn_layer::{DefaultLayerNorm, Norm};
+use swe_ml_normalization::{DefaultLayerNorm, Norm};
 use swe_ml_tensor::Tensor;
 
 /// Layer normalization
@@ -9,7 +9,7 @@ use swe_ml_tensor::Tensor;
 /// Normalizes the input across the last dimension:
 /// y = (x - mean) / sqrt(var + eps) * gamma + beta
 ///
-/// Delegates the core computation to `swe_ml_nn_layer::DefaultLayerNorm`.
+/// Delegates the core computation to `swe_ml_normalization::DefaultLayerNorm`.
 #[derive(Debug, Clone)]
 pub struct LayerNorm {
     inner: DefaultLayerNorm,

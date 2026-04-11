@@ -2,14 +2,14 @@ use crate::api::error::SwetsResult;
 use crate::api::layer::Layer;
 use crate::api::tape::{self, BackwardOp, TapeEntry};
 use crate::api::tensor::Tensor;
-use swe_ml_nn_layer::{DefaultLayerNorm, Norm};
+use swe_ml_normalization::{DefaultLayerNorm, Norm};
 
 /// Layer Normalization (FR-306).
 ///
 /// Normalizes over the last dimension of the input, then applies an affine
 /// transform: `output = gamma * normalized + beta`.
 ///
-/// Delegates the forward math to `swe_ml_nn_layer::DefaultLayerNorm` and
+/// Delegates the forward math to `swe_ml_normalization::DefaultLayerNorm` and
 /// wraps the result with autograd tape recording.
 ///
 /// Reference: Ba, Kiros, Hinton - "Layer Normalization" (2016)
