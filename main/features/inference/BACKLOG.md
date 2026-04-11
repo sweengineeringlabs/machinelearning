@@ -362,10 +362,11 @@ Added 2026-04-11. Gemma 3 1B runs ~1-2s/token on CPU. These optimizations target
 - **Fix**: Profile with different thread counts. Auto-detect optimal parallelism for the host CPU.
 - **Expected impact**: Variable, depends on core count and workload
 
-### P5: Memory-mapped weights (GGUF)
+### P5: Memory-mapped weights (native in gguf/ and hub/)
 - **Problem**: All weights loaded into RAM upfront. For large models this increases startup time and memory pressure.
-- **Fix**: Use mmap for GGUF weights — read from disk on demand, let OS manage page cache.
+- **Fix**: Add `GGUFFile::parse_mmap(path)` to `gguf/` and `HubBundle::load_tensors_mmap()` to `hub/`. Support `Arc<Mmap>` as tensor backing store in `tensor/`. No wrapper crate — format crates own their loading strategies natively.
 - **Expected impact**: Faster startup, lower RSS for partially-used models
+- **Crates**: `gguf/`, `hub/`, `tensor/`
 
 ### P6: GPU acceleration (Vulkan)
 - **Problem**: CPU inference is fundamentally bandwidth-limited. Even with Q4 quantization and SIMD, a 1B model does ~1-2s/token.
