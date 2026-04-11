@@ -11,6 +11,7 @@ use futures_util::stream;
 use tokio_stream::StreamExt;
 
 use swe_ml_tensor::{DType, Tensor, f32_vec_to_bytes};
+use swe_ml_embedding::l2_normalize;
 use rustml_nn::PoolingStrategy;
 
 use crate::api::error::DaemonError;
@@ -332,11 +333,3 @@ async fn embeddings(
     Ok(Json(response))
 }
 
-/// L2-normalize a vector in place to unit length.
-/// After normalization, cosine similarity equals the dot product.
-fn l2_normalize(v: &mut [f32]) {
-    let norm = v.iter().map(|x| x * x).sum::<f32>().sqrt();
-    if norm > 0.0 {
-        v.iter_mut().for_each(|x| *x /= norm);
-    }
-}
