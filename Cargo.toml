@@ -4,21 +4,21 @@ members = [
     # Tensor math
     "main/features/tensor",
     # LLM inference stack
-    "llm/nn",
-    "llm/hub",
-    "llm/nlp",
-    "llm/tokenizer",
-    "llm/quant",
-    "llm/gguf",
-    "llm/quantize",
-    "llm/cli",
-    "llm/daemon",
+    "main/features/llm/nn",
+    "main/features/llm/hub",
+    "main/features/llm/nlp",
+    "main/features/llm/tokenizer",
+    "main/features/llm/quant",
+    "main/features/llm/gguf",
+    "main/features/llm/quantize",
+    "main/features/llm/cli",
+    "main/features/llm/daemon",
     # Training
     "main/features/training",
     # Model architectures
     "main/features/architectures",
 ]
-exclude = ["llm"]
+exclude = ["main/features/llm"]
 
 [workspace.package]
 version = "0.1.0"
@@ -54,15 +54,15 @@ log = "0.4"
 env_logger = "0.11"
 # Internal crates
 swe-ml-tensor = { path = "main/features/tensor" }
-rustml-nn = { path = "llm/nn" }
-rustml-hub = { path = "llm/hub" }
-rustml-nlp = { path = "llm/nlp" }
-rustml-tokenizer = { path = "llm/tokenizer" }
-rustml-quant = { path = "llm/quant" }
-rustml-gguf = { path = "llm/gguf" }
+rustml-nn = { path = "main/features/llm/nn" }
+rustml-hub = { path = "main/features/llm/hub" }
+rustml-nlp = { path = "main/features/llm/nlp" }
+rustml-tokenizer = { path = "main/features/llm/tokenizer" }
+rustml-quant = { path = "main/features/llm/quant" }
+rustml-gguf = { path = "main/features/llm/gguf" }
 swe-ml-architectures = { path = "main/features/architectures" }
 swe-ml-training = { path = "main/features/training" }
-swellmd = { path = "llm/daemon" }
+swellmd = { path = "main/features/llm/daemon" }
 # Shared deps for quant/gguf crates
 bytemuck = { version = "1", features = ["extern_crate_alloc"] }
 half = { version = "2.3", features = ["bytemuck"] }
