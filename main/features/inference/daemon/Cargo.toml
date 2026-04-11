@@ -30,6 +30,7 @@ swe-ml-tensor.workspace = true
 swe-ml-embedding.workspace = true
 rustml-inference-layers.workspace = true
 rustml-model.workspace = true
+rustml-quantizer.workspace = true
 rustml-arch-llama.workspace = true
 rustml-arch-gpt2.workspace = true
 rustml-arch-falcon.workspace = true

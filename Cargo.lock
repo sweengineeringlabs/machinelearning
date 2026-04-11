@@ -2541,6 +2541,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustml-quantizer"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "rustml-inference-layers",
+ "rustml-model",
+ "swe-ml-tensor",
+]
+
+[[package]]
 name = "rustml-tokenizer"
 version = "0.1.0"
 dependencies = [
@@ -2918,6 +2928,7 @@ dependencies = [
  "rustml-hub",
  "rustml-inference-layers",
  "rustml-model",
+ "rustml-quantizer",
  "rustml-tokenizer",
  "serde",
  "serde_json",

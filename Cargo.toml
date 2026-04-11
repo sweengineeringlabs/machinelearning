@@ -19,6 +19,7 @@ members = [
     "main/features/inference/quant",
     "main/features/inference/gguf",
     "main/features/inference/quantize",
+    "main/features/inference/quantizer",
     "main/features/inference/cli",
     "main/features/inference/daemon",
     # Training
@@ -77,6 +78,7 @@ swe-ml-embedding = { path = "main/features/embedding/conversion" }
 swe-ml-embed-server = { path = "main/features/embedding/server" }
 rustml-inference-layers = { path = "main/features/inference/layers" }
 rustml-hub = { path = "main/features/hub" }
+rustml-quantizer = { path = "main/features/inference/quantizer" }
 rustml-model = { path = "main/features/inference/model" }
 rustml-arch-llama = { path = "main/features/inference/architectures/llama" }
 rustml-arch-gpt2 = { path = "main/features/inference/architectures/gpt2" }

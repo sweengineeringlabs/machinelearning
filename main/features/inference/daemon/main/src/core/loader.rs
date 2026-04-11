@@ -10,6 +10,7 @@ use rustml_model::{
     gguf_config_to_model_config,
 };
 use rustml_tokenizer::{BpeTokenizer, GgufTokenizer, HFTokenizer, Tokenizer};
+use rustml_quantizer::Quantizer;
 
 use super::state::ModelBundle;
 
@@ -149,24 +150,26 @@ pub fn load_safetensors(model_id: &str, profile: OptProfile) -> Result<ModelBund
         .with_context(|| format!("Failed to build {} model", if model_type.is_empty() { "gpt2" } else { &model_type }))?;
     model.set_optimization_profile(profile);
 
+    // Post-construction optimization via pluggable providers
     if !model.output.is_quantized() {
-        let strategy = swe_ml_tensor::quant_config_from_toml_file(
-            std::path::Path::new("quantization.toml"),
-        );
-        match model.quantize_with_strategy(&strategy) {
-            Ok(n) if n > 0 => log::info!("  Quantized {} linear layers ({:?})", n, swe_ml_tensor::quant_config_attention(&strategy)),
+        let quantizer = rustml_quantizer::ConfigQuantizer::from_toml(std::path::Path::new("quantization.toml"));
+        match quantizer.quantize(&mut model) {
+            Ok(n) if n > 0 => log::info!("  Quantized {} linear layers ({})", n, quantizer.describe()),
             Ok(_) => {}
             Err(e) => log::warn!("  Weight quantization failed: {}", e),
         }
     }
 
-    let fused = model.fuse_gate_up_weights();
+    use rustml_quantizer::Fuser;
+    let gate_up_fuser = rustml_quantizer::GateUpFuser;
+    let fused = gate_up_fuser.fuse(&mut model);
     if fused > 0 {
-        log::info!("  Fused {} gate+up projection pairs", fused);
+        log::info!("  {}: {} pairs", gate_up_fuser.describe(), fused);
     }
-    let fused_qkv = model.fuse_qkv_weights();
+    let qkv_fuser = rustml_quantizer::QkvFuser;
+    let fused_qkv = qkv_fuser.fuse(&mut model);
     if fused_qkv > 0 {
-        log::info!("  Fused {} QKV projection triples", fused_qkv);
+        log::info!("  {}: {} triples", qkv_fuser.describe(), fused_qkv);
     }
 
     warmup(&mut model);
