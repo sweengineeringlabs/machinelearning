@@ -1,26 +1,14 @@
 use std::collections::HashMap;
-use rustml_model::{
-    LlmModel, ModelBuilder, ModelConfig, ModelError, ModelResult,
-};
+use rustml_model::{LlmModel, ModelBuilder, ModelConfig, ModelResult, WeightMap};
 use swe_ml_tensor::Tensor;
 
-/// Stub builder — delegates to LlmModel::from_pretrained_* until fully extracted.
-pub struct StubBuilder;
+pub struct Gemma4Builder;
 
-impl ModelBuilder for StubBuilder {
-    fn remap_weights(
-        &self,
-        weights: HashMap<String, Tensor>,
-        _config: &ModelConfig,
-    ) -> HashMap<String, Tensor> {
-        weights
+impl ModelBuilder for Gemma4Builder {
+    fn remap_weights(&self, weights: HashMap<String, Tensor>, config: &ModelConfig) -> HashMap<String, Tensor> {
+        WeightMap::gemma4(config.n_layers).remap(weights)
     }
-
-    fn build(
-        &self,
-        _config: &ModelConfig,
-        _weights: HashMap<String, Tensor>,
-    ) -> ModelResult<LlmModel> {
-        Err(ModelError::Model("Architecture not yet extracted — use LlmModel::from_pretrained_* directly".into()))
+    fn build(&self, config: &ModelConfig, weights: HashMap<String, Tensor>) -> ModelResult<LlmModel> {
+        LlmModel::from_pretrained_gemma4(config, weights)
     }
 }

@@ -9,11 +9,31 @@ use clap::Args;
 use rustml_gguf::GGUFFile;
 use rustml_hub::HubApi;
 use rustml_model::{
-    LanguageModel, LlmModel, OptProfile, convert_tensors,
+    LanguageModel, LlmModel, ModelRegistry, OptProfile, convert_tensors,
     gguf_config_to_model_config,
 };
 use rustml_generation::Generator;
 use rustml_tokenizer::{BpeTokenizer, GgufTokenizer, HFTokenizer, Tokenizer};
+
+fn create_registry() -> ModelRegistry {
+    let mut reg = ModelRegistry::new();
+    reg.register("llama", Box::new(rustml_arch_llama::LlamaBuilder));
+    reg.register("mistral", Box::new(rustml_arch_llama::LlamaBuilder));
+    reg.register("qwen2", Box::new(rustml_arch_llama::LlamaBuilder));
+    reg.register("phi3", Box::new(rustml_arch_llama::LlamaBuilder));
+    reg.register("gpt2", Box::new(rustml_arch_gpt2::Gpt2Builder));
+    reg.register("", Box::new(rustml_arch_gpt2::Gpt2Builder));
+    reg.register("falcon", Box::new(rustml_arch_falcon::FalconBuilder));
+    reg.register("mixtral", Box::new(rustml_arch_mixtral::MixtralBuilder));
+    reg.register("gemma2", Box::new(rustml_arch_llama::LlamaBuilder));
+    reg.register("gemma3", Box::new(rustml_arch_gemma3::Gemma3Builder));
+    reg.register("gemma3_text", Box::new(rustml_arch_gemma3::Gemma3Builder));
+    reg.register("gemma4", Box::new(rustml_arch_gemma4::Gemma4Builder));
+    reg.register("gemma4_text", Box::new(rustml_arch_gemma4::Gemma4Builder));
+    reg.register("bert", Box::new(rustml_arch_bert::BertBuilder));
+    reg.register("nomic-bert", Box::new(rustml_arch_nomic_bert::NomicBertBuilder));
+    reg
+}
 
 #[derive(Args)]
 pub struct InferArgs {
@@ -461,7 +481,10 @@ fn run_safetensors(
     eprintln!("  {} tensors loaded", weights.len());
 
     eprintln!("  Building model...");
-    let mut model = rustml_model::build_safetensors_model(&model_type, &config, weights)
+    let mut config = config;
+    config.architecture = model_type.clone();
+    let registry = create_registry();
+    let mut model = registry.build_model(&config, weights)
         .with_context(|| format!("Failed to build {} model", if model_type.is_empty() { "gpt2" } else { &model_type }))?;
     model.set_optimization_profile(profile);
 
@@ -577,16 +600,11 @@ fn run_gguf(
     eprintln!("  {} tensors loaded", tensors.len());
 
     eprintln!("  Building model...");
-    let mut model = if is_gemma4 {
-        LlmModel::from_pretrained_gemma4(&config, tensors)
-            .with_context(|| "Failed to build gemma4 model")?
-    } else if is_gemma3 {
-        LlmModel::from_pretrained_gemma3(&config, tensors)
-            .with_context(|| "Failed to build gemma3 model")?
-    } else {
-        LlmModel::from_pretrained(&config, tensors)
-            .with_context(|| "Failed to build model")?
-    };
+    let mut config = config;
+    config.architecture = gguf_config.architecture.clone();
+    let registry = create_registry();
+    let mut model = registry.build_model(&config, tensors)
+        .with_context(|| format!("Failed to build {} model", config.architecture))?;
     model.set_optimization_profile(profile);
 
     // Fuse Q+K+V projections in attention layers

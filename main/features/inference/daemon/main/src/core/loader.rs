@@ -6,12 +6,33 @@ use anyhow::{Context, Result};
 use rustml_gguf::GGUFFile;
 use rustml_hub::HubApi;
 use rustml_model::{
-    LlmModel, ModelConfig, OptProfile, build_safetensors_model, convert_tensors,
+    LlmModel, ModelConfig, ModelRegistry, OptProfile, build_safetensors_model, convert_tensors,
     gguf_config_to_model_config,
 };
 use rustml_tokenizer::{BpeTokenizer, GgufTokenizer, HFTokenizer, Tokenizer};
 
 use super::state::ModelBundle;
+
+/// Create the model registry with all supported architectures.
+fn create_registry() -> ModelRegistry {
+    let mut reg = ModelRegistry::new();
+    reg.register("llama", Box::new(rustml_arch_llama::LlamaBuilder));
+    reg.register("mistral", Box::new(rustml_arch_llama::LlamaBuilder));
+    reg.register("qwen2", Box::new(rustml_arch_llama::LlamaBuilder));
+    reg.register("phi3", Box::new(rustml_arch_llama::LlamaBuilder));
+    reg.register("gpt2", Box::new(rustml_arch_gpt2::Gpt2Builder));
+    reg.register("", Box::new(rustml_arch_gpt2::Gpt2Builder)); // default
+    reg.register("falcon", Box::new(rustml_arch_falcon::FalconBuilder));
+    reg.register("mixtral", Box::new(rustml_arch_mixtral::MixtralBuilder));
+    reg.register("gemma2", Box::new(rustml_arch_llama::LlamaBuilder)); // Gemma2 uses llama loader
+    reg.register("gemma3", Box::new(rustml_arch_gemma3::Gemma3Builder));
+    reg.register("gemma3_text", Box::new(rustml_arch_gemma3::Gemma3Builder));
+    reg.register("gemma4", Box::new(rustml_arch_gemma4::Gemma4Builder));
+    reg.register("gemma4_text", Box::new(rustml_arch_gemma4::Gemma4Builder));
+    reg.register("bert", Box::new(rustml_arch_bert::BertBuilder));
+    reg.register("nomic-bert", Box::new(rustml_arch_nomic_bert::NomicBertBuilder));
+    reg
+}
 
 /// Load a model from a GGUF file on disk.
 pub fn load_gguf(path: &Path, profile: OptProfile) -> Result<ModelBundle> {
@@ -52,14 +73,11 @@ pub fn load_gguf(path: &Path, profile: OptProfile) -> Result<ModelBundle> {
     };
     let tensors = convert_tensors(loaded_tensors);
 
-    let mut model = match arch {
-        "gemma3" => LlmModel::from_pretrained_gemma3(&config, tensors)
-            .with_context(|| "Failed to build gemma3 model")?,
-        "nomic-bert" => LlmModel::from_pretrained_nomic_bert(&config, tensors)
-            .with_context(|| "Failed to build nomic-bert model")?,
-        _ => LlmModel::from_pretrained(&config, tensors)
-            .with_context(|| "Failed to build model")?,
-    };
+    let mut config = config;
+    config.architecture = gguf_config.architecture.clone();
+    let registry = create_registry();
+    let mut model = registry.build_model(&config, tensors)
+        .with_context(|| format!("Failed to build {} model", config.architecture))?;
     model.set_optimization_profile(profile);
 
     let fused_qkv = model.fuse_qkv_weights();
@@ -124,7 +142,10 @@ pub fn load_safetensors(model_id: &str, profile: OptProfile) -> Result<ModelBund
         .with_context(|| "Failed to load SafeTensors weights")?;
     log::info!("  {} tensors loaded", weights.len());
 
-    let mut model = build_safetensors_model(&model_type, &config, weights)
+    let mut config = config;
+    config.architecture = model_type.clone();
+    let registry = create_registry();
+    let mut model = registry.build_model(&config, weights)
         .with_context(|| format!("Failed to build {} model", if model_type.is_empty() { "gpt2" } else { &model_type }))?;
     model.set_optimization_profile(profile);
 
