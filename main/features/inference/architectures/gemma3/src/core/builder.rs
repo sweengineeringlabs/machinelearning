@@ -2,6 +2,11 @@ use std::collections::HashMap;
 use rustml_model::{LlmModel, ModelBuilder, ModelConfig, ModelResult, WeightMap};
 use swe_ml_tensor::Tensor;
 
+/// Gemma 3 architecture builder.
+///
+/// Delegates to LlmModel::from_pretrained_gemma3() until full extraction.
+/// Gemma 3 has unique features: decoupled head_dim, per-layer RoPE,
+/// sliding window pattern, GeGLU activation, sandwich norms.
 pub struct Gemma3Builder;
 
 impl ModelBuilder for Gemma3Builder {
