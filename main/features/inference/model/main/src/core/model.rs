@@ -2176,6 +2176,7 @@ mod tests {
 
     fn tiny_config() -> ModelConfig {
         ModelConfig {
+            architecture: String::new(),
             dim: 64,
             hidden_dim: 256,
             n_layers: 2,
@@ -2381,6 +2382,7 @@ mod tests {
     #[test]
     fn test_gemma2_embedding_scale() {
         let config = ModelConfig {
+            architecture: String::new(),
             embedding_scale: Some(8.0), // sqrt(64)
             position_encoding: PositionEncoding::RoPE,
             ..tiny_config()
@@ -2405,6 +2407,7 @@ mod tests {
         let n_layers = 1;
         let vocab = 100;
         let config = ModelConfig {
+            architecture: String::new(),
             dim: d,
             hidden_dim: hidden,
             n_layers,
@@ -2502,6 +2505,7 @@ mod tests {
         let num_experts = 4;
         let num_experts_per_tok = 2;
         let config = ModelConfig {
+            architecture: String::new(),
             dim: d,
             hidden_dim: hidden,
             n_layers,
@@ -2585,6 +2589,7 @@ mod tests {
     fn test_qwen2_attention_bias_config() {
         // Verify that a config with attention_bias=true can be created and model runs
         let config = ModelConfig {
+            architecture: String::new(),
             attention_bias: Some(true),
             position_encoding: PositionEncoding::RoPE,
             ..tiny_config()
@@ -2606,6 +2611,7 @@ mod tests {
         let vocab = 100;
 
         let config = ModelConfig {
+            architecture: String::new(),
             dim: d,
             hidden_dim: hidden,
             n_layers,
@@ -2824,6 +2830,7 @@ mod tests {
 
     fn config_768() -> ModelConfig {
         ModelConfig {
+            architecture: String::new(),
             dim: 768,
             hidden_dim: 3072,
             n_layers: 2,
@@ -3139,6 +3146,7 @@ mod tests {
     fn test_encode_with_bidirectional_config() {
         // A model with causal=false should run without error.
         let config = ModelConfig {
+            architecture: String::new(),
             causal: false,
             pooling_strategy: Some(PoolingStrategy::Cls),
             ..tiny_config()

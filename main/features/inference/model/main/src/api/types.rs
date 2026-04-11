@@ -98,6 +98,10 @@ impl Default for GptConfig {
 /// Unified model configuration supporting GPT-2, Llama, and future architectures.
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct ModelConfig {
+    /// Architecture identifier (e.g., "gpt2", "llama", "gemma3").
+    /// Used by ModelRegistry to select the correct builder.
+    #[serde(default)]
+    pub architecture: String,
     pub dim: usize,
     pub hidden_dim: usize,
     pub n_layers: usize,
@@ -172,6 +176,7 @@ fn default_rope_theta() -> f32 { 10000.0 }
 impl Default for ModelConfig {
     fn default() -> Self {
         Self {
+            architecture: String::new(),
             dim: 4096,
             hidden_dim: 11008,
             n_layers: 32,

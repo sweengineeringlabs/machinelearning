@@ -1,7 +1,9 @@
 //! Facade re-exports for rustml-model
 
 pub use crate::api::error::*;
+pub use crate::api::traits::ModelBuilder;
 pub use crate::api::types::*;
+pub use crate::core::registry::ModelRegistry;
 pub use crate::core::gpt::{GptBlock, GptMlp, GptModel};
 pub use crate::core::model::{LlmModel, map_gpt2_weights, build_safetensors_model};
 pub use crate::core::weight_map::WeightMap;

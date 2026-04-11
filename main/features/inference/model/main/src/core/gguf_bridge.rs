@@ -55,6 +55,7 @@ pub fn gguf_config_to_model_config(gc: &GgufModelConfig) -> ModelResult<ModelCon
     let head_dim = gc.head_dim.unwrap_or(gc.dim / gc.n_heads);
 
     let config = ModelConfig {
+        architecture: gc.architecture.clone(),
         dim: gc.dim,
         hidden_dim: gc.hidden_dim,
         n_layers: gc.n_layers,
