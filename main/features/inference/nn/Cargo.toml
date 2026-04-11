@@ -12,6 +12,7 @@ path = "main/src/lib.rs"
 [dependencies]
 swe-ml-tensor.workspace = true
 swe-ml-nn-layer.workspace = true
+swe-ml-embedding.workspace = true
 rustml-quant.workspace = true
 thiserror.workspace = true
 half.workspace = true

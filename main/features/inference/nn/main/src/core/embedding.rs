@@ -1,9 +1,9 @@
-//! Embedding layer — delegates math to swe-ml-nn-layer.
+//! Embedding layer — delegates math to swe-ml-embedding.
 //! PerLayerEmbedding (Gemma 4) stays here as inference-specific.
 
 use std::time::Instant;
 use crate::api::error::NnResult;
-use swe_ml_nn_layer::{DefaultEmbedding, Embed};
+use swe_ml_embedding::{DefaultEmbedding, Embed};
 use swe_ml_tensor::Tensor;
 
 /// Embedding layer that maps token indices to dense vectors.

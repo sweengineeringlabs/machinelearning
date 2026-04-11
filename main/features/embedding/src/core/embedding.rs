@@ -1,4 +1,4 @@
-use crate::api::error::{NnLayerError, NnLayerResult};
+use crate::api::error::{EmbeddingError, EmbeddingResult};
 use crate::api::traits::Embed;
 use swe_ml_tensor::Tensor;
 
@@ -25,10 +25,10 @@ impl DefaultEmbedding {
     }
 
     /// Create from an existing weight tensor of shape `[num_embeddings, embedding_dim]`.
-    pub fn from_weights(weight: Tensor) -> NnLayerResult<Self> {
+    pub fn from_weights(weight: Tensor) -> EmbeddingResult<Self> {
         let shape = weight.shape();
         if shape.len() != 2 {
-            return Err(NnLayerError::InvalidConfig(
+            return Err(EmbeddingError::InvalidConfig(
                 "Embedding weight must be 2D".into(),
             ));
         }
@@ -47,7 +47,7 @@ impl DefaultEmbedding {
 }
 
 impl Embed for DefaultEmbedding {
-    fn forward(&self, indices: &Tensor) -> NnLayerResult<Tensor> {
+    fn forward(&self, indices: &Tensor) -> EmbeddingResult<Tensor> {
         let input_shape = indices.shape();
         let numel = indices.numel();
 
@@ -56,7 +56,7 @@ impl Embed for DefaultEmbedding {
         for idx_f32 in indices.iter() {
             let idx = idx_f32 as usize;
             if idx >= self.num_embeddings {
-                return Err(NnLayerError::InvalidConfig(format!(
+                return Err(EmbeddingError::IndexOutOfBounds(format!(
                     "Index {} out of bounds for embedding with {} entries",
                     idx, self.num_embeddings
                 )));
