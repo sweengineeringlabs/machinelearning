@@ -2466,6 +2466,7 @@ dependencies = [
  "hf-hub",
  "memmap2",
  "rustml-quant",
+ "swe-ml-tensor",
  "thiserror 2.0.17",
 ]
 

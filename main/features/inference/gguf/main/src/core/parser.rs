@@ -491,6 +491,90 @@ impl GGUFFile {
         Ok(tensors)
     }
 
+    /// Load tensors via memory-mapping — zero-copy for supported quantization types.
+    ///
+    /// Tensors with types F32, F16, Q8_0, Q4_0, Q4_1 are backed directly by the
+    /// mmap'd file — no copy. K-quant and legacy types are dequantized to owned F32.
+    ///
+    /// The returned `Tensor` values hold `Arc<Mmap>` references that keep the mapping
+    /// alive as long as any tensor is in use.
+    pub fn load_tensors_mmap<P: AsRef<Path>>(
+        &self,
+        path: P,
+    ) -> GgufResult<HashMap<String, swe_ml_tensor::Tensor>> {
+        use std::sync::Arc;
+
+        let file = File::open(&path)?;
+        let mmap = Arc::new(unsafe { memmap2::Mmap::map(&file)? });
+
+        let mut tensors = HashMap::new();
+
+        for info in &self.tensor_infos {
+            let n_elements: usize = info.dimensions.iter().product();
+            let n_blocks = if info.ggml_type.block_size() > 1 {
+                n_elements / info.ggml_type.block_size()
+            } else {
+                n_elements
+            };
+            let byte_size = n_blocks * info.ggml_type.block_bytes();
+            let abs_offset = self.data_offset + info.offset as usize;
+
+            if abs_offset + byte_size > mmap.len() {
+                return Err(GgufError::Io(std::io::Error::new(
+                    std::io::ErrorKind::UnexpectedEof,
+                    format!("Tensor '{}' data exceeds file bounds", info.name),
+                )));
+            }
+
+            // GGUF dimensions are stored in reverse order (innermost first)
+            let shape: Vec<usize> = info.dimensions.iter().rev().copied().collect();
+
+            // K-quant types need dequantization — these get owned data
+            if info.ggml_type.needs_dequant() {
+                let raw_data = &mmap[abs_offset..abs_offset + byte_size];
+                let f32_data = dequantize_kquant(raw_data, n_elements, info.ggml_type)?;
+                let f32_bytes = rustml_quant::f32_vec_to_bytes(f32_data);
+                tensors.insert(
+                    info.name.clone(),
+                    swe_ml_tensor::Tensor::new(f32_bytes, shape, swe_ml_tensor::DType::F32),
+                );
+                continue;
+            }
+
+            let dtype = match info.ggml_type {
+                GGMLType::F32 => swe_ml_tensor::DType::F32,
+                GGMLType::F16 => swe_ml_tensor::DType::F16,
+                GGMLType::Q8_0 => swe_ml_tensor::DType::Q8_0,
+                GGMLType::Q4_0 => swe_ml_tensor::DType::Q4_0,
+                GGMLType::Q4_1 => swe_ml_tensor::DType::Q4_1,
+                GGMLType::Q5_0 | GGMLType::Q5_1 | GGMLType::Q8_1 => {
+                    let raw_data = &mmap[abs_offset..abs_offset + byte_size];
+                    let f32_data = dequantize_legacy(raw_data, n_elements, info.ggml_type)?;
+                    let f32_bytes = rustml_quant::f32_vec_to_bytes(f32_data);
+                    tensors.insert(
+                        info.name.clone(),
+                        swe_ml_tensor::Tensor::new(f32_bytes, shape, swe_ml_tensor::DType::F32),
+                    );
+                    continue;
+                }
+                _ => {
+                    return Err(GgufError::UnsupportedType(format!(
+                        "Unsupported GGML type {:?} for tensor '{}'",
+                        info.ggml_type, info.name
+                    )));
+                }
+            };
+
+            // Zero-copy: tensor backed by mmap'd file region
+            tensors.insert(
+                info.name.clone(),
+                swe_ml_tensor::Tensor::from_mmap(Arc::clone(&mmap), abs_offset, byte_size, shape, dtype),
+            );
+        }
+
+        Ok(tensors)
+    }
+
     /// Load and remap tensors using the standard Llama weight map.
     pub fn load_and_remap<P: AsRef<Path>>(
         &self,
@@ -554,6 +638,30 @@ impl GGUFFile {
         let tensors = self.load_tensors(path)?;
         let weight_map = gguf_nomic_bert_weight_map(n_layers);
         Ok(weight_map.remap(tensors))
+    }
+
+    // ── Memory-mapped load + remap variants ──
+
+    /// Load and remap via mmap — zero-copy for F32/F16/Q8/Q4 tensors.
+    pub fn load_and_remap_mmap<P: AsRef<Path>>(
+        &self, path: P, n_layers: usize,
+    ) -> GgufResult<HashMap<String, swe_ml_tensor::Tensor>> {
+        let tensors = self.load_tensors_mmap(path)?;
+        Ok(gguf_llama_weight_map(n_layers).remap(tensors))
+    }
+
+    pub fn load_and_remap_gemma3_mmap<P: AsRef<Path>>(
+        &self, path: P, n_layers: usize,
+    ) -> GgufResult<HashMap<String, swe_ml_tensor::Tensor>> {
+        let tensors = self.load_tensors_mmap(path)?;
+        Ok(gguf_gemma3_weight_map(n_layers).remap(tensors))
+    }
+
+    pub fn load_and_remap_nomic_bert_mmap<P: AsRef<Path>>(
+        &self, path: P, n_layers: usize,
+    ) -> GgufResult<HashMap<String, swe_ml_tensor::Tensor>> {
+        let tensors = self.load_tensors_mmap(path)?;
+        Ok(gguf_nomic_bert_weight_map(n_layers).remap(tensors))
     }
 
     /// Read and dequantize a single tensor to f32 values.

@@ -16,6 +16,7 @@ path = "main/src/bin/gguf_inspect.rs"
 [dependencies]
 clap.workspace = true
 anyhow.workspace = true
+swe-ml-tensor.workspace = true
 rustml-quant.workspace = true
 thiserror.workspace = true
 memmap2.workspace = true
