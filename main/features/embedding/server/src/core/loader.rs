@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 
 use rustml_gguf::GGUFFile;
 use rustml_model::{
-    ModelRegistry, gguf_config_to_model_config, convert_tensors,
+    ModelRegistry, gguf_config_to_model_config,
 };
 use rustml_tokenizer::{GgufTokenizer, Tokenizer};
 
@@ -46,15 +46,14 @@ pub fn load_gguf(path: &Path) -> Result<EmbeddingState> {
     );
 
     let arch = gguf_config.architecture.as_str();
-    let loaded_tensors = match arch {
+    let tensors = match arch {
         "nomic-bert" => gguf
-            .load_and_remap_nomic_bert(path, config.n_layers)
-            .with_context(|| "Failed to load/remap nomic-bert tensors")?,
+            .load_and_remap_nomic_bert_mmap(path, config.n_layers)
+            .with_context(|| "Failed to mmap/remap nomic-bert tensors")?,
         _ => gguf
-            .load_and_remap(path, config.n_layers)
-            .with_context(|| "Failed to load/remap tensors")?,
+            .load_and_remap_mmap(path, config.n_layers)
+            .with_context(|| "Failed to mmap/remap tensors")?,
     };
-    let tensors = convert_tensors(loaded_tensors);
 
     // Build model via registry — config.architecture drives builder selection
     let registry = create_registry();
