@@ -335,7 +335,7 @@ impl GptModel {
         hidden_states = self.ln_f.forward(&hidden_states)?;
 
         // Project to vocabulary (weight tying: use wte.weight.T)
-        let logits = hidden_states.matmul(&self.wte.weight.t()?)?;
+        let logits = hidden_states.matmul(&self.wte.weight().t()?)?;
 
         Ok(logits)
     }

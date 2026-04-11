@@ -408,7 +408,7 @@ impl LlmModel {
         )?);
 
         // Tied embeddings: output weight = token_embedding weight
-        let output = Linear::from_weights(token_embedding.weight.clone(), None)?;
+        let output = Linear::from_weights(token_embedding.weight().clone(), None)?;
 
         Ok(Self {
             token_embedding,
@@ -552,7 +552,7 @@ impl LlmModel {
         let output = if let Ok(w) = get_tensor("output.weight") {
             Linear::from_weights(w, None)?
         } else {
-            Linear::from_weights(token_embedding.weight.clone(), None)?
+            Linear::from_weights(token_embedding.weight().clone(), None)?
         };
 
         Ok(Self {
@@ -878,7 +878,7 @@ impl LlmModel {
         let output = if let Ok(w) = get_weight("output.weight") {
             Linear::from_weights(w, None)?
         } else {
-            Linear::from_weights(token_embedding.weight.clone(), None)?
+            Linear::from_weights(token_embedding.weight().clone(), None)?
         };
 
         Ok(Self {
@@ -1118,7 +1118,7 @@ impl LlmModel {
         let output = if let Ok(w) = get_weight("output.weight") {
             Linear::from_weights(w, None)?
         } else {
-            Linear::from_weights(token_embedding.weight.clone(), None)?
+            Linear::from_weights(token_embedding.weight().clone(), None)?
         };
 
         Ok(Self {
@@ -1254,7 +1254,7 @@ impl LlmModel {
         let norm = NormLayer::LayerNorm(LayerNorm::with_eps(d_model, eps));
 
         // Embedding models don't use lm_head — tie to token_embedding
-        let output = Linear::from_weights(token_embedding.weight.clone(), None)?;
+        let output = Linear::from_weights(token_embedding.weight().clone(), None)?;
 
         Ok(Self {
             token_embedding,
@@ -1380,7 +1380,7 @@ impl LlmModel {
         let norm = NormLayer::LayerNorm(LayerNorm::with_eps(d_model, eps));
 
         // Embedding models don't use lm_head — tie to token_embedding
-        let output = Linear::from_weights(token_embedding.weight.clone(), None)?;
+        let output = Linear::from_weights(token_embedding.weight().clone(), None)?;
 
         Ok(Self {
             token_embedding,
@@ -1859,10 +1859,10 @@ impl LlmModel {
         let mut total = 0usize;
         let mut frozen = 0usize;
 
-        total += self.token_embedding.weight.numel();
+        total += self.token_embedding.weight().numel();
 
         if let Some(ref pos_emb) = self.pos_embedding {
-            total += pos_emb.weight.numel();
+            total += pos_emb.weight().numel();
         }
 
         if let Some(ref embd_norm) = self.embd_norm {
@@ -1872,7 +1872,7 @@ impl LlmModel {
         }
 
         if let Some(ref ple) = self.ple {
-            total += ple.shared_embedding.weight.numel();
+            total += ple.shared_embedding.weight().numel();
             total += ple.model_projection.weight.numel();
             total += ple.projection_norm.weight().numel();
             for gate in &ple.gates {

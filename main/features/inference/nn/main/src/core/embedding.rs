@@ -1,14 +1,17 @@
-//! Embedding layer implementation
+//! Embedding layer — delegates math to swe-ml-nn-layer.
+//! PerLayerEmbedding (Gemma 4) stays here as inference-specific.
 
 use std::time::Instant;
 use crate::api::error::NnResult;
+use swe_ml_nn_layer::{DefaultEmbedding, Embed};
 use swe_ml_tensor::Tensor;
 
-/// Embedding layer that maps token indices to dense vectors
+/// Embedding layer that maps token indices to dense vectors.
+///
+/// Delegates the core lookup to `swe_ml_nn_layer::DefaultEmbedding`.
 #[derive(Debug, Clone)]
 pub struct Embedding {
-    /// Embedding weight matrix [num_embeddings, embedding_dim]
-    pub weight: Tensor,
+    inner: DefaultEmbedding,
     /// Number of embeddings (vocabulary size)
     pub num_embeddings: usize,
     /// Embedding dimension
@@ -18,11 +21,8 @@ pub struct Embedding {
 impl Embedding {
     /// Create a new embedding layer with random initialization
     pub fn new(num_embeddings: usize, embedding_dim: usize) -> Self {
-        // Standard normal initialization scaled by 0.02 (GPT-2 style)
-        let weight = Tensor::randn(vec![num_embeddings, embedding_dim]).mul_scalar(0.02);
-
         Self {
-            weight,
+            inner: DefaultEmbedding::new(num_embeddings, embedding_dim),
             num_embeddings,
             embedding_dim,
         }
@@ -36,12 +36,17 @@ impl Embedding {
                 "Embedding weight must be 2D".into(),
             ));
         }
+        let num_embeddings = shape[0];
+        let embedding_dim = shape[1];
+        let inner = DefaultEmbedding::from_weights(weight)
+            .map_err(|e| crate::api::error::NnError::InvalidConfig(e.to_string()))?;
 
-        Ok(Self {
-            num_embeddings: shape[0],
-            embedding_dim: shape[1],
-            weight,
-        })
+        Ok(Self { inner, num_embeddings, embedding_dim })
+    }
+
+    /// Returns a reference to the weight matrix.
+    pub fn weight(&self) -> &Tensor {
+        self.inner.weight()
     }
 
     /// Forward pass: lookup embeddings for input indices
@@ -51,34 +56,12 @@ impl Embedding {
     pub fn forward(&self, indices: &Tensor) -> NnResult<Tensor> {
         let _t = if log::log_enabled!(log::Level::Trace) { Some(Instant::now()) } else { None };
 
-        let input_shape = indices.shape();
-        let numel = indices.numel();
+        let result = self.inner.forward(indices)
+            .map_err(|e| crate::api::error::NnError::InvalidConfig(e.to_string()))?;
 
-        // Gather embeddings
-        let mut output_data = Vec::with_capacity(numel * self.embedding_dim);
-
-        for idx_f32 in indices.iter() {
-            let idx = idx_f32 as usize;
-            if idx >= self.num_embeddings {
-                return Err(crate::api::error::NnError::InvalidConfig(format!(
-                    "Index {} out of bounds for embedding with {} entries",
-                    idx, self.num_embeddings
-                )));
-            }
-
-            // Get embedding vector for this index
-            let embedding = self.weight.select(0, idx)?;
-            output_data.extend(embedding.iter());
-        }
-
-        // Construct output shape: input_shape + [embedding_dim]
-        let mut output_shape = input_shape.to_vec();
-        output_shape.push(self.embedding_dim);
-
-        let result = Tensor::from_vec(output_data, output_shape)?;
         if let Some(t) = _t {
             log::trace!("[perf] embedding::forward {:?}->{:?} {:.3}ms",
-                input_shape, result.shape(), t.elapsed().as_secs_f64() * 1000.0);
+                indices.shape(), result.shape(), t.elapsed().as_secs_f64() * 1000.0);
         }
         Ok(result)
     }
@@ -176,58 +159,39 @@ impl PerLayerEmbedding {
     }
 
     /// Pre-compute the combined per-layer input tensor.
-    ///
-    /// Call once before the layer loop, then pass slices to `inject()`.
-    ///
-    /// * `indices`      - token IDs `[B, S]`
-    /// * `inputs_embeds` - token embeddings `[B, S, model_dim]` (after scaling)
-    ///
-    /// Returns `[B, S, num_layers, ple_dim]`.
     pub fn prepare(&self, indices: &Tensor, inputs_embeds: &Tensor) -> NnResult<Tensor> {
         let shape = indices.shape();
         let batch = shape[0];
         let seq = shape[1];
         let n_layers = self.gates.len();
 
-        // Token identity: embed(ids) * sqrt(ple_dim) → [B, S, L*ple_dim]
         let token_id = self.shared_embedding.forward(indices)?
             .mul_scalar(self.embedding_scale);
 
-        // Context projection: linear(embeds) / sqrt(model_dim) → [B, S, L*ple_dim]
         let context = self.model_projection.forward(inputs_embeds)?
             .mul_scalar(self.model_projection_scale);
 
-        // Reshape both to [B, S, L, ple_dim] for per-layer norm
         let token_id = token_id.reshape(&[batch, seq, n_layers, self.ple_dim])?;
         let context = context.reshape(&[batch, seq, n_layers, self.ple_dim])?;
 
-        // Apply RMSNorm on context (operates on last dim = ple_dim)
         let context = self.projection_norm.forward(&context)?;
 
-        // Combine: (context + token_id) / sqrt(2)
         let combined = context.add(&token_id)?.mul_scalar(self.input_scale);
 
         Ok(combined)
     }
 
     /// Inject pre-computed per-layer input into hidden state for a given layer.
-    ///
-    /// * `per_layer_inputs` - pre-computed tensor from `prepare()`, `[B, S, L, ple_dim]`
-    /// * `hidden`           - current hidden state `[B, S, model_dim]`
-    /// * `layer`            - which layer index
     pub fn inject_prepared(&self, per_layer_inputs: &Tensor, hidden: &Tensor, layer: usize) -> NnResult<Tensor> {
-        // Slice layer's input: [B, S, 1, ple_dim] → reshape → [B, S, ple_dim]
         let shape = per_layer_inputs.shape();
         let batch = shape[0];
         let seq = shape[1];
         let ple_input = per_layer_inputs.slice(2, layer, layer + 1)?
             .reshape(&[batch, seq, self.ple_dim])?;
 
-        // Gate: gelu(gate_proj(hidden)) * ple_input
         let gate = self.gates[layer].forward(hidden)?.gelu();
         let gated = gate.mul(&ple_input)?;
 
-        // Project back to model dim, norm, residual add
         let projected = self.projections[layer].forward(&gated)?;
         let normed = self.post_norms[layer].forward(&projected)?;
         Ok(hidden.add(&normed)?)
@@ -236,8 +200,7 @@ impl PerLayerEmbedding {
 
 impl PerLayerInput for PerLayerEmbedding {
     fn inject(&self, indices: &Tensor, hidden: &Tensor, layer: usize) -> NnResult<Tensor> {
-        // Fallback: prepare + inject in one step (less efficient but correct)
-        let dummy_embeds = hidden; // use hidden as proxy for inputs_embeds
+        let dummy_embeds = hidden;
         let per_layer_inputs = self.prepare(indices, dummy_embeds)?;
         self.inject_prepared(&per_layer_inputs, hidden, layer)
     }
@@ -272,11 +235,9 @@ mod tests {
         let indices = Tensor::from_vec(vec![0.0, 1.0, 2.0], vec![1, 3]).unwrap();
         let hidden = Tensor::randn(vec![1, 3, model_dim]);
 
-        // Prepare once
         let prepared = ple.prepare(&indices, &hidden).unwrap();
         assert_eq!(prepared.shape(), &[1, 3, num_layers, ple_dim]);
 
-        // Inject per layer
         let out0 = ple.inject_prepared(&prepared, &hidden, 0).unwrap();
         assert_eq!(out0.shape(), &[1, 3, model_dim]);
 
