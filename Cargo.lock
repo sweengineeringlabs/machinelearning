@@ -2531,6 +2531,7 @@ dependencies = [
  "rustml-tokenizer",
  "serde",
  "serde_json",
+ "swe-ml-embedding",
  "swe-ml-tensor",
  "thiserror 2.0.17",
  "tokio",

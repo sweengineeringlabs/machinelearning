@@ -9,7 +9,7 @@ use crate::api::types::{LanguageModel, ModelConfig};
 use crate::core::weight_map::WeightMap;
 use swe_ml_tensor::{DType, QuantConfig, QuantTarget, Tensor, f32_vec_to_bytes, quant_config_q8_all, quant_config_attention, quant_config_feed_forward, quant_config_output, quant_config_moe, quant_config_gate, quant_config_min_dim, quant_config_set_min_dim};
 use rustml_nn::{
-    Activation, Embedding, FeedForward, KVCache, LayerNorm, Linear, MoeLayer, MultiHeadAttention,
+    Activation, Embed, Embedding, FeedForward, KVCache, LayerNorm, Linear, MoeLayer, MultiHeadAttention,
     NormLayer, PerLayerEmbedding, PerLayerInput, PoolingStrategy, PositionEncoding, RMSNorm, RoPEFreqs,
     TransformerBlock,
 };

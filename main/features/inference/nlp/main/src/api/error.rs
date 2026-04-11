@@ -14,6 +14,9 @@ pub enum NlpError {
     #[error("Neural network error: {0}")]
     NnError(#[from] rustml_nn::NnError),
 
+    #[error("Embedding error: {0}")]
+    EmbeddingError(#[from] swe_ml_embedding::EmbeddingError),
+
     #[error("Hub error: {0}")]
     HubError(#[from] rustml_hub::HubError),
 

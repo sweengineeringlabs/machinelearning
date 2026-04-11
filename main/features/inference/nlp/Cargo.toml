@@ -18,6 +18,7 @@ clap.workspace = true
 anyhow.workspace = true
 swe-ml-tensor.workspace = true
 rustml-nn.workspace = true
+swe-ml-embedding.workspace = true
 rustml-hub.workspace = true
 rustml-gguf.workspace = true
 rustml-tokenizer.workspace = true

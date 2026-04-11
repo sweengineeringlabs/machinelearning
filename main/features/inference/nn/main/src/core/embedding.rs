@@ -1,71 +1,11 @@
-//! Embedding layer — delegates math to swe-ml-embedding.
-//! PerLayerEmbedding (Gemma 4) stays here as inference-specific.
+//! Embedding re-export and PerLayerEmbedding (Gemma 4 inference-specific).
 
-use std::time::Instant;
 use crate::api::error::NnResult;
-use swe_ml_embedding::{DefaultEmbedding, Embed};
+use swe_ml_embedding::Embed;
 use swe_ml_tensor::Tensor;
 
-/// Embedding layer that maps token indices to dense vectors.
-///
-/// Delegates the core lookup to `swe_ml_nn_layer::DefaultEmbedding`.
-#[derive(Debug, Clone)]
-pub struct Embedding {
-    inner: DefaultEmbedding,
-    /// Number of embeddings (vocabulary size)
-    pub num_embeddings: usize,
-    /// Embedding dimension
-    pub embedding_dim: usize,
-}
-
-impl Embedding {
-    /// Create a new embedding layer with random initialization
-    pub fn new(num_embeddings: usize, embedding_dim: usize) -> Self {
-        Self {
-            inner: DefaultEmbedding::new(num_embeddings, embedding_dim),
-            num_embeddings,
-            embedding_dim,
-        }
-    }
-
-    /// Create an embedding layer from existing weights
-    pub fn from_weights(weight: Tensor) -> NnResult<Self> {
-        let shape = weight.shape();
-        if shape.len() != 2 {
-            return Err(crate::api::error::NnError::InvalidConfig(
-                "Embedding weight must be 2D".into(),
-            ));
-        }
-        let num_embeddings = shape[0];
-        let embedding_dim = shape[1];
-        let inner = DefaultEmbedding::from_weights(weight)
-            .map_err(|e| crate::api::error::NnError::InvalidConfig(e.to_string()))?;
-
-        Ok(Self { inner, num_embeddings, embedding_dim })
-    }
-
-    /// Returns a reference to the weight matrix.
-    pub fn weight(&self) -> &Tensor {
-        self.inner.weight()
-    }
-
-    /// Forward pass: lookup embeddings for input indices
-    ///
-    /// Input shape: [...] (tensor of integer indices)
-    /// Output shape: [..., embedding_dim]
-    pub fn forward(&self, indices: &Tensor) -> NnResult<Tensor> {
-        let _t = if log::log_enabled!(log::Level::Trace) { Some(Instant::now()) } else { None };
-
-        let result = self.inner.forward(indices)
-            .map_err(|e| crate::api::error::NnError::InvalidConfig(e.to_string()))?;
-
-        if let Some(t) = _t {
-            log::trace!("[perf] embedding::forward {:?}->{:?} {:.3}ms",
-                indices.shape(), result.shape(), t.elapsed().as_secs_f64() * 1000.0);
-        }
-        Ok(result)
-    }
-}
+/// Re-export `DefaultEmbedding` as `Embedding` — no wrapper needed.
+pub use swe_ml_embedding::DefaultEmbedding as Embedding;
 
 use crate::api::traits::PerLayerInput;
 use crate::core::linear::Linear;
@@ -138,10 +78,10 @@ impl PerLayerEmbedding {
             ));
         }
         let expected_dim = n * ple_dim;
-        if shared_embedding.embedding_dim != expected_dim {
+        if shared_embedding.embedding_dim() != expected_dim {
             return Err(crate::api::error::NnError::InvalidConfig(format!(
                 "Shared PLE embedding dim {} != num_layers({}) * ple_dim({})",
-                shared_embedding.embedding_dim, n, ple_dim,
+                shared_embedding.embedding_dim(), n, ple_dim,
             )));
         }
         Ok(Self {
@@ -165,7 +105,8 @@ impl PerLayerEmbedding {
         let seq = shape[1];
         let n_layers = self.gates.len();
 
-        let token_id = self.shared_embedding.forward(indices)?
+        let token_id = self.shared_embedding.forward(indices)
+            .map_err(|e| crate::api::error::NnError::InvalidConfig(e.to_string()))?
             .mul_scalar(self.embedding_scale);
 
         let context = self.model_projection.forward(inputs_embeds)?
@@ -213,6 +154,7 @@ impl PerLayerInput for PerLayerEmbedding {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use swe_ml_embedding::Embed;
 
     #[test]
     fn test_ple_inject_shape() {

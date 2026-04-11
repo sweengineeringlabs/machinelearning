@@ -5,6 +5,7 @@ pub use crate::api::traits::*;
 pub use crate::api::types::*;
 pub use crate::core::linear::Linear;
 pub use crate::core::embedding::{Embedding, PerLayerEmbedding};
+pub use swe_ml_embedding::Embed;
 pub use crate::core::layer_norm::LayerNorm;
 pub use crate::core::rms_norm::RMSNorm;
 pub use crate::core::attention::{CausalSelfAttention, MultiHeadAttention};
