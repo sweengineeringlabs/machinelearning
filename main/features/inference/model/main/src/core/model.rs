@@ -1397,77 +1397,6 @@ impl LlmModel {
     }
 
 
-    /// Encode input tokens to hidden states `[B, S, dim]` without the LM head projection.
-    ///
-    /// Runs the full transformer stack (embedding → positional encoding → layers → norm)
-    /// but stops before the output projection. Use this to extract contextualised hidden
-    /// states for dense retrieval or downstream pooling via [`LlmModel::embed`].
-    ///
-    /// Works with both causal (decoder) and bidirectional (encoder) models — the attention
-    /// mask is controlled by `ModelConfig::causal`.
-    pub fn encode(&self, input_ids: &Tensor) -> ModelResult<Tensor> {
-        let x_emb = self.token_embedding.forward(input_ids)?;
-        let x_emb = if let Some(scale) = self.config.embedding_scale {
-            x_emb.mul_scalar(scale)
-        } else {
-            x_emb
-        };
-
-        let batch_size = input_ids.shape()[0];
-        let seq_len = input_ids.shape()[input_ids.ndim() - 1];
-
-        if seq_len > self.config.max_seq_len {
-            return Err(ModelError::Model(format!(
-                "Sequence length {} exceeds maximum {}",
-                seq_len, self.config.max_seq_len
-            )));
-        }
-
-        let mut x = if let Some(ref pos_emb) = self.pos_embedding {
-            let mut pos_data = Vec::with_capacity(batch_size * seq_len);
-            for _ in 0..batch_size {
-                for i in 0..seq_len {
-                    pos_data.push(i as f32);
-                }
-            }
-            let pos_bytes = f32_vec_to_bytes(pos_data);
-            let pos_ids = Tensor::new(pos_bytes, vec![batch_size, seq_len], DType::F32);
-            let p_emb = pos_emb.forward(&pos_ids)?;
-            x_emb.add(&p_emb)?
-        } else {
-            x_emb
-        };
-
-        // Embedding LayerNorm (BERT)
-        if let Some(ref embd_norm) = self.embd_norm {
-            x = embd_norm.forward(&x)?;
-        }
-
-        for layer in &self.layers {
-            x = layer.forward(&x)?;
-        }
-
-        Ok(self.norm.forward(&x)?)
-    }
-
-    /// Embed input tokens to a single dense vector per batch item: `[B, S, dim]` → `[B, dim]`.
-    ///
-    /// Runs [`encode`][LlmModel::encode] then applies `strategy` to pool across the
-    /// sequence dimension:
-    ///
-    /// | Strategy | Description | Typical use |
-    /// |---|---|---|
-    /// | `Cls`  | Hidden state of token 0 | BERT / encoder models |
-    /// | `Mean` | Average over all positions | Sentence-transformers, decoder mean-pool |
-    /// | `Max`  | Element-wise max over positions | Retrieval fine-tuned models |
-    ///
-    /// For bidirectional encoder models (`causal: false`) loaded from BERT/RoBERTa
-    /// weights, use `PoolingStrategy::Cls`. For decoder-only models (Llama, Mistral)
-    /// repurposed as embedding models, use `PoolingStrategy::Mean`.
-    pub fn embed(&self, input_ids: &Tensor, strategy: PoolingStrategy) -> ModelResult<Tensor> {
-        let hidden = self.encode(input_ids)?;
-        pool_hidden_states(&hidden, strategy)
-    }
 
     /// Quantize the lm_head (output projection) weight from F32 to Q8_0.
     /// Reduces memory bandwidth ~4x for large-vocabulary models.
@@ -1652,209 +1581,6 @@ impl LlmModel {
     }
 
     /// Forward pass without KV cache.
-    pub fn forward_pass(&self, input_ids: &Tensor) -> ModelResult<Tensor> {
-        let x_emb = self.token_embedding.forward(input_ids)?;
-        let x_emb = if let Some(scale) = self.config.embedding_scale {
-            x_emb.mul_scalar(scale)
-        } else {
-            x_emb
-        };
-
-        let batch_size = input_ids.shape()[0];
-        let seq_len = input_ids.shape()[input_ids.ndim() - 1];
-
-        if seq_len > self.config.max_seq_len {
-            return Err(ModelError::Model(format!(
-                "Sequence length {} exceeds maximum {}",
-                seq_len, self.config.max_seq_len
-            )));
-        }
-
-        // Add positional embeddings (Learned only)
-        let mut x = if let Some(ref pos_emb) = self.pos_embedding {
-            let mut pos_data = Vec::with_capacity(batch_size * seq_len);
-            for _ in 0..batch_size {
-                for i in 0..seq_len {
-                    pos_data.push(i as f32);
-                }
-            }
-            let pos_bytes = f32_vec_to_bytes(pos_data);
-            let pos_ids = Tensor::new(pos_bytes, vec![batch_size, seq_len], DType::F32);
-            let p_emb = pos_emb.forward(&pos_ids)?;
-            x_emb.add(&p_emb)?
-        } else {
-            x_emb
-        };
-
-        // Embedding LayerNorm (BERT)
-        if let Some(ref embd_norm) = self.embd_norm {
-            x = embd_norm.forward(&x)?;
-        }
-
-        // Pre-compute PLE inputs once (before layer loop)
-        let ple_inputs = if let Some(ref ple) = self.ple {
-            Some(ple.prepare(input_ids, &x)?)
-        } else {
-            None
-        };
-
-        for (i, layer) in self.layers.iter().enumerate() {
-            if let (Some(ple), Some(pli)) = (&self.ple, &ple_inputs) {
-                x = ple.inject_prepared(pli, &x, i)?;
-            }
-            x = layer.forward(&x)?;
-        }
-
-        let x = self.norm.forward(&x)?;
-        let out = self.output.forward(&x)?;
-        // Final logit softcapping: cap * tanh(logits / cap)
-        let out = if let Some(cap) = self.config.final_logit_softcapping {
-            out.mul_scalar(1.0 / cap).tanh().mul_scalar(cap)
-        } else {
-            out
-        };
-        Ok(out)
-    }
-
-    /// Forward pass with KV cache for autoregressive decoding.
-    pub fn forward_with_cache_pass(
-        &self,
-        input_ids: &Tensor,
-        cache: &mut KVCache,
-    ) -> ModelResult<Tensor> {
-        let _t_total = if log::log_enabled!(log::Level::Debug) {
-            Some(Instant::now())
-        } else {
-            None
-        };
-
-        let _t_emb = if log::log_enabled!(log::Level::Debug) {
-            Some(Instant::now())
-        } else {
-            None
-        };
-        let x_emb = self.token_embedding.forward(input_ids)?;
-        let x_emb = if let Some(scale) = self.config.embedding_scale {
-            x_emb.mul_scalar(scale)
-        } else {
-            x_emb
-        };
-        let emb_ms = _t_emb
-            .map(|t| t.elapsed().as_secs_f64() * 1000.0)
-            .unwrap_or(0.0);
-
-        let batch_size = input_ids.shape()[0];
-        let seq_len = input_ids.shape()[input_ids.ndim() - 1];
-        let start_pos = cache.current_len;
-
-        if start_pos + seq_len > self.config.max_seq_len {
-            return Err(ModelError::Model(format!(
-                "Sequence length {} exceeds maximum {} (start_pos={})",
-                start_pos + seq_len,
-                self.config.max_seq_len,
-                start_pos
-            )));
-        }
-
-        // Add positional embeddings with offset (Learned only)
-        let mut x = if let Some(ref pos_emb) = self.pos_embedding {
-            let mut pos_data = Vec::with_capacity(batch_size * seq_len);
-            for _ in 0..batch_size {
-                for i in 0..seq_len {
-                    pos_data.push((start_pos + i) as f32);
-                }
-            }
-            let pos_bytes = f32_vec_to_bytes(pos_data);
-            let pos_ids = Tensor::new(pos_bytes, vec![batch_size, seq_len], DType::F32);
-            let p_emb = pos_emb.forward(&pos_ids)?;
-            x_emb.add(&p_emb)?
-        } else {
-            x_emb
-        };
-
-        // Embedding LayerNorm (BERT)
-        if let Some(ref embd_norm) = self.embd_norm {
-            x = embd_norm.forward(&x)?;
-        }
-
-        // Pre-compute PLE inputs once (before layer loop)
-        let ple_inputs = if let Some(ref ple) = self.ple {
-            Some(ple.prepare(input_ids, &x)?)
-        } else {
-            None
-        };
-
-        let _t_layers = if log::log_enabled!(log::Level::Debug) {
-            Some(Instant::now())
-        } else {
-            None
-        };
-        for (i, layer) in self.layers.iter().enumerate() {
-            let _t_layer = if log::log_enabled!(log::Level::Debug) {
-                Some(Instant::now())
-            } else {
-                None
-            };
-
-            // Apply Per-Layer Input injection (PLE) if present
-            if let (Some(ple), Some(pli)) = (&self.ple, &ple_inputs) {
-                x = ple.inject_prepared(pli, &x, i)?;
-            }
-
-            x = layer.forward_with_cache(&x, None, cache, i)?;
-            if let Some(t) = _t_layer {
-                log::debug!(
-                    "[perf] model::forward layer={} total={:.3}ms",
-                    i,
-                    t.elapsed().as_secs_f64() * 1000.0
-                );
-            }
-        }
-        let layers_ms = _t_layers
-            .map(|t| t.elapsed().as_secs_f64() * 1000.0)
-            .unwrap_or(0.0);
-
-        let _t_norm = if log::log_enabled!(log::Level::Debug) {
-            Some(Instant::now())
-        } else {
-            None
-        };
-        let x = self.norm.forward(&x)?;
-        let norm_ms = _t_norm
-            .map(|t| t.elapsed().as_secs_f64() * 1000.0)
-            .unwrap_or(0.0);
-
-        let _t_proj = if log::log_enabled!(log::Level::Debug) {
-            Some(Instant::now())
-        } else {
-            None
-        };
-        let out = self.output.forward(&x)?;
-
-        // Final logit softcapping: cap * tanh(logits / cap)
-        let out = if let Some(cap) = self.config.final_logit_softcapping {
-            out.mul_scalar(1.0 / cap).tanh().mul_scalar(cap)
-        } else {
-            out
-        };
-
-        let proj_ms = _t_proj
-            .map(|t| t.elapsed().as_secs_f64() * 1000.0)
-            .unwrap_or(0.0);
-
-        if let Some(t) = _t_total {
-            log::debug!(
-                "[perf] model::forward embedding={:.3}ms layers={:.3}ms norm={:.3}ms projection={:.3}ms total={:.3}ms",
-                emb_ms,
-                layers_ms,
-                norm_ms,
-                proj_ms,
-                t.elapsed().as_secs_f64() * 1000.0
-            );
-        }
-
-        Ok(out)
-    }
 
     /// Returns (total_params, frozen_params).
     pub fn parameter_count(&self) -> (usize, usize) {
@@ -2053,67 +1779,6 @@ pub fn map_gpt2_weights(weights: HashMap<String, Tensor>) -> HashMap<String, Ten
 ///
 /// Data is read via the tensor's `iter()` in row-major order:
 /// `data[(b * seq_len + s) * dim + d]`.
-fn pool_hidden_states(hidden: &Tensor, strategy: PoolingStrategy) -> ModelResult<Tensor> {
-    let shape = hidden.shape();
-    if shape.len() != 3 {
-        return Err(ModelError::Model(format!(
-            "pool_hidden_states: expected [B, S, dim] tensor, got {:?}",
-            shape
-        )));
-    }
-    let batch_size = shape[0];
-    let seq_len = shape[1];
-    let dim = shape[2];
-
-    let data: Vec<f32> = hidden.iter().collect();
-    let mut output = vec![0.0f32; batch_size * dim];
-
-    match strategy {
-        PoolingStrategy::Cls => {
-            // First token per batch item.
-            for b in 0..batch_size {
-                let src = b * seq_len * dim;
-                let dst = b * dim;
-                output[dst..dst + dim].copy_from_slice(&data[src..src + dim]);
-            }
-        }
-        PoolingStrategy::Mean => {
-            let scale = 1.0 / seq_len as f32;
-            for b in 0..batch_size {
-                let dst = b * dim;
-                for s in 0..seq_len {
-                    let src = (b * seq_len + s) * dim;
-                    for d in 0..dim {
-                        output[dst + d] += data[src + d];
-                    }
-                }
-                for d in 0..dim {
-                    output[dst + d] *= scale;
-                }
-            }
-        }
-        PoolingStrategy::Max => {
-            for b in 0..batch_size {
-                let dst = b * dim;
-                // Initialise from first token.
-                let src0 = b * seq_len * dim;
-                output[dst..dst + dim].copy_from_slice(&data[src0..src0 + dim]);
-                // Element-wise max over remaining tokens.
-                for s in 1..seq_len {
-                    let src = (b * seq_len + s) * dim;
-                    for d in 0..dim {
-                        if data[src + d] > output[dst + d] {
-                            output[dst + d] = data[src + d];
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    let bytes = f32_vec_to_bytes(output);
-    Ok(Tensor::new(bytes, vec![batch_size, dim], DType::F32))
-}
 
 /// Build a SafeTensors model by dispatching on `model_type` from config.json.
 ///
@@ -2970,7 +2635,7 @@ mod tests {
             9.0,10.0,11.0,12.0,  // token 2
         ];
         let hidden = make_hidden(data, 1, 3, 4);
-        let out = pool_hidden_states(&hidden, PoolingStrategy::Cls).unwrap();
+        let out = crate::core::encode::pool_hidden_states(&hidden, PoolingStrategy::Cls).unwrap();
         assert_eq!(out.shape(), &[1, 4]);
         assert_eq!(out.get(&[0, 0]).unwrap(), 1.0);
         assert_eq!(out.get(&[0, 3]).unwrap(), 4.0);
@@ -2986,7 +2651,7 @@ mod tests {
             70.0, 80.0,  // batch 1, token 1
         ];
         let hidden = make_hidden(data, 2, 2, 2);
-        let out = pool_hidden_states(&hidden, PoolingStrategy::Cls).unwrap();
+        let out = crate::core::encode::pool_hidden_states(&hidden, PoolingStrategy::Cls).unwrap();
         assert_eq!(out.shape(), &[2, 2]);
         assert_eq!(out.get(&[0, 0]).unwrap(), 10.0);
         assert_eq!(out.get(&[0, 1]).unwrap(), 20.0);
@@ -2999,7 +2664,7 @@ mod tests {
         // batch=1, seq=2, dim=2; tokens [0,4] and [2,6] → mean [1,5]
         let data = vec![0.0, 4.0, 2.0, 6.0];
         let hidden = make_hidden(data, 1, 2, 2);
-        let out = pool_hidden_states(&hidden, PoolingStrategy::Mean).unwrap();
+        let out = crate::core::encode::pool_hidden_states(&hidden, PoolingStrategy::Mean).unwrap();
         assert_eq!(out.shape(), &[1, 2]);
         let v0 = out.get(&[0, 0]).unwrap();
         let v1 = out.get(&[0, 1]).unwrap();
@@ -3012,7 +2677,7 @@ mod tests {
         // seq=1 → mean equals the single token
         let data = vec![3.0, 7.0];
         let hidden = make_hidden(data, 1, 1, 2);
-        let out = pool_hidden_states(&hidden, PoolingStrategy::Mean).unwrap();
+        let out = crate::core::encode::pool_hidden_states(&hidden, PoolingStrategy::Mean).unwrap();
         assert!((out.get(&[0, 0]).unwrap() - 3.0).abs() < 1e-6);
         assert!((out.get(&[0, 1]).unwrap() - 7.0).abs() < 1e-6);
     }
@@ -3022,7 +2687,7 @@ mod tests {
         // batch=1, seq=3, dim=2; max per dim: d0=max(1,5,3)=5, d1=max(9,2,7)=9
         let data = vec![1.0, 9.0, 5.0, 2.0, 3.0, 7.0];
         let hidden = make_hidden(data, 1, 3, 2);
-        let out = pool_hidden_states(&hidden, PoolingStrategy::Max).unwrap();
+        let out = crate::core::encode::pool_hidden_states(&hidden, PoolingStrategy::Max).unwrap();
         assert_eq!(out.shape(), &[1, 2]);
         assert_eq!(out.get(&[0, 0]).unwrap(), 5.0);
         assert_eq!(out.get(&[0, 1]).unwrap(), 9.0);
@@ -3032,7 +2697,7 @@ mod tests {
     fn test_pool_max_single_token_identity() {
         let data = vec![-1.0, 2.0];
         let hidden = make_hidden(data, 1, 1, 2);
-        let out = pool_hidden_states(&hidden, PoolingStrategy::Max).unwrap();
+        let out = crate::core::encode::pool_hidden_states(&hidden, PoolingStrategy::Max).unwrap();
         assert_eq!(out.get(&[0, 0]).unwrap(), -1.0);
         assert_eq!(out.get(&[0, 1]).unwrap(), 2.0);
     }
@@ -3042,7 +2707,7 @@ mod tests {
         // 2-D tensor should fail
         let bad =
             Tensor::new(swe_ml_tensor::f32_vec_to_bytes(vec![1.0, 2.0]), vec![1, 2], DType::F32);
-        let r = pool_hidden_states(&bad, PoolingStrategy::Cls);
+        let r = crate::core::encode::pool_hidden_states(&bad, PoolingStrategy::Cls);
         assert!(r.is_err(), "2-D input should return an error");
     }
 

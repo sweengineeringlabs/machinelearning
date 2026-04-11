@@ -1,3 +1,5 @@
+pub mod encode;
+pub mod forward;
 pub mod gguf_bridge;
 pub mod gpt;
 pub mod model;
