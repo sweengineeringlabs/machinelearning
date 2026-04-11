@@ -4,11 +4,20 @@ use anyhow::{Context, Result};
 
 use rustml_gguf::GGUFFile;
 use rustml_model::{
-    LlmModel, ModelConfig, gguf_config_to_model_config, convert_tensors,
+    ModelRegistry, gguf_config_to_model_config, convert_tensors,
 };
 use rustml_tokenizer::{GgufTokenizer, Tokenizer};
 
 use super::state::EmbeddingState;
+
+/// Create the model registry with embedding-relevant architectures.
+fn create_registry() -> ModelRegistry {
+    let mut reg = ModelRegistry::new();
+    reg.register("nomic-bert", Box::new(rustml_arch_nomic_bert::NomicBertBuilder));
+    // Add more embedding architectures here as needed:
+    // reg.register("bert", Box::new(rustml_arch_bert::BertBuilder));
+    reg
+}
 
 /// Load an embedding model from a GGUF file.
 pub fn load_gguf(path: &Path) -> Result<EmbeddingState> {
@@ -20,11 +29,15 @@ pub fn load_gguf(path: &Path) -> Result<EmbeddingState> {
     let gguf_config = gguf
         .to_model_config()
         .with_context(|| "Failed to extract model config from GGUF")?;
-    let config = gguf_config_to_model_config(&gguf_config)
+    let mut config = gguf_config_to_model_config(&gguf_config)
         .with_context(|| "Failed to convert GGUF config to model config")?;
+
+    // Set architecture from GGUF metadata for registry dispatch
+    config.architecture = gguf_config.architecture.clone();
+
     log::info!(
         "  arch={}, dim={}, layers={}, heads={}, vocab={}",
-        gguf_config.architecture,
+        config.architecture,
         config.dim, config.n_layers, config.n_heads, config.vocab_size
     );
 
@@ -43,12 +56,10 @@ pub fn load_gguf(path: &Path) -> Result<EmbeddingState> {
     };
     let tensors = convert_tensors(loaded_tensors);
 
-    let model = match arch {
-        "nomic-bert" => LlmModel::from_pretrained_nomic_bert(&config, tensors)
-            .with_context(|| "Failed to build nomic-bert model")?,
-        _ => LlmModel::from_pretrained_bert(&config, tensors)
-            .with_context(|| "Failed to build model")?,
-    };
+    // Build model via registry — config.architecture drives builder selection
+    let registry = create_registry();
+    let model = registry.build_model(&config, tensors)
+        .with_context(|| format!("Failed to build {} model", config.architecture))?;
 
     let (total_params, _) = model.parameter_count();
     log::info!("  Model ready: {:.1}M params", total_params as f64 / 1e6);

@@ -23,10 +23,12 @@ members = [
     "main/features/inference/daemon",
     # Training
     "main/features/training",
-    # Model architectures
+    # Inference architecture builders
+    "main/features/inference/architectures/nomic_bert",
+    # Training model architectures
     "main/features/architectures",
 ]
-exclude = ["main/features/inference", "main/features/embedding"]
+exclude = ["main/features/inference", "main/features/embedding", "main/features/inference/architectures"]
 
 [workspace.package]
 version = "0.1.0"
@@ -69,6 +71,7 @@ swe-ml-embed-server = { path = "main/features/embedding/server" }
 rustml-inference-layers = { path = "main/features/inference/layers" }
 rustml-hub = { path = "main/features/hub" }
 rustml-model = { path = "main/features/inference/model" }
+rustml-arch-nomic-bert = { path = "main/features/inference/architectures/nomic_bert" }
 rustml-generation = { path = "main/features/inference/generation" }
 rustml-tokenizer = { path = "main/features/inference/tokenizer" }
 rustml-quant = { path = "main/features/inference/quant" }

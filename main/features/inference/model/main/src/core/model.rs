@@ -1677,7 +1677,7 @@ impl LanguageModel for LlmModel {
 // ======================== Helper functions ========================
 
 /// Split a fused QKV weight [3*d_model, d_model] into three [d_model, d_model] tensors.
-fn split_qkv(qkv: &Tensor, d_model: usize) -> ModelResult<(Tensor, Tensor, Tensor)> {
+pub fn split_qkv(qkv: &Tensor, d_model: usize) -> ModelResult<(Tensor, Tensor, Tensor)> {
     let q = qkv.slice(0, 0, d_model)?;
     let k = qkv.slice(0, d_model, 2 * d_model)?;
     let v = qkv.slice(0, 2 * d_model, 3 * d_model)?;
@@ -1685,7 +1685,7 @@ fn split_qkv(qkv: &Tensor, d_model: usize) -> ModelResult<(Tensor, Tensor, Tenso
 }
 
 /// Split a fused QKV bias [3*d_model] into three [d_model] tensors.
-fn split_qkv_bias(qkv_bias: &Tensor, d_model: usize) -> ModelResult<(Tensor, Tensor, Tensor)> {
+pub fn split_qkv_bias(qkv_bias: &Tensor, d_model: usize) -> ModelResult<(Tensor, Tensor, Tensor)> {
     let data: Vec<f32> = qkv_bias.iter().collect();
     if data.len() != 3 * d_model {
         return Err(ModelError::Model(format!(
