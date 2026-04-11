@@ -3,7 +3,7 @@
 use crate::api::error::ModelResult;
 use swe_ml_embedding::{DefaultEmbedding, Embed};
 use swe_ml_tensor::Tensor;
-use rustml_nn::{Linear, RMSNorm};
+use rustml_inference_layers::{Linear, RMSNorm};
 
 /// Per-layer input injection trait.
 ///

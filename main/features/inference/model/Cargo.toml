@@ -13,7 +13,7 @@ path = "main/src/lib.rs"
 [dependencies]
 swe-ml-tensor.workspace = true
 swe-ml-embedding.workspace = true
-rustml-nn.workspace = true
+rustml-inference-layers.workspace = true
 rustml-hub.workspace = true
 rustml-gguf.workspace = true
 thiserror.workspace = true

@@ -8,7 +8,7 @@ members = [
     # Embedding
     "main/features/embedding",
     # LLM inference stack
-    "main/features/inference/nn",
+    "main/features/inference/layers",
     "main/features/hub",
     "main/features/inference/model",
     "main/features/inference/generation",
@@ -61,7 +61,7 @@ env_logger = "0.11"
 swe-ml-tensor = { path = "main/features/tensor" }
 swe-ml-nn-layer = { path = "main/features/nn-layer" }
 swe-ml-embedding = { path = "main/features/embedding" }
-rustml-nn = { path = "main/features/inference/nn" }
+rustml-inference-layers = { path = "main/features/inference/layers" }
 rustml-hub = { path = "main/features/hub" }
 rustml-model = { path = "main/features/inference/model" }
 rustml-generation = { path = "main/features/inference/generation" }

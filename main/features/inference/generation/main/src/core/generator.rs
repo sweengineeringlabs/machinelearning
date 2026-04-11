@@ -11,7 +11,7 @@ use crate::core::sampling;
 use rustml_tokenizer::Tokenizer;
 use rayon::prelude::*;
 use swe_ml_tensor::{DType, Tensor, f32_vec_to_bytes};
-use rustml_nn::KVCache;
+use rustml_inference_layers::KVCache;
 
 /// A segment of a chat template: either a special token (looked up by name),
 /// a special token with a known ID, or plain text (encoded normally by the tokenizer).
@@ -851,7 +851,7 @@ mod tests {
     use super::*;
     use rustml_model::ModelConfig;
     use rustml_model::LlmModel;
-    use rustml_nn::PositionEncoding;
+    use rustml_inference_layers::PositionEncoding;
 
     /// A trivial tokenizer for testing: maps bytes to token IDs.
     struct ByteTokenizer;

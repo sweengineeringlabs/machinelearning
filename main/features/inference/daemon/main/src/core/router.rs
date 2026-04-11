@@ -12,7 +12,7 @@ use tokio_stream::StreamExt;
 
 use swe_ml_tensor::{DType, Tensor, f32_vec_to_bytes};
 use swe_ml_embedding::l2_normalize;
-use rustml_nn::PoolingStrategy;
+use rustml_inference_layers::PoolingStrategy;
 
 use crate::api::error::DaemonError;
 use crate::api::types::*;

@@ -8,7 +8,7 @@ pub enum ModelError {
     TensorError(#[from] swe_ml_tensor::TensorError),
 
     #[error("Neural network error: {0}")]
-    NnError(#[from] rustml_nn::NnError),
+    NnError(#[from] rustml_inference_layers::NnError),
 
     #[error("Embedding error: {0}")]
     EmbeddingError(#[from] swe_ml_embedding::EmbeddingError),

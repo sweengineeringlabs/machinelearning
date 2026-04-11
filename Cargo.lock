@@ -2357,8 +2357,8 @@ dependencies = [
  "log",
  "rand 0.8.5",
  "rayon",
+ "rustml-inference-layers",
  "rustml-model",
- "rustml-nn",
  "rustml-tokenizer",
  "swe-ml-tensor",
  "thiserror 2.0.17",
@@ -2402,23 +2402,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustml-model"
-version = "0.1.0"
-dependencies = [
- "log",
- "rayon",
- "rustml-gguf",
- "rustml-hub",
- "rustml-nn",
- "serde",
- "serde_json",
- "swe-ml-embedding",
- "swe-ml-tensor",
- "thiserror 2.0.17",
-]
-
-[[package]]
-name = "rustml-nn"
+name = "rustml-inference-layers"
 version = "0.1.0"
 dependencies = [
  "approx",
@@ -2427,6 +2411,22 @@ dependencies = [
  "rustml-quant",
  "serde",
  "swe-ml-nn-layer",
+ "swe-ml-tensor",
+ "thiserror 2.0.17",
+]
+
+[[package]]
+name = "rustml-model"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "rayon",
+ "rustml-gguf",
+ "rustml-hub",
+ "rustml-inference-layers",
+ "serde",
+ "serde_json",
+ "swe-ml-embedding",
  "swe-ml-tensor",
  "thiserror 2.0.17",
 ]
@@ -2799,8 +2799,8 @@ dependencies = [
  "rustml-generation",
  "rustml-gguf",
  "rustml-hub",
+ "rustml-inference-layers",
  "rustml-model",
- "rustml-nn",
  "rustml-tokenizer",
  "serde",
  "serde_json",

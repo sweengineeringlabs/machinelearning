@@ -110,7 +110,7 @@ fn bench_rope() {
     let n_heads = 4;
     let seq_len = 1;
 
-    let rope = rustml_nn::RoPEFreqs::new(head_dim, 1024, 10000.0);
+    let rope = rustml_inference_layers::RoPEFreqs::new(head_dim, 1024, 10000.0);
     let x = swe_ml_tensor::Tensor::randn(vec![1, n_heads, seq_len, head_dim]);
 
     let iterations = 200_000u64;

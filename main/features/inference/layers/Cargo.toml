@@ -1,10 +1,10 @@
 [package]
-name = "rustml-nn"
+name = "rustml-inference-layers"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Neural network layers for RustML including attention mechanisms"
+description = "Inference-optimized transformer layers — quantized linear, KV cache, SIMD RoPE, fused projections"
 
 [lib]
 path = "main/src/lib.rs"

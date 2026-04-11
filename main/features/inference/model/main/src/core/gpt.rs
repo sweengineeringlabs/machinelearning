@@ -48,7 +48,7 @@ use crate::api::error::{ModelError, ModelResult};
 use crate::api::types::GptConfig;
 use swe_ml_tensor::Tensor;
 use rustml_hub::{Gpt2WeightMapper, WeightMapper};
-use rustml_nn::{CausalSelfAttention, LayerNorm, Linear};
+use rustml_inference_layers::{CausalSelfAttention, LayerNorm, Linear};
 use swe_ml_embedding::{DefaultEmbedding, Embed};
 use std::collections::HashMap;
 
@@ -362,7 +362,7 @@ impl crate::api::types::LanguageModel for GptModel {
         GptModel::forward(self, input_ids)
     }
 
-    fn forward_with_cache(&self, input_ids: &Tensor, cache: &mut rustml_nn::KVCache) -> ModelResult<Tensor> {
+    fn forward_with_cache(&self, input_ids: &Tensor, cache: &mut rustml_inference_layers::KVCache) -> ModelResult<Tensor> {
         // Compatibility shim: GptModel has no native KV cache.
         // We accumulate the full token history and replay a complete forward
         // pass each step, giving correct results but O(n²) total cost.

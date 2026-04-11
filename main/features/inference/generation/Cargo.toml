@@ -12,7 +12,7 @@ path = "main/src/lib.rs"
 
 [dependencies]
 rustml-model.workspace = true
-rustml-nn.workspace = true
+rustml-inference-layers.workspace = true
 rustml-tokenizer.workspace = true
 swe-ml-tensor.workspace = true
 thiserror.workspace = true
