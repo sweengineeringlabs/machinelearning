@@ -3,7 +3,7 @@ use crate::api::layer::Layer;
 use crate::api::tape::{self, TapeEntry};
 use crate::api::tensor::Tensor;
 use crate::core::layers::activations::gelu_backward::GELUBackward;
-use swe_ml_normalization::{Activation, Gelu as GeluImpl};
+use swe_ml_activation::{Activation, Gelu as GeluImpl};
 
 pub struct GELU;
 

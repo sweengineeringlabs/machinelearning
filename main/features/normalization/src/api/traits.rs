@@ -16,11 +16,3 @@ pub trait Norm {
     /// Training uses this for the backward pass.
     fn forward_with_normalized(&self, input: &Tensor) -> NnLayerResult<(Tensor, Tensor)>;
 }
-
-/// Activation function contract.
-///
-/// Implementors apply a pointwise nonlinearity to the input tensor.
-pub trait Activation {
-    /// Apply the activation function.
-    fn forward(&self, input: &Tensor) -> NnLayerResult<Tensor>;
-}

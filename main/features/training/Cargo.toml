@@ -19,6 +19,7 @@ application_type = "lib"
 [dependencies]
 swe-ml-tensor.workspace = true
 swe-ml-normalization.workspace = true
+swe-ml-activation.workspace = true
 thiserror.workspace = true
 rand.workspace = true
 log.workspace = true

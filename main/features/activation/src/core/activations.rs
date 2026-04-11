@@ -1,4 +1,4 @@
-use crate::api::error::{NnLayerError, NnLayerResult};
+use crate::api::error::{ActivationError, ActivationResult};
 use crate::api::traits::Activation;
 use swe_ml_tensor::Tensor;
 
@@ -11,8 +11,8 @@ use swe_ml_tensor::Tensor;
 pub struct Gelu;
 
 impl Activation for Gelu {
-    fn forward(&self, input: &Tensor) -> NnLayerResult<Tensor> {
-        let data = input.as_slice_f32().map_err(NnLayerError::Tensor)?;
+    fn forward(&self, input: &Tensor) -> ActivationResult<Tensor> {
+        let data = input.as_slice_f32().map_err(ActivationError::Tensor)?;
         let sqrt_2_over_pi: f32 = (2.0_f32 / std::f32::consts::PI).sqrt();
 
         let output_data: Vec<f32> = data
@@ -37,8 +37,8 @@ impl Activation for Gelu {
 pub struct Silu;
 
 impl Activation for Silu {
-    fn forward(&self, input: &Tensor) -> NnLayerResult<Tensor> {
-        let data = input.as_slice_f32().map_err(NnLayerError::Tensor)?;
+    fn forward(&self, input: &Tensor) -> ActivationResult<Tensor> {
+        let data = input.as_slice_f32().map_err(ActivationError::Tensor)?;
 
         let output_data: Vec<f32> = data
             .iter()
@@ -56,8 +56,6 @@ impl Activation for Silu {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    // ── GELU ──
 
     #[test]
     fn test_gelu_forward_maps_zero_to_zero() {
@@ -90,8 +88,6 @@ mod tests {
         assert!(data[0].abs() < 0.01);
     }
 
-    // ── SiLU ──
-
     #[test]
     fn test_silu_forward_maps_zero_to_zero() {
         let input = Tensor::from_vec(vec![0.0], vec![1]).unwrap();
@@ -120,7 +116,6 @@ mod tests {
         let input = Tensor::from_vec(vec![10.0], vec![1]).unwrap();
         let output = Silu.forward(&input).unwrap();
         let data = output.as_slice_f32().unwrap();
-        // sigmoid(10) ≈ 1, so silu(10) ≈ 10
         assert!((data[0] - 10.0).abs() < 0.01);
     }
 }
