@@ -8,6 +8,10 @@ CPU for a 1 B model). HTTP loopback overhead is ~1 ms — 0.03% of wall
 time. FFI does not make inference faster. See T2 in
 `llmserv/BACKLOG.md` for the honest motivation.
 
+This crate is the worked example for the repo-wide FFI safety checklist
+at `docs/3-design/guides/ffi_contract_checklist.md` — use that doc when
+designing or reviewing any new `cdylib`.
+
 **What FFI buys you:** no port binding, no process lifecycle management,
 single-binary distribution, works in sandboxed extension hosts (IDE
 plugins). These are the real reasons to use it.
