@@ -758,6 +758,75 @@ submodule without changing the `LlamaCppBackend` trait surface.
 - Does not change the `ComputeBackend` trait. `VulkanBackend` still
   fits there for future per-op GPU work.
 
+**Pre-start audit findings (post-P7.B.1).**
+
+After shipping the trait-surface refactor (P7.B.1, commit `7b3db42`),
+these gaps remain that will surface during LlamaCppModel
+implementation. None block starting; all need conscious handling.
+
+1. **`Model::embed` still leaks `Tensor`.** Signature
+   `fn embed(&self, input_ids: &Tensor, strategy: PoolingStrategy)
+   -> ModelResult<Tensor>` was not part of the completion-path
+   cleanup. If LlamaCppModel must serve `/v1/embeddings`, the same
+   concrete-type leak returns. Two options when you get there:
+   - Narrow scope: `LlamaCppModel::embed -> Err("not supported")`.
+     Honest, but the daemon's embedding endpoint 500s for
+     llama.cpp-backed models.
+   - Extend the refactor: add an `EmbeddingResult` struct wrapping
+     `Vec<f32> + shape + dtype`; change the trait signature. Same
+     pattern as `CompletionParams`. ~1 day.
+   - Recommended: punt during initial P7.B landing. Native-Rust path
+     still handles `/v1/embeddings`; llama.cpp path serves
+     completions only.
+
+2. **Chat template ownership at `complete_turn_stream`.** Trait
+   passes `messages: &[(&str, &str)]` — implementor owns templating.
+   Native `Generator` applies templates via `encode_conversation`.
+   Verify `llama-cpp-2` exposes `apply_chat_template` bindings; if
+   missing, LlamaCppModel formats messages itself (look up model's
+   template from GGUF metadata and assemble manually). 30-min API
+   skim answers this.
+
+3. **Context lifecycle — `&self` on `open_text_completer`.** The
+   returned `Box<dyn TextCompleter + '_>` borrows from `&self`.
+   `LlamaModel` (weights) is immutable and `Arc`-friendly;
+   `LlamaContext` (KV cache + runtime state) is mutable and
+   per-sequence. Three strategies for LlamaCppTextCompleter:
+   - Fresh `LlamaContext` per `open_text_completer` call — slow
+     (KV allocation is the expensive part).
+   - `Arc<Mutex<LlamaContext>>` shared across completers — serializes
+     requests, defeats daemon concurrency.
+   - Context pool keyed per OS thread or per admission-control slot —
+     fastest, most code. Preferred for production.
+   Not a trait-surface problem; scopes the step-3 work. Budget extra
+   time for whichever strategy you pick.
+
+4. **No `[model].backend` wiring yet.** `load_model()` in `serve.rs:87`
+   dispatches only on `ModelSource::Safetensors | Gguf`. Adding the
+   llama.cpp path means extending that enum (or adding a sibling
+   `[model].backend` key that cross-cuts source). ~0.5 day — include
+   in step 4 (config wiring).
+
+5. **Pre-existing test-fixture bug blocks `cargo test -p
+   rustml-generation`.** `generator.rs:957` — `ModelConfig` literal
+   missing `architecture` field. Not caused by P7.B.1 (reproduced
+   on the pre-refactor tree via `git stash`). Parity tests for
+   LlamaCppModel will likely live alongside rustml-generation or in
+   a new `backend-llama-cpp` crate — either way, fix this first
+   (~15 min) so the test binary compiles.
+
+**What "ready to start" means after this audit.**
+
+- Completion path (`/v1/completions`, `/v1/chat/completions`,
+  streaming SSE, FFI `llmserv_complete*`): trait surface is clean,
+  implementable, no concrete types leak.
+- Embedding path (`/v1/embeddings`): still leaks `Tensor`. Defer
+  llama.cpp support for this endpoint until #1 is resolved.
+- Daemon wiring: one enum extension + one config key away from
+  selecting backends at startup.
+- Testing: one test-fixture fix away from being able to run the
+  rustml-generation test suite where parity tests will land.
+
 ---
 
 ### P7.B.1: Trait-surface refactor — prerequisite for LlamaCppBackend
