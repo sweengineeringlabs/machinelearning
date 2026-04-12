@@ -68,7 +68,7 @@ flowchart TD
         NORM1 --> ATTN --> NORM2 --> FFN
     end
 
-    subgraph OUT["OUTPUT · inference/model/"]
+    subgraph OUT["OUTPUT · model/"]
         O1["hidden × embeddingᵀ → logits"]
         O2["logits[&quot; on&quot;] = 8.3 ← highest"]
         O3["→ predict &quot; on&quot;"]
@@ -308,7 +308,7 @@ next_token = sample(p)              (greedy, top-k, top-p, temperature)
 | Temperature scaling | No scaling | `logits / T`: T>1 flattens (creative), T<1 sharpens (focused) |
 | Repetition penalty | No penalty | Penalizes already-generated tokens to reduce loops |
 
-**Crate:** `inference/generation/` (sampling), `inference/model/` (projection)
+**Crate:** `inference/generation/` (sampling), `model/` (projection)
 
 ---
 
@@ -335,7 +335,7 @@ sequenceDiagram
     participant User
     participant Daemon as inference/daemon
     participant Gen as inference/generation
-    participant Model as inference/model
+    participant Model as model
     participant Emb as embedding/
     participant Tensor as tensor/
 
@@ -364,7 +364,7 @@ sequenceDiagram
     participant User
     participant Daemon as inference/daemon
     participant Gen as inference/generation
-    participant Model as inference/model
+    participant Model as model
     participant Tensor as tensor/
 
     User->>Daemon: POST /v1/chat/completions {"messages": [...]}
@@ -460,7 +460,7 @@ graph LR
 | Activation | `activation/` | SiLU, GELU pointwise nonlinearity |
 | Quantized matmul | `inference/quant/` | SIMD dot products on 4/8-bit weights |
 | KV cache | `inference/layers/` | Pre-allocated key/value buffers for decoding |
-| Model assembly | `inference/model/` | Composes layers into LlmModel |
+| Model assembly | `model/` | Composes layers into LlmModel |
 | Text generation | `inference/generation/` | Token-by-token loop, sampling, streaming |
 | HTTP API | `inference/daemon/` | Serves /v1/completions and /v1/embeddings |
 | Weight loading | `hub/` | Downloads from HuggingFace, loads SafeTensors |
@@ -537,7 +537,7 @@ Both formats map weight names to tensor data. The model loader reads the format,
 ```
 hub/           → downloads model files from HuggingFace
 inference/gguf/      → parses GGUF format
-inference/model/     → loads weights into LlmModel (owns them)
+model/     → loads weights into LlmModel (owns them)
 tensor/        → the Tensor type that holds the data
 ```
 

@@ -13,7 +13,7 @@ members = [
     # LLM inference stack
     "main/features/inference/layers",
     "main/features/hub",
-    "main/features/inference/model",
+    "main/features/model",
     "main/features/inference/generation",
     "main/features/inference/tokenizer",
     "main/features/inference/quant",
@@ -85,7 +85,7 @@ rustml-quantizer = { path = "main/features/inference/quantizer" }
 rustml-prefill = { path = "main/features/inference/prefill" }
 rustml-thread-config = { path = "main/features/inference/thread-config" }
 rustml-compute = { path = "main/features/inference/compute" }
-rustml-model = { path = "main/features/inference/model" }
+rustml-model = { path = "main/features/model" }
 rustml-arch-llama = { path = "main/features/inference/architectures/llama" }
 rustml-arch-gpt2 = { path = "main/features/inference/architectures/gpt2" }
 rustml-arch-falcon = { path = "main/features/inference/architectures/falcon" }

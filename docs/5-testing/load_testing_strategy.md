@@ -144,7 +144,7 @@ load-smoke:
     - run: ./main/features/inference/daemon/scripts/loadtest/compare.sh latest
 ```
 
-Runs only when `inference/daemon/`, `inference/layers/`, `inference/model/`, or `tensor/` change, since those are the hot paths. Full matrix runs nightly on a dedicated runner, results published as a build artifact.
+Runs only when `inference/daemon/`, `inference/layers/`, `model/`, or `tensor/` change, since those are the hot paths. Full matrix runs nightly on a dedicated runner, results published as a build artifact.
 
 ## Non-goals
 
