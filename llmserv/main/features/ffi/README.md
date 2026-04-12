@@ -56,6 +56,51 @@ argument is valid until you call the matching `llmserv_free_*` function.
 Do not call your platform's `free()` on these pointers. Do not use them
 after `llmserv_destroy`.
 
+## Thread-safety contract
+
+The contract is **strong**. It's defensible because every type under the
+handle (`LlmModel`, `Generator`, all tokenizers) has no interior
+mutability — model weights, configs, and vocabularies are read-only, and
+each generation allocates its own KV cache + activations. The daemon
+exercises the same pattern (one shared model behind `Arc`, many
+concurrent requests) in production.
+
+**What is safe:**
+
+| Operation | From one thread | From N threads on the same handle | On multiple handles across N threads |
+|---|---|---|---|
+| `llmserv_complete` | safe | **safe** (concurrent calls OK) | safe |
+| `llmserv_embed` | safe | **safe** | safe |
+| `llmserv_tokenize` | safe | **safe** | safe |
+| `llmserv_token_count` | safe | **safe** | safe |
+| `llmserv_free_*` | safe | safe (different buffers) | safe |
+
+**What is NOT safe:**
+
+- **`llmserv_destroy` concurrent with any other call on the same handle.**
+  Destroy invalidates the memory. Caller must ensure no other thread is
+  inside `llmserv_*(h, ...)` when `llmserv_destroy(h)` is called. Typical
+  pattern: join worker threads before destroy, or wrap the handle in
+  the caller's own lifetime-managing type.
+- **Double-destroy.** Calling `llmserv_destroy` twice on the same handle
+  is undefined behavior. Treat the handle pointer as invalid after the
+  first destroy.
+- **Calling any function on a handle after destroy.** Use-after-free.
+- **Freeing a Rust-allocated buffer with anything other than the
+  matching `llmserv_free_*`.** In particular, do not pass strings to
+  `free()` or `PyMem_Free` from Python.
+
+**What is *allowed but not useful*:**
+
+- Spawning N threads that each call `llmserv_complete` on the same
+  handle does NOT give N× throughput. The underlying matmul uses rayon's
+  global thread pool, so all N calls contend for the same CPUs. See the
+  load-testing report for why concurrency ≈ 2 is the sweet spot on CPU.
+
+**Rule of thumb:** share one handle across threads for read-only
+concurrent use; create the handle before spawning workers; destroy
+only after every worker has joined.
+
 ## Python example
 
 See `examples/smoke.py` for the canonical `ctypes` binding pattern. Run

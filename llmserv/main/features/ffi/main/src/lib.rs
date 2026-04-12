@@ -21,6 +21,17 @@
 //!   boundary.
 //! - Handles are opaque — never dereference the pointer from non-Rust
 //!   code.
+//!
+//! Thread safety:
+//! - `llmserv_init` / `llmserv_destroy` are NOT safe to run concurrently
+//!   with any other call on the same handle.
+//! - `llmserv_complete`, `llmserv_embed`, `llmserv_tokenize`, and
+//!   `llmserv_token_count` ARE safe to call concurrently on the same
+//!   handle from multiple threads. No data races: underlying types have
+//!   no interior mutability, each call allocates its own activations and
+//!   KV cache. See README.md for the full contract.
+//! - Concurrent calls do not yield N× throughput — rayon's global pool
+//!   means all calls contend for the same CPUs.
 
 #![allow(clippy::missing_safety_doc)]
 
