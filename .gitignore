@@ -36,3 +36,7 @@ nul
 
 # Load test run artifacts (keep the script, ignore output)
 llmserv/main/features/daemon/scripts/out/
+
+# Transient build / debug logs
+*.log
+build_log*.txt
