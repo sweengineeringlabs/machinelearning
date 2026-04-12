@@ -321,7 +321,7 @@ Text-only inference covers the primary use case for swellmd chat completions.
 - [ ] `test_gemma4_gguf_config_bridge` — GGUF metadata → ModelConfig round-trip
 
 **Acceptance Criteria:**
-- [ ] `swellmd --safetensors google/gemma-4-E2B-it` starts and serves chat completions
+- [ ] `swellmd` with `[model].id = "google/gemma-4-E2B-it"` in `application.toml` starts and serves chat completions
 - [ ] Logit comparison within tolerance (< 0.01 for same quantization)
 - [ ] Coherent conversational responses
 - [ ] Memory footprint documented

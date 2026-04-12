@@ -35,7 +35,7 @@ Alternatives considered and rejected:
 
 ## Scenario taxonomy
 
-Each scenario answers a specific question. All run against one `swellmd` instance with a known `--max-concurrent` setting.
+Each scenario answers a specific question. All run against one `swellmd` instance with a known `[throttle.semaphore].max_concurrent` value in `application.toml`.
 
 | Scenario | Question | Shape | Duration |
 |---|---|---|---|

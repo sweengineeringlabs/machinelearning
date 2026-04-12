@@ -40,10 +40,18 @@ rustml-quantize \
   --output ./models/gemma-4-e2b-q4_0.gguf
 ```
 
-Then start the daemon against the GGUF file:
+Then point the daemon at the GGUF file via `application.toml`:
+
+```toml
+[model]
+source = "gguf"
+path = "./models/gemma-4-e2b-q4_0.gguf"
+```
+
+And start:
 
 ```bash
-swellmd --gguf-path ./models/gemma-4-e2b-q4_0.gguf
+swellmd
 ```
 
 ### Flags

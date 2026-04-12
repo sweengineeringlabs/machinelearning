@@ -47,53 +47,76 @@
 
 ## Starting the Daemon
 
-### SafeTensors Models
+`swellmd` has no CLI flags. All behavior is driven by `llmserv/main/config/application.toml`, with optional overrides at `$XDG_CONFIG_HOME/llmserv/application.toml` and `$XDG_CONFIG_DIRS/llmserv/application.toml` (deep-merged, user config wins).
 
-Load a model from HuggingFace Hub (downloads on first use, cached afterward):
+Start it with no arguments:
 
 ```bash
-swellmd --safetensors openai-community/gpt2 --port 8090
+swellmd
 ```
 
-For gated models (Gemma, Llama), set the HuggingFace token:
+### Overriding config for a single run
+
+Write an override TOML that sets only the keys you want to change, then point `XDG_CONFIG_HOME` at the directory containing it:
+
+```bash
+mkdir -p /tmp/run1/llmserv
+cat > /tmp/run1/llmserv/application.toml <<'EOF'
+[server]
+port = 8090
+
+[model]
+source = "safetensors"
+id = "openai-community/gpt2"
+EOF
+
+XDG_CONFIG_HOME=/tmp/run1 swellmd
+```
+
+### SafeTensors Models
+
+Edit your `application.toml`:
+
+```toml
+[model]
+source = "safetensors"
+id = "openai-community/gpt2"
+```
+
+For gated models (Gemma, Llama), set the HuggingFace token via env:
 
 ```bash
 export HF_TOKEN=hf_your_token_here
-swellmd --safetensors google/gemma-3-1b-it --port 8090
+swellmd
 ```
 
 ### GGUF Models
 
-Load a local GGUF file:
-
-```bash
-swellmd ./models/gemma-3-1b-it-Q4_0.gguf --port 8090
+```toml
+[model]
+source = "gguf"
+path = "./models/gemma-3-1b-it-Q4_0.gguf"
 ```
 
 ### Bind Address and Port
 
-```bash
-# Listen on all interfaces (for container/VM deployments)
-swellmd --safetensors openai-community/gpt2 --host 0.0.0.0 --port 8080
-
-# Localhost only (default)
-swellmd --safetensors openai-community/gpt2 --host 127.0.0.1 --port 8090
+```toml
+[server]
+host = "0.0.0.0"   # all interfaces (containers); default is "127.0.0.1"
+port = 8090
 ```
 
 ### Optimization Profiles
 
-Control parallelization and performance trade-offs:
-
-```bash
-# Default — rayon threshold=4096 (recommended)
-swellmd --safetensors openai-community/gpt2 --opt-profile optimized
-
-# Lower parallelization thresholds (may help on many-core machines)
-swellmd --safetensors openai-community/gpt2 --opt-profile aggressive
-
-# All optimizations off (for profiling baselines)
-swellmd --safetensors openai-community/gpt2 --opt-profile baseline
+```toml
+[runtime]
+opt_profile = "optimized"   # or "baseline" | "aggressive"
 ```
+
+Profiles control parallelization thresholds inside the tensor runtime:
+- `optimized` — rayon threshold 4096 (recommended default)
+- `aggressive` — lower thresholds; may help on many-core machines
+- `baseline` — all optimizations off; use for profiling comparisons
 
 ### Startup Sequence
 
@@ -229,17 +252,24 @@ The stream ends with `data: [DONE]`.
 
 ### Log Levels
 
-Control logging via the `RUST_LOG` environment variable:
+The daemon sets `RUST_LOG` from `[logging].level` in `application.toml` if it isn't already defined in the environment. An env-var value always wins over config.
 
 ```bash
-# Standard operation — loader + request logs
-RUST_LOG=swellmd=info swellmd --safetensors openai-community/gpt2
+# Use the config default (typically info)
+swellmd
 
-# Verbose — includes per-request generation stats
-RUST_LOG=swellmd=debug swellmd --safetensors openai-community/gpt2
+# Override via env var
+RUST_LOG=swellmd=debug swellmd
 
-# Full trace — includes rustml internal operations (tensor ops, attention)
-RUST_LOG=swellmd=info,rustml=trace swellmd --safetensors openai-community/gpt2
+# Full trace — includes rustml internal operations
+RUST_LOG=swellmd=info,rustml=trace swellmd
+```
+
+Or set it in `application.toml`:
+
+```toml
+[logging]
+level = "debug"
 ```
 
 ### Request Logging
@@ -293,18 +323,17 @@ Each completed inference logs token count and throughput:
 ### Foreground (Development)
 
 ```bash
-RUST_LOG=swellmd=info swellmd --safetensors openai-community/gpt2 --port 8090
+swellmd
 ```
 
 ### Background (Production)
 
 ```bash
 # Start in background, log to file
-RUST_LOG=swellmd=info swellmd --safetensors openai-community/gpt2 --port 8090 \
-  > /var/log/swellmd.log 2>&1 &
+swellmd > /var/log/swellmd.log 2>&1 &
 
-# Check if running
-curl -s http://localhost:8090/health
+# Check if running (port per [server].port in application.toml)
+curl -s http://localhost:8080/health
 
 # Stop gracefully
 kill $(pgrep swellmd)
@@ -319,14 +348,20 @@ After=network.target
 
 [Service]
 Type=simple
-Environment="RUST_LOG=swellmd=info"
-ExecStart=/usr/local/bin/swellmd --safetensors openai-community/gpt2 --host 0.0.0.0 --port 8090
+# application.toml lives at /etc/xdg/llmserv/application.toml (system-wide
+# override) or the bundled default baked into the binary. Override a
+# single install's config by setting XDG_CONFIG_HOME:
+Environment="XDG_CONFIG_HOME=/etc/swellmd"
+ExecStart=/usr/local/bin/swellmd
 Restart=on-failure
 RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
 ```
+
+With the above `XDG_CONFIG_HOME`, put your overrides at
+`/etc/swellmd/llmserv/application.toml`.
 
 ---
 

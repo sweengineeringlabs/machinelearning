@@ -82,9 +82,21 @@ lto = "thin"
 
 ### Start the Daemon
 
+Edit `llmserv/main/config/application.toml` to select the model and port, or use an XDG override at `$XDG_CONFIG_HOME/llmserv/application.toml`:
+
+```toml
+[server]
+port = 8090
+
+[model]
+source = "safetensors"
+id = "openai-community/gpt2"
+```
+
+Then run:
+
 ```bash
-RUST_LOG=swellmd=info cargo run -p swellmd --release --bin swellmd -- \
-  --safetensors openai-community/gpt2 --port 8090
+cargo run -p swellmd --release --bin swellmd
 ```
 
 Expected startup logs:
@@ -290,20 +302,23 @@ The ~15 tok/s is practical for interactive use (faster than reading speed) but n
 
 ## Optimization Profiles
 
-Compare the three profiles on the same prompt:
+Compare the three profiles on the same prompt. Edit `[runtime].opt_profile` in your `application.toml` override between runs:
 
-```bash
-# Restart daemon with each profile, then run the same benchmark:
-
+```toml
 # Profile: optimized (default)
-swellmd --safetensors openai-community/gpt2 --port 8090 --opt-profile optimized
+[runtime]
+opt_profile = "optimized"
 
 # Profile: aggressive
-swellmd --safetensors openai-community/gpt2 --port 8090 --opt-profile aggressive
+[runtime]
+opt_profile = "aggressive"
 
 # Profile: baseline (no parallelization — slowest, for comparison)
-swellmd --safetensors openai-community/gpt2 --port 8090 --opt-profile baseline
+[runtime]
+opt_profile = "baseline"
 ```
+
+Restart the daemon (`swellmd`) between changes.
 
 Record `tok/s` for each profile with the same prompt and `max_tokens`. Expected:
 - `optimized` and `aggressive` should be close

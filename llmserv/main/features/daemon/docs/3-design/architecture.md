@@ -65,7 +65,7 @@ The permit moves into the `spawn_blocking` closure and drops when inference comp
 
 Rationale for **fail fast over queueing**: CPU inference is slow (seconds per request). Silently queueing a 50-request burst behind a 2-wide throttle means the last client waits 25× the single-request latency with no indication. Returning 503 immediately gives clients a retry signal and keeps tail latency bounded. If async admission is needed later, `acquire().await` with a bounded timeout can be added to the trait without breaking callers.
 
-Default capacity is `--max-concurrent 2`. Higher values oversubscribe the rayon thread pool inside each request. For a 1B model on 8 cores, empirically 2–4 is the sweet spot (see `docs/5-testing/report/load_testing_2026_04_12_admission_control.md`).
+Default capacity is `[throttle.semaphore].max_concurrent = 2` in `application.toml`. Higher values oversubscribe the rayon thread pool inside each request. For a 1B model on 8 cores, empirically 2–4 is the sweet spot (see `docs/5-testing/report/load_testing_2026_04_12_admission_control.md`).
 
 ### Request handling: `spawn_blocking` for compute
 
@@ -101,15 +101,16 @@ Request/response DTOs live in `api/types.rs` and mirror OpenAI's field names so 
 
 ## Lifecycle
 
-1. `bin/serve.rs` parses CLI args (`--gguf-path` or `--safetensors`, `--host`, `--port`, `--opt-profile`, `--max-concurrent`).
-2. The optimization profile is applied to the `rustml-tensor` runtime config.
-3. `rayon` thread pool size is logged (from `rustml-thread-config::AutoThreadConfig`).
-4. The model is loaded via `load_gguf` or `load_safetensors`, producing a `DefaultModel`.
-5. A `SemaphoreThrottle` is constructed with `--max-concurrent`.
-6. `AppState { model, throttle }` is wrapped in `Arc` and handed to `build_router`.
-7. axum binds to `host:port` and serves until SIGINT/SIGTERM.
+1. `bin/serve.rs` calls `load_config()` which reads `llmserv/main/config/application.toml` (bundled via `include_str!`) and overlays any user config from `$XDG_CONFIG_DIRS/llmserv/application.toml` and `$XDG_CONFIG_HOME/llmserv/application.toml` via deep-merge. The merged result deserializes into a typed `AppConfig`.
+2. `RUST_LOG` is set from `[logging].level` if not already in the environment.
+3. The optimization profile (`[runtime].opt_profile`) is applied to the `rustml-tensor` runtime config.
+4. `rayon` thread pool size is logged (from `rustml-thread-config::AutoThreadConfig`).
+5. The model is loaded via `load_gguf` (when `[model].source = "gguf"`) or `load_safetensors` (when `[model].source = "safetensors"`). The merged TOML is passed through so the runtime quantizer can read its `[quantization]` section without re-reading files.
+6. `build_throttle(cfg)` dispatches on `[throttle].provider` to construct the admission-control backend. Today only `"semaphore"` is implemented; new providers slot in as one `match` arm plus a config sub-table.
+7. `AppState { model, throttle }` is wrapped in `Arc` and handed to `build_router`.
+8. axum binds to `[server].host:[server].port` and serves until SIGINT/SIGTERM.
 
-No reload, no graceful shutdown drain — the process is the unit of deployment.
+No CLI flags. No reload. No graceful shutdown drain — the process is the unit of deployment. To run with different settings, set `XDG_CONFIG_HOME=/path/to/dir` where the overlay lives at `$XDG_CONFIG_HOME/llmserv/application.toml`.
 
 ## What's Out of Scope
 

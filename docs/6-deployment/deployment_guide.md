@@ -147,31 +147,39 @@ One of `GGUF_PATH` or `--safetensors` is required.
 
 ### SafeTensors (HuggingFace Hub)
 
-The daemon downloads and caches models automatically:
+Point `application.toml` at a HuggingFace repo ID:
+
+```toml
+[model]
+source = "safetensors"
+id = "openai-community/gpt2"
+```
+
+Then:
 
 ```bash
 # First run — downloads model (~500 MB for GPT-2)
-swellmd --safetensors openai-community/gpt2
+swellmd
 
 # Subsequent runs — uses cache
-swellmd --safetensors openai-community/gpt2
+swellmd
 ```
 
 **Cache location**: `~/.cache/llm/hub/<org>--<model>/`
 
-**Gated models** require authentication:
+**Gated models** require authentication via env:
 
 ```bash
 export HF_TOKEN=hf_your_token_here
-swellmd --safetensors google/gemma-3-1b-it
+swellmd
 ```
 
 ### GGUF (Local Files)
 
-Place GGUF files anywhere and reference by path:
-
-```bash
-swellmd /models/gemma-3-1b-it-Q4_0.gguf
+```toml
+[model]
+source = "gguf"
+path = "/models/gemma-3-1b-it-Q4_0.gguf"
 ```
 
 ### Pre-caching Models
@@ -186,8 +194,8 @@ sweai hub download openai-community/gpt2
 sweai hub list
 # openai-community/gpt2    C:\Users\you\.cache\rustml\hub\openai-community--gpt2
 
-# Then start daemon (uses cache, no network needed)
-swellmd --safetensors openai-community/gpt2
+# Point application.toml [model].id at it and start daemon (no network)
+swellmd
 ```
 
 ---
@@ -208,14 +216,26 @@ FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /app/target/release/swellmd /usr/local/bin/
 
-# Pre-cache a model (optional — or mount a volume)
-# RUN swellmd --safetensors openai-community/gpt2 --help || true
+# application.toml is baked into the swellmd binary as the bundled
+# default. To override, mount an XDG config at /etc/config/llmserv/application.toml
+# and set XDG_CONFIG_HOME=/etc/config in the container.
 
 EXPOSE 8080
-ENV RUST_LOG=swellmd=info
+ENV XDG_CONFIG_HOME=/etc/config
 
 ENTRYPOINT ["swellmd"]
-CMD ["--host", "0.0.0.0", "--port", "8080"]
+```
+
+An override TOML mounted at `/etc/config/llmserv/application.toml` might look like:
+
+```toml
+[server]
+host = "0.0.0.0"
+port = 8080
+
+[model]
+source = "safetensors"
+id = "openai-community/gpt2"
 ```
 
 **Build and run:**
@@ -223,14 +243,18 @@ CMD ["--host", "0.0.0.0", "--port", "8080"]
 ```bash
 docker build -t swellmd .
 
-# With GGUF model mounted
-docker run -p 8080:8080 -v /path/to/models:/models \
-  swellmd /models/model.gguf
+# With config and models mounted
+docker run -p 8080:8080 \
+  -v /path/to/config:/etc/config \
+  -v /path/to/models:/models \
+  swellmd
 
-# With SafeTensors (auto-download, persistent cache)
-docker run -p 8080:8080 -v swellmd-cache:/root/.cache/rustml \
+# With SafeTensors auto-download + persistent cache
+docker run -p 8080:8080 \
+  -v /path/to/config:/etc/config \
+  -v swellmd-cache:/root/.cache/rustml \
   -e HF_TOKEN=hf_xxx \
-  swellmd --safetensors openai-community/gpt2
+  swellmd
 ```
 
 ### Docker Compose
@@ -242,12 +266,12 @@ services:
     ports:
       - "8090:8080"
     volumes:
+      - ./config:/etc/config                 # contains llmserv/application.toml
       - ./models:/models
       - swellmd-cache:/root/.cache/rustml
     environment:
-      - RUST_LOG=swellmd=info
+      - XDG_CONFIG_HOME=/etc/config
       - HF_TOKEN=${HF_TOKEN}
-    command: ["--safetensors", "openai-community/gpt2", "--host", "0.0.0.0", "--port", "8080"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
