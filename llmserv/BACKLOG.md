@@ -576,6 +576,168 @@ tuning. Consider if the time investment above proves untenable.
 
 ---
 
+### P7.B: `LlamaCppBackend` — implementation plan
+
+Concrete build-out of Path B. Goal: a drop-in backend that matches
+Ollama's speed (~3× current CpuBackend) by delegating the forward pass
+to llama.cpp, selected via `application.toml`.
+
+**Architecture decision — op-level vs model-level wrapping.**
+
+The existing `ComputeBackend` trait at
+`llmserv/main/features/inference/compute/src/api/traits.rs` exposes
+per-op methods (`matmul`, `softmax`, `gelu`, `silu`). Wrapping
+llama.cpp at that granularity defeats the point — llama.cpp's speed
+comes from **whole-graph ggml fusion**, per-CPU kernel dispatch, and
+its own KV cache layout. Calling `ggml_mul_mat` once per Linear layer
+from our Rust code would round-trip buffers across the FFI boundary
+dozens of times per token and lose most of the win.
+
+Conclusion: `LlamaCppBackend` must own the **whole forward pass**, not
+individual ops. This means introducing a higher-level abstraction
+alongside `ComputeBackend`:
+
+```rust
+// llmserv/main/features/inference/compute/src/api/model_backend.rs
+pub trait ModelBackend: Send + Sync {
+    fn load(path: &Path, config: &ModelBackendConfig) -> Result<Self, BackendError>
+        where Self: Sized;
+    fn forward(&mut self, tokens: &[u32], ctx: &mut BackendContext) -> Result<Logits, BackendError>;
+    fn tokenize(&self, text: &str) -> Result<Vec<u32>, BackendError>;
+    fn detokenize(&self, tokens: &[u32]) -> Result<String, BackendError>;
+    fn reset_context(&mut self, ctx: &mut BackendContext);
+    fn name(&self) -> &str;
+}
+```
+
+The existing `CpuBackend` gets a sibling `NativeRustBackend: ModelBackend`
+that wraps our current `inference/model/` + `inference/layers/` stack.
+`LlamaCppBackend: ModelBackend` becomes a peer. The `ComputeBackend`
+trait stays for op-level work that doesn't need whole-graph fusion
+(Vulkan shaders per-op can still make sense there).
+
+**Dependency choice.**
+
+Recommended: **`llama-cpp-2` crate** (actively maintained, bundled
+llama.cpp submodule, covers Linux/Windows/macOS CPU + CUDA + Metal
+features behind cargo flags). Alternatives weighed:
+
+| Option | Pro | Con |
+|---|---|---|
+| `llama-cpp-2` crate | Maintained, bundles cmake build, covers major OSes | Pulls llama.cpp at a pinned version; we track upstream via crate updates |
+| `llama-cpp-rs` crate | Older, smaller API | Less maintained — rejected |
+| Manual bindgen + submodule | Full control over version pinning | 3-5 days more work up front, we become cmake-build maintainers |
+
+Pick `llama-cpp-2`. If it becomes unmaintained we can migrate to a
+submodule without changing the `LlamaCppBackend` trait surface.
+
+**Work breakdown.**
+
+1. **New trait + extract existing backend (~1.5 days).**
+   - Add `ModelBackend` trait in
+     `llmserv/main/features/inference/compute/src/api/model_backend.rs`
+   - Move current model-forward logic from `inference/model/` into a
+     `NativeRustBackend` struct implementing `ModelBackend`
+   - Keep `ComputeBackend` intact for per-op Vulkan work later
+
+2. **Add `llama-cpp-2` dependency (~0.5 day).**
+   - `[workspace.dependencies] llama-cpp-2 = { version = "...", features = ["cmake"] }`
+   - Confirm build succeeds on the dev box (MSVC toolchain on Windows,
+     cmake on PATH)
+   - Gate behind a cargo feature `backend-llama-cpp` so pure-Rust
+     builds don't require a C++ toolchain
+
+3. **Implement `LlamaCppBackend` (~2.5 days).**
+   - New crate `llmserv/main/features/inference/backend-llama-cpp/`
+     following SEA layout (api/core/saf)
+   - Wrap `LlamaModel` load, `LlamaContext` creation, `llama_decode`
+     per-batch, logits extraction
+   - Use llama.cpp's own tokenizer (not our `tokenizer/` crate) for
+     this backend — ensures bit-identical inputs vs Ollama
+   - Map llama.cpp errors to our `BackendError` type
+
+4. **Config wiring (~0.5 day).**
+   - Add `[compute]` section to `main/config/application.toml`:
+     ```toml
+     [compute]
+     backend = "native_rust"   # "native_rust" | "llama_cpp"
+     ```
+   - Daemon loader selects backend at startup via
+     `ModelBackendRegistry` (follows the SPI/DI pattern — no
+     match-on-string dispatch in layers code)
+
+5. **Streaming integration (~1 day).**
+   - llama.cpp produces logits; our `generation/` crate handles sampling
+     — reuse that layer by wrapping `LlamaCppBackend::forward` output
+     into our `Logits` type
+   - Alternative: use llama.cpp's built-in sampling via
+     `llama_sampler_*`. Defer — keeps sampler parity with
+     `NativeRustBackend` so daemon SSE behavior is identical
+
+6. **Correctness harness (~1 day).**
+   - New test `llmserv/main/features/backend-llama-cpp/tests/parity.rs`
+   - Load same GGUF with both backends, generate 32 tokens at
+     temperature=0, assert token sequences match for
+     gemma-3-1b-it and qwen2.5-0.5b
+   - Not expecting exact logit match (different FMA orders), but
+     deterministic token output at temp=0 must match
+
+7. **Benchmark (~0.5 day).**
+   - Extend `llmc load` harness to accept `--backend llama_cpp`
+   - Report p50/p95/p99 decode latency for the same prompts used in
+     the Ollama comparison; record in `docs/perf/`
+
+8. **CI updates (~0.5–1 day).**
+   - Linux runner: `apt install cmake g++` already standard
+   - Windows runner: confirm MSVC + cmake on the GitHub-hosted image
+   - macOS runner: Xcode CLI tools already present
+   - Split CI matrix: default job builds without `backend-llama-cpp`
+     feature (fast, no C++); a separate job builds with the feature
+     and runs the parity test
+
+**Total: 8–10 days focused work.** Matches the original Path B estimate.
+
+**Open questions to resolve before starting.**
+
+- Does `llama-cpp-2` expose a stable way to feed a pre-built logits
+  tensor back to our sampler, or does it only surface the final
+  token? (Need: logits vector per step for temperature/top-k/top-p.)
+  — 30 min API skim on docs.rs answers this.
+- How does llama.cpp's context reset interact with our daemon's
+  per-request admission control? Each in-flight request needs its
+  own `LlamaContext`, or one context with sequence IDs? `llama.cpp`
+  supports parallel sequences in one context — prefer that for
+  memory, but verify the crate exposes it.
+- License / distribution: llama.cpp is MIT, `llama-cpp-2` is also
+  permissive. No conflicts. Note in `NOTICE` if we ship binaries.
+
+**Validation / done-criteria.**
+
+- [ ] Parity test passes: same tokens generated for gemma-3-1b-it
+      and qwen2.5-0.5b at temp=0, 32-token continuation, 3 prompts
+- [ ] Benchmark shows p50 decode within 20% of Ollama on the same
+      model, same prompt, same hardware
+- [ ] `cargo build --release` without `backend-llama-cpp` feature
+      still succeeds (no C++ toolchain required for pure-Rust build)
+- [ ] Daemon hot-reload works: switching `backend` in
+      `application.toml` and sending SIGHUP swaps backends cleanly
+      without restart
+- [ ] Correctness: streaming SSE payload is byte-identical for a
+      fixed prompt between old and new backends at temp=0 (requires
+      matching sampler — handled in step 5)
+
+**What this deliberately does NOT do.**
+
+- Does not delete the `NativeRustBackend` path. Keeping it means we
+  still own the full stack for teaching/research and for platforms
+  where C++ is unwelcome.
+- Does not port our SIMD kernels into llama.cpp's GGML framework.
+  That's a separate, much larger project.
+- Does not change the `ComputeBackend` trait. `VulkanBackend` still
+  fits there for future per-op GPU work.
+
+---
+
 ### P6: GPU acceleration (Vulkan)
 - **Architecture done**: `rustml-compute` crate with `ComputeBackend` trait, `CpuBackend` provider (wraps existing ops), `VulkanBackend` stub
 - **Remaining**: Implement Vulkan compute shaders for matmul, softmax, GELU, SiLU. Buffer management, shader compilation pipeline, device selection. Wire `ComputeBackend` into `inference/layers/` to replace CPU tensor ops.
