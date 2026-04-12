@@ -12,6 +12,7 @@ use tokio_stream::StreamExt;
 
 use swe_ml_tensor::{DType, Tensor, f32_vec_to_bytes};
 use swe_ml_embedding::l2_normalize;
+use rustml_generation::CompletionParams;
 use rustml_inference_layers::PoolingStrategy;
 
 use crate::api::error::DaemonError;
@@ -130,16 +131,15 @@ async fn handle_blocking(
     // `permit` moves into the closure; dropped when inference completes.
     let (output, prompt_tokens, completion_tokens) = tokio::task::spawn_blocking(move || {
         let _permit = permit;
-        let mut generator = state.model.build_generator(temperature);
-        if let Some(k) = top_k {
-            generator = generator.with_top_k(k);
-        }
-        if let Some(p) = top_p {
-            generator = generator.with_top_p(p);
-        }
-        if let Some(rp) = repetition_penalty {
-            generator = generator.with_repetition_penalty(rp);
-        }
+        let mut completer = state.model.open_text_completer();
+        let params = CompletionParams {
+            temperature,
+            max_tokens,
+            top_k,
+            top_p,
+            repetition_penalty,
+            deadline: None,
+        };
 
         let messages: Vec<(&str, &str)> = owned_messages
             .iter()
@@ -147,8 +147,8 @@ async fn handle_blocking(
             .collect();
 
         let start = Instant::now();
-        let output: String = generator
-            .generate_turn_stream(&messages, max_tokens, |_| true)
+        let output: String = completer
+            .complete_turn_stream(&messages, &params, &mut |_| true)
             .map_err(|e| DaemonError::GenerationFailed(e.to_string()))?;
         let elapsed = start.elapsed();
 
@@ -217,16 +217,15 @@ async fn handle_streaming(
     let stream_state = Arc::clone(&state);
     tokio::task::spawn_blocking(move || {
         let _permit = permit;
-        let mut generator = stream_state.model.build_generator(temperature);
-        if let Some(k) = top_k {
-            generator = generator.with_top_k(k);
-        }
-        if let Some(p) = top_p {
-            generator = generator.with_top_p(p);
-        }
-        if let Some(rp) = repetition_penalty {
-            generator = generator.with_repetition_penalty(rp);
-        }
+        let mut completer = stream_state.model.open_text_completer();
+        let params = CompletionParams {
+            temperature,
+            max_tokens,
+            top_k,
+            top_p,
+            repetition_penalty,
+            deadline: None,
+        };
 
         let messages: Vec<(&str, &str)> = owned_messages
             .iter()
@@ -234,7 +233,7 @@ async fn handle_streaming(
             .collect();
 
         let tokenizer = stream_state.model.tokenizer();
-        let _ = generator.generate_turn_stream(&messages, max_tokens, |token_id| {
+        let _ = completer.complete_turn_stream(&messages, &params, &mut |token_id| {
             match tokenizer.decode(&[token_id]) {
                 Ok(piece) => tx.blocking_send(piece).is_ok(),
                 Err(_) => true,
@@ -303,20 +302,19 @@ async fn completions(
 
     let (text, prompt_tokens, completion_tokens) = tokio::task::spawn_blocking(move || {
         let _permit = permit;
-        let mut generator = state.model.build_generator(temperature);
-        if let Some(k) = top_k {
-            generator = generator.with_top_k(k);
-        }
-        if let Some(p) = top_p {
-            generator = generator.with_top_p(p);
-        }
-        if let Some(rp) = repetition_penalty {
-            generator = generator.with_repetition_penalty(rp);
-        }
+        let mut completer = state.model.open_text_completer();
+        let params = CompletionParams {
+            temperature,
+            max_tokens,
+            top_k,
+            top_p,
+            repetition_penalty,
+            deadline: None,
+        };
 
         let start = Instant::now();
-        let text = generator
-            .generate(&prompt, max_tokens)
+        let text = completer
+            .complete(&prompt, &params)
             .map_err(|e| DaemonError::GenerationFailed(e.to_string()))?;
         let elapsed = start.elapsed();
 

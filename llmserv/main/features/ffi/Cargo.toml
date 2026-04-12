@@ -14,6 +14,7 @@ path = "main/src/lib.rs"
 [dependencies]
 swellmd.workspace = true
 swe-ml-tensor.workspace = true
+rustml-generation.workspace = true
 rustml-model.workspace = true
 rustml-tokenizer.workspace = true
 rustml-inference-layers.workspace = true

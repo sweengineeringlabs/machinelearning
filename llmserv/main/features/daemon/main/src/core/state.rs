@@ -2,7 +2,7 @@ use crate::api::model::Model;
 use crate::api::throttle::Throttle;
 use rustml_inference_layers::PoolingStrategy;
 use rustml_model::{LanguageModel, LlmModel, ModelResult, OptProfile};
-use rustml_generation::Generator;
+use rustml_generation::{Generator, TextCompleter};
 use rustml_tokenizer::Tokenizer;
 use swe_ml_tensor::Tensor;
 
@@ -22,8 +22,12 @@ impl Model for DefaultModel {
         &self.model_id
     }
 
-    fn build_generator(&self, temperature: f32) -> Generator<'_> {
-        let mut generator = Generator::new(&self.model, self.tokenizer.as_ref(), temperature);
+    fn open_text_completer(&self) -> Box<dyn TextCompleter + '_> {
+        // Temperature is overridden per-request via CompletionParams;
+        // construct with 0.0 as an inert default. Model-level defaults
+        // (profile, EOS, BOS, chat template, context length) do NOT vary
+        // per request and are baked in here.
+        let mut generator = Generator::new(&self.model, self.tokenizer.as_ref(), 0.0);
         generator = generator.with_optimization_profile(self.profile);
 
         if let Some(eos) = self.eos_token_id {
@@ -39,7 +43,7 @@ impl Model for DefaultModel {
         // Auto-size context to model max
         generator = generator.with_context_len(self.model.max_sequence_length());
 
-        generator
+        Box::new(generator)
     }
 
     fn tokenizer(&self) -> &dyn Tokenizer {

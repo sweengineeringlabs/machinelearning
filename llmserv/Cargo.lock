@@ -1665,6 +1665,7 @@ version = "0.1.0"
 dependencies = [
  "cbindgen",
  "log",
+ "rustml-generation",
  "rustml-inference-layers",
  "rustml-model",
  "rustml-tokenizer",

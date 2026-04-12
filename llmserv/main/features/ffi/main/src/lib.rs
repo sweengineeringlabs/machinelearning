@@ -50,6 +50,7 @@ use rustml_inference_layers::PoolingStrategy;
 use rustml_model::OptProfile;
 use swe_ml_tensor::{DType, Tensor, f32_vec_to_bytes};
 
+use rustml_generation::CompletionParams;
 use swellmd::{Model, ModelSource};
 
 /// Error codes returned by every function. Zero is success.
@@ -215,9 +216,10 @@ pub unsafe extern "C" fn llmserv_complete(
         let guard = h.inner.read().map_err(|_| LlmError::Internal)?;
         let model = guard.as_ref().ok_or(LlmError::Destroyed)?;
 
-        let generator = model.build_generator(temperature);
+        let mut completer = model.open_text_completer();
         let max = if max_tokens == 0 { 256 } else { max_tokens as usize };
-        let output = generator.generate(prompt_str, max).map_err(|e| {
+        let params = CompletionParams::new(temperature, max);
+        let output = completer.complete(prompt_str, &params).map_err(|e| {
             log::error!("llmserv_complete: generate failed: {}", e);
             LlmError::Runtime
         })?;
@@ -259,12 +261,13 @@ pub unsafe extern "C" fn llmserv_complete_chat(
         let guard = h.inner.read().map_err(|_| LlmError::Internal)?;
         let model = guard.as_ref().ok_or(LlmError::Destroyed)?;
 
-        let generator = model.build_generator(temperature);
+        let mut completer = model.open_text_completer();
         let max = if max_tokens == 0 { 256 } else { max_tokens as usize };
+        let params = CompletionParams::new(temperature, max);
 
         let messages: [(&str, &str); 1] = [("user", prompt_str)];
-        let output = generator
-            .generate_turn_stream(&messages, max, |_| true)
+        let output = completer
+            .complete_turn_stream(&messages, &params, &mut |_| true)
             .map_err(|e| {
                 log::error!("llmserv_complete_chat: generate_turn_stream failed: {}", e);
                 LlmError::Runtime
@@ -331,11 +334,12 @@ pub unsafe extern "C" fn llmserv_complete_stream(
         let ctx = Ctx(user_data);
 
         let tokenizer = model.tokenizer();
-        let generator = model.build_generator(temperature);
+        let mut completer = model.open_text_completer();
         let max = if max_tokens == 0 { 256 } else { max_tokens as usize };
+        let params = CompletionParams::new(temperature, max);
 
-        let _ = generator
-            .generate_stream(prompt_str, max, |token_id| {
+        let _ = completer
+            .complete_stream(prompt_str, &params, &mut |token_id| {
                 // Decode just this token to a piece.
                 let piece = match tokenizer.decode(&[token_id]) {
                     Ok(s) => s,
