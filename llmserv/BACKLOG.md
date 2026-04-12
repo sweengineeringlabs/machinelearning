@@ -494,6 +494,81 @@ is, pursue the llama.cpp-wrapper path (P7.x tbd) rather than continuing
 to hand-tune Rust SIMD — the same engineer-time delivers larger and
 more predictable gains wrapping a mature kernel library.
 
+### P7.2 decision framing — concrete work per path
+
+If picking up this thread in a future session, the four realistic paths
+with their actual work items:
+
+**Path A — Continue hand-tuned SIMD (P7.2.b.1 + P7.2.b.2).**
+
+  Work (5–8 days focused):
+  - Restructure outer matmul to process 4 output columns per activation
+    block; write dot_q8q8_4cols_avx2 with 4 independent madd chains
+  - Handle out_features % 4 != 0 edge cases
+  - New correctness tests (4× code paths, same tolerance)
+  - Cross-block __m256 f32 accumulator in inner loop (reduce once per
+    output column, not per block)
+  - Benchmark each change independently, keep only wins
+
+  Expected outcome:
+  - Optimistic: 20–40% additional speedup, gap shrinks to 2.3–2.6×
+  - Realistic: 10–20%, gap shrinks to 2.7–3.0×
+  - Pessimistic: no net win (measurement reveals the optimizations
+    don't pay on this CPU/workload)
+
+  Further P7 items (P7.3 Q4_0, P7.4 fused attention, P7.5 Q4_K_M,
+  P7.6 KV cache pooling) each add 1–2 weeks more. Ceiling to reach
+  within ~1.5× of ollama: 2–3 months.
+
+**Path B — Wrap llama.cpp as a ComputeBackend (recommended if speed
+matters).**
+
+  Work (8–12 days):
+  - llama.cpp as git submodule OR use llama-cpp-rs / llama-cpp-2
+    crate to skip most FFI (2 days)
+  - Implement LlamaCppBackend satisfying the existing ComputeBackend
+    trait from P6 (2 days)
+  - CI build on Linux/Windows/macOS for the C++ side (1–2 days)
+  - Wire [compute] section in application.toml to pick backend (0.5 day)
+  - Correctness tests against current backend, same prompts same model (1 day)
+  - Benchmark vs current CpuBackend (0.5 day)
+
+  Risk: low. llama-cpp-rs exists, is MIT-licensed, actively maintained.
+  Expected outcome: ~3× speedup, effectively matching ollama.
+
+  Trade-offs:
+  - Adds C++ toolchain dependency for source builds
+  - Loses the "pure Rust" identity
+  - Gains kernels for ARM / Apple Silicon / AVX-512 (currently AVX2 only)
+
+**Path C — Accept current performance, move on (status quo).**
+
+  Work: 0 days. Net cost: opportunity cost of continuing with
+  2540 ms p50 on a 1B model. Fine for dev / desktop / prototyping.
+  Not competitive with ollama for users who benchmark both.
+
+  Use if: other backlog items (D1 doc sweep, T1 oha parity P0/P1,
+  or P5 GPU Vulkan via P6) have higher product impact than the
+  remaining 3.3× perf gap.
+
+**Path D — Optimize something other than matmul.**
+
+  Not recommended: profiling showed matmul is 89% of decode-token time.
+  Optimizing the other 11% (output projection, sampling, KV cache)
+  caps the possible speedup at ~12%. Poor ROI vs Path B.
+
+  Exception: P7.4 fused attention becomes relevant if workloads shift
+  to longer contexts (the 8-token benchmark doesn't stress attention).
+
+**Framing for the decision:**
+
+| Path | Work | Risk | Expected speedup | Identity change |
+|---|---|---|---|---|
+| A | 5–8 days (+ more for P7.3–.6) | medium (uncertain) | 10–40% | none |
+| B | 8–12 days | low | ~200% (matches ollama) | adds C++ dep |
+| C | 0 | none | 0% | none |
+| D | 2–3 weeks | medium | ≤12% | none |
+
 **Alternative "pragmatic" path**: wrap llama.cpp itself as a
 `ComputeBackend` provider (we already have the trait from P6). Lose
 "pure Rust" as a bragging point, gain every ounce of their kernel
