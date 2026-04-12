@@ -1,0 +1,23 @@
+[package]
+name = "llmserv-ffi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "C-ABI cdylib for llmserv — desktop / IDE integration, no HTTP"
+
+[lib]
+name = "llmserv"
+crate-type = ["cdylib", "rlib"]
+path = "main/src/lib.rs"
+
+[dependencies]
+swellmd.workspace = true
+swe-ml-tensor.workspace = true
+rustml-model.workspace = true
+rustml-tokenizer.workspace = true
+rustml-inference-layers.workspace = true
+log.workspace = true
+
+[build-dependencies]
+cbindgen = "0.28"

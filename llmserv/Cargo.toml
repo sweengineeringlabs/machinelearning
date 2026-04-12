@@ -36,6 +36,8 @@ members = [
     "main/features/daemon",
     "main/features/cli",
     "main/features/embedding/server",
+    # Foreign-function interface — cdylib for desktop/IDE integration.
+    "main/features/ffi",
     # Note: experimentation/llmforge has its own nested workspace; excluded below.
 ]
 exclude = [
