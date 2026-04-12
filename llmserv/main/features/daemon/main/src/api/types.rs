@@ -89,6 +89,46 @@ pub struct Usage {
     pub total_tokens: usize,
 }
 
+/// OpenAI-legacy text completion request — `/v1/completions`.
+/// Takes a raw prompt (no chat template applied), returns text in the
+/// choices. Use this when you want apples-to-apples comparison against
+/// `llmserv_complete` in the FFI library, or when the client is a
+/// legacy SDK that uses the text-completions endpoint.
+#[derive(Debug, Deserialize)]
+pub struct CompletionRequest {
+    #[serde(default)]
+    pub model: String,
+
+    pub prompt: String,
+
+    #[serde(default = "default_max_tokens")]
+    pub max_tokens: usize,
+
+    #[serde(default = "default_temperature")]
+    pub temperature: f32,
+
+    pub top_k: Option<usize>,
+    pub top_p: Option<f32>,
+    pub repetition_penalty: Option<f32>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CompletionResponse {
+    pub id: String,
+    pub object: &'static str,
+    pub created: i64,
+    pub model: String,
+    pub choices: Vec<CompletionChoice>,
+    pub usage: Usage,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CompletionChoice {
+    pub index: usize,
+    pub text: String,
+    pub finish_reason: String,
+}
+
 /// Response for GET /v1/models.
 #[derive(Debug, Serialize)]
 pub struct ModelsResponse {

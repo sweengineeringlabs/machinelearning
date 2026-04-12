@@ -406,7 +406,7 @@ impl ModelConfig {
 
     pub fn from_json_value(config: &serde_json::Value) -> ModelResult<Self> {
         let model_type = config["model_type"].as_str().unwrap_or("unknown");
-        println!("DEBUG: model_type='{}' keys: {:?}", model_type, config.as_object().map(|o| o.keys().collect::<Vec<_>>()));
+        log::debug!("model_type='{}' keys: {:?}", model_type, config.as_object().map(|o| o.keys().collect::<Vec<_>>()));
         match model_type {
             "llama" => {
                 let hf: HFLlamaConfig = serde_json::from_value(config.clone())

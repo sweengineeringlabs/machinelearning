@@ -230,6 +230,54 @@ pub unsafe extern "C" fn llmserv_complete(
     })
 }
 
+// ─── complete_chat ───────────────────────────────────────────────────
+
+/// Run a single completion with the model's chat template applied.
+///
+/// Wraps `prompt` as a user message and calls the generator's templated
+/// path — equivalent to the daemon's `/v1/chat/completions` endpoint.
+/// Use this when you want the model's chat-tuned behavior; use
+/// `llmserv_complete` when you want raw prefix continuation.
+///
+/// Otherwise identical to `llmserv_complete`: blocking, returns full
+/// text, caller frees with `llmserv_free_string`.
+///
+/// # Safety
+/// Same as `llmserv_complete`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn llmserv_complete_chat(
+    handle: *const LlmHandle,
+    prompt: *const c_char,
+    max_tokens: u32,
+    temperature: f32,
+    out_text: *mut *mut c_char,
+) -> c_int {
+    wrap(|| {
+        let h = unsafe { handle.as_ref() }.ok_or(LlmError::InvalidInput)?;
+        let prompt_str = unsafe { cstr_to_str(prompt)? };
+
+        let guard = h.inner.read().map_err(|_| LlmError::Internal)?;
+        let model = guard.as_ref().ok_or(LlmError::Destroyed)?;
+
+        let generator = model.build_generator(temperature);
+        let max = if max_tokens == 0 { 256 } else { max_tokens as usize };
+
+        let messages: [(&str, &str); 1] = [("user", prompt_str)];
+        let output = generator
+            .generate_turn_stream(&messages, max, |_| true)
+            .map_err(|e| {
+                log::error!("llmserv_complete_chat: generate_turn_stream failed: {}", e);
+                LlmError::Runtime
+            })?;
+
+        let cs = CString::new(output).map_err(|_| LlmError::Internal)?;
+        unsafe {
+            *out_text = cs.into_raw();
+        }
+        Ok(())
+    })
+}
+
 // ─── complete_stream ─────────────────────────────────────────────────
 
 /// Callback invoked for each generated token. Receives:

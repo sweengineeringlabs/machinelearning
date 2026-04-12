@@ -116,6 +116,27 @@ int llmserv_complete(const struct LlmHandle *handle,
                      char **out_text);
 
 /**
+ * Run a single completion with the model's chat template applied.
+ *
+ * Wraps `prompt` as a user message and calls the generator's templated
+ * path — equivalent to the daemon's `/v1/chat/completions` endpoint.
+ * Use this when you want the model's chat-tuned behavior; use
+ * `llmserv_complete` when you want raw prefix continuation.
+ *
+ * Otherwise identical to `llmserv_complete`: blocking, returns full
+ * text, caller frees with `llmserv_free_string`.
+ *
+ * # Safety
+ * Same as `llmserv_complete`.
+ */
+
+int llmserv_complete_chat(const struct LlmHandle *handle,
+                          const char *prompt,
+                          uint32_t max_tokens,
+                          float temperature,
+                          char **out_text);
+
+/**
  * Streaming completion: calls `callback` for each generated token as
  * it's decoded. Blocks until the generator stops (EOS, max_tokens,
  * or callback returned `false`).

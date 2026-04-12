@@ -58,6 +58,8 @@ lib.llmserv_destroy.argtypes = [LlmHandlePtr]
 lib.llmserv_destroy.restype = None
 lib.llmserv_complete.argtypes = [LlmHandlePtr, c_char_p, c_uint32, c_float, POINTER(c_char_p)]
 lib.llmserv_complete.restype = c_int
+lib.llmserv_complete_chat.argtypes = [LlmHandlePtr, c_char_p, c_uint32, c_float, POINTER(c_char_p)]
+lib.llmserv_complete_chat.restype = c_int
 lib.llmserv_free_string.argtypes = [c_char_p]
 lib.llmserv_free_string.restype = None
 
@@ -90,6 +92,16 @@ def main() -> None:
         help="target RPS (open-loop, CO-correct); default closed-loop",
     )
     ap.add_argument("--json", action="store_true", help="emit JSON matching llmc load --json")
+    ap.add_argument(
+        "--chat",
+        action="store_true",
+        help=(
+            "use llmserv_complete_chat (applies chat template) instead of the "
+            "raw llmserv_complete. Use this variant to compare against the "
+            "daemon's /v1/chat/completions endpoint; use the default (raw) to "
+            "compare against /v1/completions."
+        ),
+    )
     args = ap.parse_args()
 
     handle = LlmHandlePtr()
@@ -117,7 +129,8 @@ def main() -> None:
 
         t_measure = scheduled_at if scheduled_at is not None else time.perf_counter()
         out = c_char_p()
-        rc = lib.llmserv_complete(
+        fn = lib.llmserv_complete_chat if args.chat else lib.llmserv_complete
+        rc = fn(
             handle,
             prompt_bytes,
             c_uint32(args.max_tokens),
@@ -162,6 +175,7 @@ def main() -> None:
         "status_counts": {str(k): v for k, v in sorted(status_counts.items())},
         "error_samples": error_samples,
         "_transport": "ffi",  # extra field vs llmc load, aids diff
+        "_mode": "chat" if args.chat else "raw",
     }
 
     if args.json:

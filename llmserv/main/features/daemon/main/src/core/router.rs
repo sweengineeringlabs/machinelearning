@@ -24,6 +24,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .route("/health", get(health))
         .route("/v1/models", get(list_models))
         .route("/v1/chat/completions", post(chat_completions))
+        .route("/v1/completions", post(completions))
         .route("/v1/embeddings", post(embeddings))
         .with_state(state)
 }
@@ -267,6 +268,92 @@ async fn handle_streaming(
     Ok(Sse::new(full_stream)
         .keep_alive(KeepAlive::default())
         .into_response())
+}
+
+/// OpenAI-legacy text-completions endpoint. Takes a raw `prompt` and
+/// generates continuation text WITHOUT applying the chat template.
+/// Semantically matches the `llmserv_complete` FFI function, so HTTP
+/// vs FFI can be compared on identical workloads.
+async fn completions(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<CompletionRequest>,
+) -> Result<Json<CompletionResponse>, DaemonError> {
+    if req.prompt.is_empty() {
+        return Err(DaemonError::InvalidRequest("prompt must not be empty".into()));
+    }
+    if req.temperature < 0.0 {
+        return Err(DaemonError::InvalidRequest(format!(
+            "temperature must be >= 0.0, got {}",
+            req.temperature
+        )));
+    }
+
+    let permit = state
+        .throttle
+        .try_acquire()
+        .ok_or_else(|| DaemonError::AtCapacity(state.throttle.capacity()))?;
+
+    let prompt = req.prompt;
+    let max_tokens = req.max_tokens;
+    let temperature = req.temperature;
+    let top_k = req.top_k;
+    let top_p = req.top_p;
+    let repetition_penalty = req.repetition_penalty;
+    let model_id = state.model.model_id().to_string();
+
+    let (text, prompt_tokens, completion_tokens) = tokio::task::spawn_blocking(move || {
+        let _permit = permit;
+        let mut generator = state.model.build_generator(temperature);
+        if let Some(k) = top_k {
+            generator = generator.with_top_k(k);
+        }
+        if let Some(p) = top_p {
+            generator = generator.with_top_p(p);
+        }
+        if let Some(rp) = repetition_penalty {
+            generator = generator.with_repetition_penalty(rp);
+        }
+
+        let start = Instant::now();
+        let text = generator
+            .generate(&prompt, max_tokens)
+            .map_err(|e| DaemonError::GenerationFailed(e.to_string()))?;
+        let elapsed = start.elapsed();
+
+        // Rough word-count approximation, consistent with chat_completions.
+        let prompt_tokens = prompt.split_whitespace().count();
+        let completion_tokens = text.split_whitespace().count();
+
+        log::info!(
+            "Generated (raw) {} tokens in {:.2}s ({:.1} tok/s)",
+            completion_tokens,
+            elapsed.as_secs_f64(),
+            completion_tokens as f64 / elapsed.as_secs_f64().max(1e-9)
+        );
+
+        Ok::<_, DaemonError>((text, prompt_tokens, completion_tokens))
+    })
+    .await
+    .map_err(|e| DaemonError::Internal(format!("Task join error: {}", e)))??;
+
+    let response = CompletionResponse {
+        id: format!("cmpl-{}", uuid::Uuid::new_v4().simple()),
+        object: "text_completion",
+        created: chrono::Utc::now().timestamp(),
+        model: model_id,
+        choices: vec![CompletionChoice {
+            index: 0,
+            text,
+            finish_reason: "stop".into(),
+        }],
+        usage: Usage {
+            prompt_tokens,
+            completion_tokens,
+            total_tokens: prompt_tokens + completion_tokens,
+        },
+    };
+
+    Ok(Json(response))
 }
 
 async fn embeddings(
