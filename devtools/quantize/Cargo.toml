@@ -16,7 +16,7 @@ path = "main/src/main.rs"
 
 [dependencies]
 swe-ml-tensor.workspace = true
-rustml-quant.workspace = true
+llmkernel.workspace = true
 rustml-gguf.workspace = true
 rustml-hub.workspace = true
 thiserror.workspace = true

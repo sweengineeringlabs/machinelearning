@@ -141,7 +141,7 @@ impl Linear {
             return Ok(());
         }
         let f32_data = self.weight.data()?;
-        let q8_bytes = rustml_quant::quantize_q8_0(f32_data)?;
+        let q8_bytes = llmkernel::quantize_q8_0(f32_data)?;
         self.weight = Tensor::new(q8_bytes, vec![self.out_features, self.in_features], DType::Q8_0);
         Ok(())
     }
@@ -160,7 +160,7 @@ impl Linear {
             return Ok(());
         }
         let f32_data = self.weight.data()?;
-        let q4_bytes = rustml_quant::quantize_q4_0(f32_data)?;
+        let q4_bytes = llmkernel::quantize_q4_0(f32_data)?;
         self.weight = Tensor::new(q4_bytes, vec![self.out_features, self.in_features], DType::Q4_0);
         Ok(())
     }
@@ -179,7 +179,7 @@ impl Linear {
             return Ok(());
         }
         let f32_data = self.weight.data()?;
-        let q4_bytes = rustml_quant::quantize_q4_1(f32_data)?;
+        let q4_bytes = llmkernel::quantize_q4_1(f32_data)?;
         self.weight = Tensor::new(q4_bytes, vec![self.out_features, self.in_features], DType::Q4_1);
         Ok(())
     }
@@ -199,9 +199,9 @@ impl Linear {
     /// Input shape: [..., in_features]
     /// Output shape: [..., out_features]
     ///
-    /// For Q4_0 weights uses `rustml_quant::matmul_f32_q4` (or the native
+    /// For Q4_0 weights uses `llmkernel::matmul_f32_q4` (or the native
     /// integer variant when `use_native_q4` is set).  Q8_0 weights use
-    /// `rustml_quant::matmul_f32_q8`.  All other dtypes fall back to the
+    /// `llmkernel::matmul_f32_q8`.  All other dtypes fall back to the
     /// standard dequantize-then-matmul path.
     pub fn forward(&self, x: &Tensor) -> NnResult<Tensor> {
         let _t = if log::log_enabled!(log::Level::Trace) { Some(Instant::now()) } else { None };
@@ -214,9 +214,9 @@ impl Linear {
             let m = x_data.len() / in_features;
 
             let result_data = if self.use_native_q4 {
-                rustml_quant::matmul_f32_q4_native(x_data, w_bytes, m, in_features, out_features)?
+                llmkernel::matmul_f32_q4_native(x_data, w_bytes, m, in_features, out_features)?
             } else {
-                rustml_quant::matmul_f32_q4(x_data, w_bytes, m, in_features, out_features)?
+                llmkernel::matmul_f32_q4(x_data, w_bytes, m, in_features, out_features)?
             };
 
             let mut out_shape: Vec<usize> = x.shape().to_vec();
@@ -231,9 +231,9 @@ impl Linear {
             let m = x_data.len() / in_features;
 
             let result_data = if self.use_native_q4 {
-                rustml_quant::matmul_f32_q4_1_native(x_data, w_bytes, m, in_features, out_features)?
+                llmkernel::matmul_f32_q4_1_native(x_data, w_bytes, m, in_features, out_features)?
             } else {
-                rustml_quant::matmul_f32_q4_1(x_data, w_bytes, m, in_features, out_features)?
+                llmkernel::matmul_f32_q4_1(x_data, w_bytes, m, in_features, out_features)?
             };
 
             let mut out_shape: Vec<usize> = x.shape().to_vec();
@@ -248,9 +248,9 @@ impl Linear {
             let m = x_data.len() / in_features;
 
             let result_data = if self.use_native_q8 {
-                rustml_quant::matmul_f32_q8_v2(x_data, w_bytes, m, in_features, out_features)?
+                llmkernel::matmul_f32_q8_v2(x_data, w_bytes, m, in_features, out_features)?
             } else {
-                rustml_quant::matmul_f32_q8(x_data, w_bytes, m, in_features, out_features)?
+                llmkernel::matmul_f32_q8(x_data, w_bytes, m, in_features, out_features)?
             };
 
             let mut out_shape: Vec<usize> = x.shape().to_vec();

@@ -633,7 +633,7 @@ for online KV cache compression at 2.5–3.5 bits/coordinate.
 
 **Scope (estimate, 2–4 weeks focused):**
 
-- `rustml-quant-vector` (new or extend existing `rustml-quant`):
+- `llmkernel-vector` (new or extend existing `llmkernel`):
   - Hadamard-based fast rotation (O(d log d), accelerator-friendly). Paper
     doesn't pin the rotation family but explicitly targets vectorization;
     Hadamard / WHT is the natural choice.

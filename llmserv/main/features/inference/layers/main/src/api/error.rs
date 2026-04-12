@@ -1,7 +1,7 @@
 //! Error types for neural network operations
 
 use swe_ml_tensor::TensorError;
-use rustml_quant::QuantError;
+use llmkernel::QuantError;
 use thiserror::Error;
 
 /// Result type for neural network operations

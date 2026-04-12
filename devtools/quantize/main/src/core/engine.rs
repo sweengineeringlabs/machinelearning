@@ -290,15 +290,15 @@ fn run_quantize(config: &QuantizeConfig) -> QuantizeResult<QuantizeReport> {
 fn quantize_f32_slice(data: &[f32], target: QuantTarget) -> QuantizeResult<(Vec<u8>, GGMLType)> {
     match target {
         QuantTarget::Q8_0 => {
-            let quantized = rustml_quant::quantize_q8_0(data)?;
+            let quantized = llmkernel::quantize_q8_0(data)?;
             Ok((quantized, GGMLType::Q8_0))
         }
         QuantTarget::Q4_0 => {
-            let quantized = rustml_quant::quantize_q4_0(data)?;
+            let quantized = llmkernel::quantize_q4_0(data)?;
             Ok((quantized, GGMLType::Q4_0))
         }
         QuantTarget::Q4_1 => {
-            let quantized = rustml_quant::quantize_q4_1(data)?;
+            let quantized = llmkernel::quantize_q4_1(data)?;
             Ok((quantized, GGMLType::Q4_1))
         }
     }
@@ -306,9 +306,9 @@ fn quantize_f32_slice(data: &[f32], target: QuantTarget) -> QuantizeResult<(Vec<
 
 fn dequantize_for_metrics(data: &[u8], n_elements: usize, target: QuantTarget) -> QuantizeResult<Vec<f32>> {
     match target {
-        QuantTarget::Q8_0 => Ok(rustml_quant::dequantize_q8_0(data, n_elements)?),
-        QuantTarget::Q4_0 => Ok(rustml_quant::dequantize_q4_0(data, n_elements)?),
-        QuantTarget::Q4_1 => Ok(rustml_quant::dequantize_q4_1(data, n_elements)?),
+        QuantTarget::Q8_0 => Ok(llmkernel::dequantize_q8_0(data, n_elements)?),
+        QuantTarget::Q4_0 => Ok(llmkernel::dequantize_q4_0(data, n_elements)?),
+        QuantTarget::Q4_1 => Ok(llmkernel::dequantize_q4_1(data, n_elements)?),
     }
 }
 

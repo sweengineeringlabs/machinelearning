@@ -12,7 +12,7 @@ path = "main/src/lib.rs"
 [dependencies]
 swe-ml-tensor.workspace = true
 swe-ml-normalization.workspace = true
-rustml-quant.workspace = true
+llmkernel.workspace = true
 thiserror.workspace = true
 half.workspace = true
 serde.workspace = true

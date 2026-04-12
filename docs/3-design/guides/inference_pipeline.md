@@ -260,7 +260,7 @@ dequantized[i] = quantized[i] × scale
 | | GPTQ, AWQ | Calibration-based quantization — better quality but requires calibration data |
 | | FP16 / BF16 | 2x compression, no quantization error, but needs hardware support |
 
-**Crate:** `inference/quant/` (kernels); offline conversion CLI lives at `devtools/quantize/`
+**Crate:** `inference/llmkernel/` (kernels); offline conversion CLI lives at `devtools/quantize/`
 
 ---
 
@@ -458,7 +458,7 @@ graph LR
 | Attention | `inference/layers/` | Q/K/V projection, scores, weighted sum |
 | Position encoding | `inference/layers/` | RoPE with SIMD (AVX2/NEON) |
 | Activation | `activation/` | SiLU, GELU pointwise nonlinearity |
-| Quantized matmul | `inference/quant/` | SIMD dot products on 4/8-bit weights |
+| Quantized matmul | `inference/llmkernel/` | SIMD dot products on 4/8-bit weights |
 | KV cache | `inference/layers/` | Pre-allocated key/value buffers for decoding |
 | Model assembly | `model/` | Composes layers into LlmModel |
 | Text generation | `inference/generation/` | Token-by-token loop, sampling, streaming |

@@ -445,7 +445,7 @@ impl GGUFFile {
             // K-quant types are dequantized to F32 during loading
             let loaded = if info.ggml_type.needs_dequant() {
                 let f32_data = dequantize_kquant(raw_data, n_elements, info.ggml_type)?;
-                let f32_bytes = rustml_quant::f32_vec_to_bytes(f32_data);
+                let f32_bytes = llmkernel::f32_vec_to_bytes(f32_data);
                 LoadedTensor {
                     data: f32_bytes,
                     shape,
@@ -461,7 +461,7 @@ impl GGUFFile {
                     GGMLType::Q5_0 | GGMLType::Q5_1 | GGMLType::Q8_1 => {
                         // Legacy quant types: dequantize to F32 at load time
                         let f32_data = dequantize_legacy(raw_data, n_elements, info.ggml_type)?;
-                        let f32_bytes = rustml_quant::f32_vec_to_bytes(f32_data);
+                        let f32_bytes = llmkernel::f32_vec_to_bytes(f32_data);
                         tensors.insert(
                             info.name.clone(),
                             LoadedTensor {
@@ -533,7 +533,7 @@ impl GGUFFile {
             if info.ggml_type.needs_dequant() {
                 let raw_data = &mmap[abs_offset..abs_offset + byte_size];
                 let f32_data = dequantize_kquant(raw_data, n_elements, info.ggml_type)?;
-                let f32_bytes = rustml_quant::f32_vec_to_bytes(f32_data);
+                let f32_bytes = llmkernel::f32_vec_to_bytes(f32_data);
                 tensors.insert(
                     info.name.clone(),
                     swe_ml_tensor::Tensor::new(f32_bytes, shape, swe_ml_tensor::DType::F32),
@@ -550,7 +550,7 @@ impl GGUFFile {
                 GGMLType::Q5_0 | GGMLType::Q5_1 | GGMLType::Q8_1 => {
                     let raw_data = &mmap[abs_offset..abs_offset + byte_size];
                     let f32_data = dequantize_legacy(raw_data, n_elements, info.ggml_type)?;
-                    let f32_bytes = rustml_quant::f32_vec_to_bytes(f32_data);
+                    let f32_bytes = llmkernel::f32_vec_to_bytes(f32_data);
                     tensors.insert(
                         info.name.clone(),
                         swe_ml_tensor::Tensor::new(f32_bytes, shape, swe_ml_tensor::DType::F32),
@@ -705,11 +705,11 @@ impl GGUFFile {
                 }
                 Ok(out)
             }
-            GGMLType::Q4_0 => rustml_quant::dequantize_q4_0(&raw, n_elements)
+            GGMLType::Q4_0 => llmkernel::dequantize_q4_0(&raw, n_elements)
                 .map_err(|e| GgufError::UnsupportedType(e.to_string())),
-            GGMLType::Q8_0 => rustml_quant::dequantize_q8_0(&raw, n_elements)
+            GGMLType::Q8_0 => llmkernel::dequantize_q8_0(&raw, n_elements)
                 .map_err(|e| GgufError::UnsupportedType(e.to_string())),
-            GGMLType::Q4_1 => rustml_quant::dequantize_q4_1(&raw, n_elements)
+            GGMLType::Q4_1 => llmkernel::dequantize_q4_1(&raw, n_elements)
                 .map_err(|e| GgufError::UnsupportedType(e.to_string())),
             GGMLType::Q5_0 | GGMLType::Q5_1 | GGMLType::Q8_1 => {
                 dequantize_legacy(&raw, n_elements, info.ggml_type)

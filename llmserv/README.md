@@ -26,7 +26,7 @@ llmserv/
         │   ├── layers/         attention, RoPE, RMSNorm, feed-forward, MoE
         │   ├── model/          LlmModel, ModelConfig, ModelBuilderRegistry
         │   ├── prefill/        prefill-strategy trait
-        │   ├── quant/          quantization types + SIMD kernels
+        │   ├── llmkernel/      quantization types + SIMD kernels
         │   ├── quantizer/      runtime quantization strategies
         │   ├── thread-config/  rayon pool configuration
         │   └── tokenizer/      BPE, GGUF, HuggingFace backends

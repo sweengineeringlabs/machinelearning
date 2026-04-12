@@ -1,10 +1,10 @@
 [package]
-name = "rustml-quant"
+name = "llmkernel"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Quantization engine for RustML - Q4_0, Q8_0, SIMD-accelerated kernels"
+description = "LLM inference kernels — quantized matmul, dot products, SIMD (AVX2/FMA/SSE/NEON)"
 
 [lib]
 path = "main/src/lib.rs"

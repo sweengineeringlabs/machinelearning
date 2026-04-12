@@ -39,7 +39,7 @@ rustml-cli          rustml-nlp            rustml-nn              rustml-core
                                           KVCache, RoPE)          RMSNorm SIMD)
                                                 │
                                                 ▼
-                                          rustml-quant
+                                          llmkernel
                                           (Q4_0/Q4_1/Q8_0
                                            SIMD dot kernels)
 ```
@@ -50,7 +50,7 @@ rustml-cli          rustml-nlp            rustml-nn              rustml-core
 | `rustml-nlp` | Orchestrate generation: tokenize, prefill, decode loop, sample | `LlmModel`, `Generator`, `SamplingBuffer` |
 | `rustml-nn` | One transformer layer: norm → attention → residual → FFN → residual | `TransformerBlock`, `MultiHeadAttention`, `FeedForward`, `KVCache` |
 | `rustml-core` | Dense math: matmul, softmax, add, RMSNorm; runtime config atomics | `Tensor`, `RuntimeConfig`, `OptProfile` |
-| `rustml-quant` | SIMD kernels for quantized weight dot products | `dot_q4q8_block`, `dot_q4_1_q8_block` |
+| `llmkernel` | SIMD kernels for quantized weight dot products | `dot_q4q8_block`, `dot_q4_1_q8_block` |
 
 ---
 

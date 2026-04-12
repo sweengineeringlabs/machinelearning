@@ -72,7 +72,7 @@ machinelearning/
 │   ├── nlp/                    # rustml-nlp (models, generation, tokenizer bridge)
 │   ├── gguf/                   # rustml-gguf (GGUF parsing, weight loading)
 │   ├── tokenizer/              # rustml-tokenizer (BPE, GGUF, byte tokenizers)
-│   ├── quant/                  # rustml-quant (Q4/Q8 quantization, SIMD)
+│   ├── llmkernel/              # llmkernel (Q4/Q8 quantization, SIMD)
 │   ├── quantize/               # rustml-quantize (SafeTensors -> GGUF pipeline)
 │   ├── cli/                    # rustml-cli (sweai unified binary)
 │   └── daemon/                 # swellmd (HTTP inference daemon)

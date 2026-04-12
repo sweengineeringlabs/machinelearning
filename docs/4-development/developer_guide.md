@@ -19,7 +19,7 @@
   - [rustml-hub](#rustml-hub)
   - [rustml-nlp](#rustml-nlp)
   - [rustml-tokenizer](#rustml-tokenizer)
-  - [rustml-quant](#rustml-quant)
+  - [llmkernel](#llmkernel)
   - [rustml-gguf](#rustml-gguf)
   - [rustml-swets](#rustml-swets)
   - [rustml-cli](#rustml-cli)
@@ -58,7 +58,7 @@ machinelearning/
 │   ├── hub/                # rustml-hub — HuggingFace download + SafeTensors
 │   ├── nlp/                # rustml-nlp — LLM models, generation, sampling
 │   ├── tokenizer/          # rustml-tokenizer — BPE, HF, GGUF tokenizers
-│   ├── quant/              # rustml-quant — Q4_0/Q4_1/Q8_0 quantization + SIMD
+│   ├── llmkernel/             # llmkernel — Q4_0/Q4_1/Q8_0 quantization + SIMD
 │   ├── gguf/               # rustml-gguf — GGUF binary format parser
 │   ├── quantize/           # rustml-quantize — SafeTensors to GGUF pipeline
 │   ├── cli/                # rustml-cli — unified `sweai` binary
@@ -126,7 +126,7 @@ Text tokenization with multiple backends.
 - `GgufTokenizer` — extracted from GGUF metadata
 - `ByteTokenizer` — simple byte-level encoding
 
-### rustml-quant
+### llmkernel
 
 Quantization engine with SIMD kernels.
 
@@ -213,7 +213,7 @@ my_crate/
 ```
                     rustml-core
                    /     |      \
-            rustml-nn  rustml-quant  rustml-hub
+            rustml-nn  llmkernel  rustml-hub
               |    \      |          /
            rustml-nlp  rustml-gguf  rustml-tokenizer
               |         /        /

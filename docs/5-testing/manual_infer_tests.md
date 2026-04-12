@@ -363,7 +363,7 @@ Per-layer breakdown (one line per transformer layer per step):
 
 Individual operation timings (high volume — one line per matmul, softmax, etc.):
 ```
-[TRACE rustml_quant::core::quantize] [perf] quant::matmul_f32_q8 [M×K]x[N×K] <T>ms (<BW> GB/s)
+[TRACE llmkernel::core::quantize] [perf] quant::matmul_f32_q8 [M×K]x[N×K] <T>ms (<BW> GB/s)
 [TRACE rustml_nn::core::linear] [perf] linear::forward [shape]->[in,out] <dtype> <T>ms
 [TRACE rustml_nn::core::rope] [perf] rope::apply [shape] pos=N <T>ms
 [TRACE rustml_core::core::tensor::ops] [perf] softmax [shape] <T>ms

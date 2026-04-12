@@ -76,7 +76,7 @@ swe-ml-training      = { path = "main/features/training" }
 rustml-model        = { path = "llmserv/main/features/inference/model" }
 rustml-quantizer    = { path = "llmserv/main/features/inference/quantizer" }
 rustml-gguf         = { path = "llmserv/main/features/inference/gguf" }
-rustml-quant        = { path = "llmserv/main/features/inference/quant" }
+llmkernel        = { path = "llmserv/main/features/inference/llmkernel" }
 rustml-tokenizer    = { path = "llmserv/main/features/inference/tokenizer" }
 rustml-inference-layers = { path = "llmserv/main/features/inference/layers" }
 rustml-thread-config = { path = "llmserv/main/features/inference/thread-config" }
