@@ -593,28 +593,45 @@ its own KV cache layout. Calling `ggml_mul_mat` once per Linear layer
 from our Rust code would round-trip buffers across the FFI boundary
 dozens of times per token and lose most of the win.
 
-Conclusion: `LlamaCppBackend` must own the **whole forward pass**, not
-individual ops. This means introducing a higher-level abstraction
-alongside `ComputeBackend`:
+Caveat to record: `ComputeBackend` is not actually plumbed into the
+forward pass today. `serve.rs:40` constructs `CpuBackend`, logs its
+name, and drops it. `AppState` holds `Box<dyn Model>`, never a
+compute backend. Forward pass calls `LlmModel::forward_pass` →
+`layer.forward` directly against tensor ops. So "the CpuBackend swap
+seam" is nominal, not real — even `VulkanBackend` would have to wire
+itself in before it could be swapped.
+
+Conclusion: `LlamaCppBackend` owns the **whole forward pass**, not
+individual ops. **The DI seam we need already exists** — it's the
+daemon-side `Model` trait at
+`llmserv/main/features/daemon/main/src/api/model.rs:8`:
 
 ```rust
-// llmserv/main/features/inference/compute/src/api/model_backend.rs
-pub trait ModelBackend: Send + Sync {
-    fn load(path: &Path, config: &ModelBackendConfig) -> Result<Self, BackendError>
-        where Self: Sized;
-    fn forward(&mut self, tokens: &[u32], ctx: &mut BackendContext) -> Result<Logits, BackendError>;
-    fn tokenize(&self, text: &str) -> Result<Vec<u32>, BackendError>;
-    fn detokenize(&self, tokens: &[u32]) -> Result<String, BackendError>;
-    fn reset_context(&mut self, ctx: &mut BackendContext);
-    fn name(&self) -> &str;
+pub trait Model: Send + Sync {
+    fn model_id(&self) -> &str;
+    fn build_generator(&self, temperature: f32) -> Generator<'_>;
+    fn tokenizer(&self) -> &dyn Tokenizer;
+    fn embed(&self, input_ids: &Tensor, strategy: PoolingStrategy) -> ModelResult<Tensor>;
 }
 ```
 
-The existing `CpuBackend` gets a sibling `NativeRustBackend: ModelBackend`
-that wraps our current `inference/model/` + `inference/layers/` stack.
-`LlamaCppBackend: ModelBackend` becomes a peer. The `ComputeBackend`
-trait stays for op-level work that doesn't need whole-graph fusion
-(Vulkan shaders per-op can still make sense there).
+`AppState.model: Box<dyn Model>` is what axum handlers call.
+`load_model()` already returns `Box<dyn Model>`. `LlamaCppBackend`
+implements this trait directly — no new abstraction needed.
+
+**Correction to the earlier draft of this plan**: a separate
+`ModelBackend` trait in the `llmcompute` crate is redundant. The
+daemon-side `Model` trait IS the model-level backend abstraction, and
+the existing `Rust*Model` adapter is already a `Model` impl wrapping
+our native stack. Drop that layer; implement `Model` for llama.cpp
+directly. The `ComputeBackend` trait stays for future per-op Vulkan
+work on the native path (if we ever plumb it in).
+
+**Swappability scope.** Any impl of `Model` slots in at this DI seam:
+`LlamaCppModel` (this plan), a future `VulkanModel` (native Rust
+forward pass but GPU-backed tensor ops), a `RemoteHttpModel` (proxy
+to another inference server), a `MockModel` for testing. The daemon
+doesn't know or care which backs the trait object.
 
 **Dependency choice.**
 
@@ -633,12 +650,12 @@ submodule without changing the `LlamaCppBackend` trait surface.
 
 **Work breakdown.**
 
-1. **New trait + extract existing backend (~1.5 days).**
-   - Add `ModelBackend` trait in
-     `llmserv/main/features/inference/compute/src/api/model_backend.rs`
-   - Move current model-forward logic from `inference/model/` into a
-     `NativeRustBackend` struct implementing `ModelBackend`
-   - Keep `ComputeBackend` intact for per-op Vulkan work later
+1. **Clean up dead `ComputeBackend` wire (~0.25 day).**
+   - Either delete the unused `let compute = llmcompute::CpuBackend;`
+     lines in `serve.rs:40-41`, or plumb the handle into something
+     real. Prefer delete — no consumer exists, and `LlamaCppBackend`
+     is a `Model`, not a `ComputeBackend`. Vulkan work later can
+     re-introduce the seam when there's an actual consumer
 
 2. **Add `llama-cpp-2` dependency (~0.5 day).**
    - `[workspace.dependencies] llama-cpp-2 = { version = "...", features = ["cmake"] }`
@@ -647,24 +664,29 @@ submodule without changing the `LlamaCppBackend` trait surface.
    - Gate behind a cargo feature `backend-llama-cpp` so pure-Rust
      builds don't require a C++ toolchain
 
-3. **Implement `LlamaCppBackend` (~2.5 days).**
+3. **Implement `LlamaCppModel: Model` (~2.5 days).**
    - New crate `llmserv/main/features/inference/backend-llama-cpp/`
      following SEA layout (api/core/saf)
    - Wrap `LlamaModel` load, `LlamaContext` creation, `llama_decode`
      per-batch, logits extraction
-   - Use llama.cpp's own tokenizer (not our `tokenizer/` crate) for
-     this backend — ensures bit-identical inputs vs Ollama
-   - Map llama.cpp errors to our `BackendError` type
+   - Implement the daemon's `Model` trait (model.rs:8): `model_id`,
+     `build_generator`, `tokenizer`, `embed`
+   - Adapt llama.cpp's BPE to our `Tokenizer` trait (thin wrapper over
+     `llama_tokenize` / `llama_token_to_piece`) so `tokenizer()` returns
+     `&dyn Tokenizer` like the native path — ensures bit-identical
+     inputs vs Ollama without forcing the daemon to branch on backend
+   - Map llama.cpp errors to `ModelError`
 
-4. **Config wiring (~0.5 day).**
-   - Add `[compute]` section to `main/config/application.toml`:
+4. **Config wiring + DI (~0.5 day).**
+   - Add `[model]` section to `main/config/application.toml`:
      ```toml
-     [compute]
+     [model]
      backend = "native_rust"   # "native_rust" | "llama_cpp"
      ```
-   - Daemon loader selects backend at startup via
-     `ModelBackendRegistry` (follows the SPI/DI pattern — no
-     match-on-string dispatch in layers code)
+   - `load_model()` in `serve.rs:87` branches on this once at startup
+     and returns the appropriate `Box<dyn Model>`. Register backends
+     via a `ModelBackendRegistry` (SPI/DI — no match-on-string in
+     hot paths, only at load time)
 
 5. **Streaming integration (~1 day).**
    - llama.cpp produces logits; our `generation/` crate handles sampling
