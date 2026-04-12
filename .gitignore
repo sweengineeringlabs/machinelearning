@@ -32,3 +32,6 @@ Thumbs.db
 
 # Windows NUL redirect artifact
 nul
+
+# Load test run artifacts (keep tmp/load_test.sh, ignore output)
+tmp/loadtest_out/
