@@ -867,6 +867,66 @@ struct BeamHypothesis {
     finished: bool,
 }
 
+// ==================== TextCompleter impl ====================
+//
+// Adapter that lets `Generator` serve as a backend-agnostic `TextCompleter`.
+// Per-request parameters (temperature, top-k, top-p, repetition penalty,
+// deadline) are copied from `CompletionParams` into the Generator's fields
+// at the start of each call, then the existing generate_* methods run.
+//
+// Callers that prefer direct Generator access (CLI, llmforge examples) can
+// keep using the builder-style API; callers speaking to a `dyn Model`
+// (daemon router) go through this trait instead.
+
+use crate::api::completer::{CompletionParams, TextCompleter};
+
+impl<'a> Generator<'a> {
+    /// Apply per-request sampling parameters to this Generator's fields.
+    ///
+    /// Called at the start of each `TextCompleter` method. Model-level
+    /// defaults (EOS, BOS, chat template, context length, profile) set
+    /// via `Generator::new` and the `with_*` model-default methods are
+    /// left untouched.
+    fn apply_params(&mut self, params: &CompletionParams) {
+        self.temperature = params.temperature;
+        self.top_k = params.top_k;
+        self.top_p = params.top_p;
+        self.repetition_penalty = params.repetition_penalty;
+        self.deadline = params.deadline;
+    }
+}
+
+impl<'a> TextCompleter for Generator<'a> {
+    fn complete(
+        &mut self,
+        prompt: &str,
+        params: &CompletionParams,
+    ) -> GenerationResult<String> {
+        self.apply_params(params);
+        self.generate(prompt, params.max_tokens)
+    }
+
+    fn complete_stream(
+        &mut self,
+        prompt: &str,
+        params: &CompletionParams,
+        callback: &mut dyn FnMut(u32) -> bool,
+    ) -> GenerationResult<String> {
+        self.apply_params(params);
+        self.generate_stream(prompt, params.max_tokens, |tok| callback(tok))
+    }
+
+    fn complete_turn_stream(
+        &mut self,
+        messages: &[(&str, &str)],
+        params: &CompletionParams,
+        callback: &mut dyn FnMut(u32) -> bool,
+    ) -> GenerationResult<String> {
+        self.apply_params(params);
+        self.generate_turn_stream(messages, params.max_tokens, |tok| callback(tok))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

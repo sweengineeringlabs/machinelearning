@@ -1,5 +1,6 @@
 //! Facade re-exports for rustml-generation
 
+pub use crate::api::completer::{CompletionParams, TextCompleter};
 pub use crate::api::error::*;
 pub use crate::api::types::*;
 pub use crate::core::generation::TextGenerator;
