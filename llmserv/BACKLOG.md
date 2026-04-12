@@ -371,6 +371,81 @@ Added 2026-04-11. Gemma 3 1B runs ~1-2s/token on CPU. These optimizations target
 - Embedding server, daemon, and CLI all use mmap. Old `SafeTensorLoader` (read-all-to-F32) deleted.
 - **Remaining**: Measure startup time and RSS difference.
 
+### P7: Close the Ollama performance gap (gemma-3-1b, CPU, chat completion)
+
+**Baseline measurement (2026-04-12, N=15 per cell, warmup matched):**
+
+| Server | Quantization | p50 | p95 | wall (15 calls) |
+|---|---|---|---|---|
+| swellmd | Q8_0 (runtime) | 2699 ms | 3191 ms | 41.4 s |
+| swellmd | Q4_0 (runtime) | 2744 ms | 3392 ms | 42.3 s |
+| ollama  | Q4_K_M         |  761 ms |  810 ms | 11.4 s |
+
+**Ollama is 3.5× faster on the same workload and hardware.**
+
+**Measurement insight — what we thought vs what the data says:**
+
+Theory predicted ~2× of the gap came from quantization (Q4 uses half the
+memory bandwidth of Q8) and ~2× from llama.cpp kernel maturity. We
+tested this by running swellmd with Q4_0 instead of Q8_0. Result:
+**identical speed** (2744 ms vs 2699 ms). Switching formats gave us
+zero speedup.
+
+That means our Q4 matmul doesn't capture the bandwidth savings that
+smaller weights should give. Most likely cause: our matmul dequantizes
+to F32 before multiplying, so the output-side F32 bandwidth dominates
+and compressing the input doesn't matter. Llama.cpp avoids this with
+fused `Q × F32 → f32` dot products in AVX2 that never materialize
+a dequantized weight tensor.
+
+**Implication:** K-quant format support ALONE will not close the gap.
+The bottleneck is kernel quality, not quantization format.
+
+**Prioritized work:**
+
+**P7.1 — Profile the hot path.** `cargo flamegraph` on a single
+chat completion run. Confirm matmul dominates (it should). Identify
+exactly which variant (Q8 × F32, Q4 × F32, F32 × F32) is the hot
+function and how much time is inside unpack vs dot-product vs
+accumulate. Without this data we're guessing.
+
+**P7.2 — Fused Q8_0 × F32 dot product.** Hand-written AVX2 loop:
+load 32 int8 weights, multiply by scale, dot with 32 F32 activations,
+horizontal-sum into accumulator. No intermediate F32 weight tensor.
+This is the single biggest expected speedup — our current Q8 matmul
+is the most-used kernel (quantization default), so any win here scales
+across the whole model.
+
+**P7.3 — Fused Q4_0 × F32 dot product.** Same as P7.2 but with 4-bit
+unpacking. Requires P7.2 as a template.
+
+**P7.4 — Fused attention (flash-attention-style).** Compute
+`softmax(QK^T / √d) V` without materializing the full attention
+matrix in memory. Relevant for longer contexts; less important for
+8-token benchmarks. Do after P7.2 / P7.3.
+
+**P7.5 — K-quant format support (Q4_K_M).** ONLY after P7.3. With
+P7.3 in place, adding K-quant gets us llama.cpp's on-wire format
+compatibility and the further per-sub-block quality improvement.
+Without P7.3, it's wasted effort.
+
+**P7.6 — KV cache pooling.** Small win. Reuse per-request caches via a
+slab allocator instead of allocating fresh per request.
+
+**Expected overall impact**: P7.2 alone should close ~50% of the
+remaining gap (1.5–2× speedup on matmul-dominated workloads). P7.2 +
+P7.3 + P7.5 should close most of the remaining kernel gap.
+Realistically, reaching parity with llama.cpp on a single model
+family is a months-long effort — llama.cpp has had hundreds of
+contributors and many years.
+
+**Alternative "pragmatic" path**: wrap llama.cpp itself as a
+`ComputeBackend` provider (we already have the trait from P6). Lose
+"pure Rust" as a bragging point, gain every ounce of their kernel
+tuning. Consider if the time investment above proves untenable.
+
+---
+
 ### P6: GPU acceleration (Vulkan)
 - **Architecture done**: `rustml-compute` crate with `ComputeBackend` trait, `CpuBackend` provider (wraps existing ops), `VulkanBackend` stub
 - **Remaining**: Implement Vulkan compute shaders for matmul, softmax, GELU, SiLU. Buffer management, shader compilation pipeline, device selection. Wire `ComputeBackend` into `inference/layers/` to replace CPU tensor ops.
