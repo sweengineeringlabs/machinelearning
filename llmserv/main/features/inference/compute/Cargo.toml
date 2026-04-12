@@ -1,6 +1,6 @@
 [package]
-name = "rustml-compute"
-description = "Compute backend — CPU and GPU acceleration"
+name = "llmcompute"
+description = "LLM compute backends — CPU / GPU / foreign-runtime dispatch (ComputeBackend + ModelBackend)"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

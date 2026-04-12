@@ -739,7 +739,7 @@ submodule without changing the `LlamaCppBackend` trait surface.
 ---
 
 ### P6: GPU acceleration (Vulkan)
-- **Architecture done**: `rustml-compute` crate with `ComputeBackend` trait, `CpuBackend` provider (wraps existing ops), `VulkanBackend` stub
+- **Architecture done**: `llmcompute` crate with `ComputeBackend` trait, `CpuBackend` provider (wraps existing ops), `VulkanBackend` stub
 - **Remaining**: Implement Vulkan compute shaders for matmul, softmax, GELU, SiLU. Buffer management, shader compilation pipeline, device selection. Wire `ComputeBackend` into `inference/layers/` to replace CPU tensor ops.
 - **Expected impact**: 10-50x speedup for matmul-bound workloads
 - **Complexity**: Major project

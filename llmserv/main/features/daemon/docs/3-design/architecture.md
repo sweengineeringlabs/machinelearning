@@ -115,7 +115,7 @@ No CLI flags. No reload. No graceful shutdown drain — the process is the unit 
 ## What's Out of Scope
 
 - **Multi-model serving**: one process, one model. Run multiple daemons on different ports.
-- **GPU**: CPU-only. See `BACKLOG.md` P6 for the Vulkan plan in `rustml-compute`.
+- **GPU**: CPU-only. See `BACKLOG.md` P6 for the Vulkan plan in `llmcompute`.
 - **Authentication**: bearer tokens, API keys, quota — all expected to sit in a reverse proxy (nginx, Caddy, Envoy).
 - **Persistent queueing**: no durable buffer between client and handler. Failed-fast 503 is the backpressure signal; clients retry.
 - **Continuous batching**: requests run sequentially through `spawn_blocking`. Static batching across requests requires the generation layer to support it — not wired yet.

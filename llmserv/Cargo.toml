@@ -115,7 +115,7 @@ llmkernel            = { path = "main/features/inference/llmkernel" }
 rustml-quantizer        = { path = "main/features/inference/quantizer" }
 rustml-prefill          = { path = "main/features/inference/prefill" }
 rustml-thread-config    = { path = "main/features/inference/thread-config" }
-rustml-compute          = { path = "main/features/inference/compute" }
+llmcompute              = { path = "main/features/inference/compute" }
 rustml-arch-llama       = { path = "main/features/inference/architectures/llama" }
 rustml-arch-gpt2        = { path = "main/features/inference/architectures/gpt2" }
 rustml-arch-falcon      = { path = "main/features/inference/architectures/falcon" }
