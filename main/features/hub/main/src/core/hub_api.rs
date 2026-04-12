@@ -1,7 +1,7 @@
 //! HuggingFace Hub API client with async and sync download paths.
 
 use crate::api::error::{HubError, HubResult};
-use crate::api::types::{GgufBundle, ModelBundle};
+use crate::api::types::{GgufBundle, ModelFiles};
 use std::path::PathBuf;
 
 /// HuggingFace Hub API client
@@ -66,8 +66,8 @@ impl HubApi {
     /// * `model_id` - Model identifier (e.g., "openai-community/gpt2")
     ///
     /// # Returns
-    /// A `ModelBundle` containing paths to downloaded files
-    pub async fn download_model(&self, model_id: &str) -> HubResult<ModelBundle> {
+    /// A `ModelFiles` containing paths to downloaded files
+    pub async fn download_model(&self, model_id: &str) -> HubResult<ModelFiles> {
         let model_dir = self.cache_dir.join(model_id.replace('/', "--"));
 
         // Create cache directory if it doesn't exist
@@ -89,7 +89,7 @@ impl HubApi {
             }
         }
 
-        Ok(ModelBundle {
+        Ok(ModelFiles {
             model_id: model_id.to_string(),
             model_dir,
         })
@@ -158,7 +158,7 @@ impl HubApi {
     ///
     /// Uses the `hf-hub` crate for synchronous downloads with automatic caching.
     /// This is the preferred path when async is not needed (e.g., CLI tools).
-    pub fn download_model_sync(&self, model_id: &str) -> HubResult<ModelBundle> {
+    pub fn download_model_sync(&self, model_id: &str) -> HubResult<ModelFiles> {
         let api = self.hf_sync_api()?;
 
         let repo = api.model(model_id.to_string());
@@ -179,7 +179,7 @@ impl HubApi {
         // Register in the rustml cache so get_cached() and hub list can find it
         self.link_to_cache(model_id, &model_dir);
 
-        Ok(ModelBundle {
+        Ok(ModelFiles {
             model_id: model_id.to_string(),
             model_dir,
         })
@@ -237,9 +237,9 @@ impl HubApi {
     }
 
     /// Get a cached model bundle without downloading
-    pub fn get_cached(&self, model_id: &str) -> Option<ModelBundle> {
+    pub fn get_cached(&self, model_id: &str) -> Option<ModelFiles> {
         if self.is_cached(model_id) {
-            Some(ModelBundle {
+            Some(ModelFiles {
                 model_id: model_id.to_string(),
                 model_dir: self.cache_dir.join(model_id.replace('/', "--")),
             })
@@ -261,7 +261,7 @@ mod tests {
 
     #[test]
     fn test_model_bundle_paths() {
-        let bundle = ModelBundle {
+        let bundle = ModelFiles {
             model_id: "test/model".to_string(),
             model_dir: PathBuf::from("/tmp/test"),
         };

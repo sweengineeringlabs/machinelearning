@@ -4,15 +4,15 @@ use anyhow::{Context, Result};
 
 use rustml_gguf::GGUFFile;
 use rustml_model::{
-    ModelRegistry, gguf_config_to_model_config,
+    ModelBuilderRegistry, gguf_config_to_model_config,
 };
 use rustml_tokenizer::{GgufTokenizer, Tokenizer};
 
 use super::state::EmbeddingState;
 
 /// Create the model registry with embedding-relevant architectures.
-fn create_registry() -> ModelRegistry {
-    let mut reg = ModelRegistry::new();
+fn create_registry() -> ModelBuilderRegistry {
+    let mut reg = ModelBuilderRegistry::new();
     reg.register("nomic-bert", Box::new(rustml_arch_nomic_bert::NomicBertBuilder));
     // Add more embedding architectures here as needed:
     // reg.register("bert", Box::new(rustml_arch_bert::BertBuilder));

@@ -366,10 +366,10 @@ Added 2026-04-11. Gemma 3 1B runs ~1-2s/token on CPU. These optimizations target
 - **Remaining**: Benchmark different thread counts on target hardware. Tune `matmul_parallel_threshold` and `softmax_parallel_threshold`. Add CLI flag `--threads N`.
 - **Expected impact**: Variable, depends on core count and workload
 
-### P5: Memory-mapped weights (native in gguf/ and hub/)
-- **Architecture done**: `GGUFFile::load_tensors_mmap()` implemented in `gguf/`. `Tensor::from_mmap()` and `Storage::MMap` already in `tensor/`. Zero-copy for F32/F16/Q8/Q4 tensors.
-- **Remaining**: Switch embedding server and daemon to use `load_tensors_mmap` instead of `load_tensors`. Add `HubBundle::load_tensors_mmap()` for SafeTensors. Measure startup time and RSS difference.
-- **Crates**: `gguf/` (done), `hub/` (remaining), consumers (one-line switch)
+### P5: Memory-mapped weights (native in gguf/ and hub/) — DONE
+- `GGUFFile::load_tensors_mmap()` in `gguf/`, `load_safetensors_mmap()` in `hub/`, `Tensor::from_mmap()` and `Storage::MMap` in `tensor/`. Zero-copy for F32/F16/Q8/Q4 tensors.
+- Embedding server, daemon, and CLI all use mmap. Old `SafeTensorLoader` (read-all-to-F32) deleted.
+- **Remaining**: Measure startup time and RSS difference.
 
 ### P6: GPU acceleration (Vulkan)
 - **Architecture done**: `rustml-compute` crate with `ComputeBackend` trait, `CpuBackend` provider (wraps existing ops), `VulkanBackend` stub

@@ -3,7 +3,7 @@
 pub use crate::api::error::*;
 pub use crate::api::traits::ModelBuilder;
 pub use crate::api::types::*;
-pub use crate::core::registry::ModelRegistry;
+pub use crate::core::registry::ModelBuilderRegistry;
 pub use crate::core::gpt::{GptBlock, GptMlp, GptModel};
 pub use crate::core::model::{LlmModel, map_gpt2_weights, split_qkv, split_qkv_bias};
 pub use crate::core::weight_map::WeightMap;

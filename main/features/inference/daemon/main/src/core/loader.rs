@@ -6,17 +6,17 @@ use anyhow::{Context, Result};
 use rustml_gguf::GGUFFile;
 use rustml_hub::HubApi;
 use rustml_model::{
-    LlmModel, ModelConfig, ModelRegistry, OptProfile, convert_tensors,
+    LlmModel, ModelConfig, ModelBuilderRegistry, OptProfile, convert_tensors,
     gguf_config_to_model_config,
 };
 use rustml_tokenizer::{BpeTokenizer, GgufTokenizer, HFTokenizer, Tokenizer};
 use rustml_quantizer::Quantizer;
 
-use super::state::ModelBundle;
+use super::state::DefaultModel;
 
 /// Create the model registry with all supported architectures.
-fn create_registry() -> ModelRegistry {
-    let mut reg = ModelRegistry::new();
+fn create_registry() -> ModelBuilderRegistry {
+    let mut reg = ModelBuilderRegistry::new();
     reg.register("llama", Box::new(rustml_arch_llama::LlamaBuilder));
     reg.register("mistral", Box::new(rustml_arch_llama::LlamaBuilder));
     reg.register("qwen2", Box::new(rustml_arch_llama::LlamaBuilder));
@@ -36,7 +36,7 @@ fn create_registry() -> ModelRegistry {
 }
 
 /// Load a model from a GGUF file on disk.
-pub fn load_gguf(path: &Path, profile: OptProfile) -> Result<ModelBundle> {
+pub fn load_gguf(path: &Path, profile: OptProfile) -> Result<DefaultModel> {
     log::info!("Loading GGUF: {}", path.display());
     let gguf = GGUFFile::parse_header(path)
         .with_context(|| format!("Failed to parse GGUF: {}", path.display()))?;
@@ -98,7 +98,7 @@ pub fn load_gguf(path: &Path, profile: OptProfile) -> Result<ModelBundle> {
         .map(|s| s.to_string_lossy().to_string())
         .unwrap_or_else(|| "gguf-model".into());
 
-    Ok(ModelBundle {
+    Ok(DefaultModel {
         model,
         tokenizer,
         model_id,
@@ -110,7 +110,7 @@ pub fn load_gguf(path: &Path, profile: OptProfile) -> Result<ModelBundle> {
 }
 
 /// Load a model from HuggingFace SafeTensors.
-pub fn load_safetensors(model_id: &str, profile: OptProfile) -> Result<ModelBundle> {
+pub fn load_safetensors(model_id: &str, profile: OptProfile) -> Result<DefaultModel> {
     let hub = HubApi::new();
     let bundle = match hub.get_cached(model_id) {
         Some(b) => {
@@ -124,9 +124,11 @@ pub fn load_safetensors(model_id: &str, profile: OptProfile) -> Result<ModelBund
         }
     };
 
-    let json_config = bundle
-        .load_config_sync()
-        .with_context(|| "Failed to load config.json")?;
+    let json_config: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(bundle.config_path())
+            .with_context(|| "Failed to read config.json")?,
+    )
+    .with_context(|| "Failed to parse config.json")?;
     let model_type = json_config["model_type"].as_str().unwrap_or("").to_string();
     let config = ModelConfig::from_json_value(&json_config)
         .with_context(|| "Failed to parse model config")?;
@@ -140,8 +142,7 @@ pub fn load_safetensors(model_id: &str, profile: OptProfile) -> Result<ModelBund
         config.vocab_size
     );
 
-    let weights = bundle
-        .load_tensors()
+    let weights = rustml_hub::load_safetensors(&bundle.weights_path())
         .with_context(|| "Failed to load SafeTensors weights")?;
     log::info!("  {} tensors loaded", weights.len());
 
@@ -200,7 +201,7 @@ pub fn load_safetensors(model_id: &str, profile: OptProfile) -> Result<ModelBund
         }
     });
 
-    Ok(ModelBundle {
+    Ok(DefaultModel {
         model,
         tokenizer,
         model_id: model_id.to_string(),

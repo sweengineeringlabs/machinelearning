@@ -1,18 +1,17 @@
 //! Data types for hub API operations
 
-use crate::api::error::{HubError, HubResult};
 use std::path::PathBuf;
 
 /// A bundle of downloaded model files (SafeTensors format)
 #[derive(Debug, Clone)]
-pub struct ModelBundle {
+pub struct ModelFiles {
     /// Model identifier
     pub model_id: String,
     /// Path to the model directory
     pub model_dir: PathBuf,
 }
 
-impl ModelBundle {
+impl ModelFiles {
     /// Get path to config.json
     pub fn config_path(&self) -> PathBuf {
         self.model_dir.join("config.json")
@@ -38,28 +37,6 @@ impl ModelBundle {
         self.model_dir.join("tokenizer.json")
     }
 
-    /// Load model configuration
-    pub async fn load_config(&self) -> HubResult<serde_json::Value> {
-        let content = tokio::fs::read_to_string(self.config_path()).await?;
-        serde_json::from_str(&content).map_err(|e| HubError::ParseError(e.to_string()))
-    }
-
-    /// Load model configuration synchronously
-    pub fn load_config_sync(&self) -> HubResult<serde_json::Value> {
-        let content = std::fs::read_to_string(self.config_path())?;
-        serde_json::from_str(&content).map_err(|e| HubError::ParseError(e.to_string()))
-    }
-
-    /// Load tensors from the model (converts all to F32)
-    pub fn load_tensors(&self) -> HubResult<std::collections::HashMap<String, swe_ml_tensor::Tensor>> {
-        let loader = crate::core::safetensors::SafeTensorLoader::new();
-        loader.load(&self.weights_path())
-    }
-
-    /// Load tensors keeping original dtype via mmap (zero-copy)
-    pub fn load_tensors_mmap(&self) -> HubResult<std::collections::HashMap<String, swe_ml_tensor::Tensor>> {
-        crate::core::safetensors::load_safetensors_mmap(&self.weights_path())
-    }
 }
 
 /// A bundle for GGUF model files

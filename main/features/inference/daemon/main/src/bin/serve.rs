@@ -5,7 +5,7 @@ use std::sync::Arc;
 use anyhow::{Result, bail};
 use clap::Parser;
 
-use swellmd::{AppState, build_router, load_gguf, load_safetensors};
+use swellmd::{AppState, Model, SemaphoreThrottle, Throttle, build_router, load_gguf, load_safetensors};
 use rustml_model::OptProfile;
 use rustml_thread_config::ThreadConfig;
 use rustml_compute::ComputeBackend;
@@ -35,6 +35,12 @@ struct Cli {
     /// Optimization profile: optimized (default), baseline, aggressive.
     #[arg(long, default_value = "optimized")]
     opt_profile: String,
+
+    /// Maximum concurrent inference requests; excess requests receive HTTP 503.
+    /// Default is 2, matching typical CPU inference where each request
+    /// already saturates the rayon thread pool.
+    #[arg(long, default_value_t = 2)]
+    max_concurrent: usize,
 }
 
 fn parse_opt_profile(s: &str) -> Result<OptProfile> {
@@ -68,15 +74,17 @@ async fn main() -> Result<()> {
     let compute = rustml_compute::CpuBackend;
     log::info!("Compute backend: {}", compute.name());
 
-    let bundle = if let Some(ref model_id) = cli.safetensors {
-        load_safetensors(model_id, profile)?
+    let model: Box<dyn Model> = if let Some(ref model_id) = cli.safetensors {
+        Box::new(load_safetensors(model_id, profile)?)
     } else {
         let path = cli.gguf_path.as_ref().unwrap();
-        load_gguf(path, profile)?
+        Box::new(load_gguf(path, profile)?)
     };
 
-    let model_id = bundle.model_id.clone();
-    let state = Arc::new(AppState { bundle });
+    let model_id = model.model_id().to_string();
+    let throttle: Box<dyn Throttle> = Box::new(SemaphoreThrottle::new(cli.max_concurrent));
+    log::info!("Admission control: max_concurrent={}", throttle.capacity());
+    let state = Arc::new(AppState { model, throttle });
     let app = build_router(state);
 
     let addr: SocketAddr = format!("{}:{}", cli.host, cli.port).parse()?;

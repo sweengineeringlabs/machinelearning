@@ -7,16 +7,16 @@ use anyhow::{Context, Result, bail};
 use clap::Args;
 
 use rustml_gguf::GGUFFile;
-use rustml_hub::HubApi;
+use rustml_hub::{HubApi, load_safetensors};
 use rustml_model::{
-    LanguageModel, LlmModel, ModelRegistry, OptProfile, convert_tensors,
+    LanguageModel, LlmModel, ModelBuilderRegistry, OptProfile, convert_tensors,
     gguf_config_to_model_config,
 };
 use rustml_generation::Generator;
 use rustml_tokenizer::{BpeTokenizer, GgufTokenizer, HFTokenizer, Tokenizer};
 
-fn create_registry() -> ModelRegistry {
-    let mut reg = ModelRegistry::new();
+fn create_registry() -> ModelBuilderRegistry {
+    let mut reg = ModelBuilderRegistry::new();
     reg.register("llama", Box::new(rustml_arch_llama::LlamaBuilder));
     reg.register("mistral", Box::new(rustml_arch_llama::LlamaBuilder));
     reg.register("qwen2", Box::new(rustml_arch_llama::LlamaBuilder));
@@ -462,9 +462,11 @@ fn run_safetensors(
         }
     };
 
-    let json_config = bundle
-        .load_config_sync()
-        .with_context(|| "Failed to load config.json")?;
+    let json_config: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(bundle.config_path())
+            .with_context(|| "Failed to read config.json")?,
+    )
+    .with_context(|| "Failed to parse config.json")?;
     let model_type = json_config["model_type"].as_str().unwrap_or("").to_string();
     let config = rustml_model::ModelConfig::from_json_value(&json_config)
         .with_context(|| "Failed to parse model config")?;
@@ -475,8 +477,7 @@ fn run_safetensors(
     );
 
     eprintln!("  Loading SafeTensors weights...");
-    let weights = bundle
-        .load_tensors()
+    let weights = load_safetensors(&bundle.weights_path())
         .with_context(|| "Failed to load SafeTensors weights")?;
     eprintln!("  {} tensors loaded", weights.len());
 

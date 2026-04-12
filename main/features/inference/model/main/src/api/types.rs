@@ -99,7 +99,7 @@ impl Default for GptConfig {
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct ModelConfig {
     /// Architecture identifier (e.g., "gpt2", "llama", "gemma3").
-    /// Used by ModelRegistry to select the correct builder.
+    /// Used by ModelBuilderRegistry to select the correct builder.
     #[serde(default)]
     pub architecture: String,
     pub dim: usize,

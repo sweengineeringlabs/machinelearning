@@ -14,7 +14,7 @@
 //!
 //! let api = HubApi::new();
 //! let bundle = api.download_model("openai-community/gpt2").await?;
-//! let weights = bundle.load_tensors()?;
+//! let weights = rustml_hub::load_safetensors(&bundle.weights_path())?;
 //! ```
 
 pub mod api;

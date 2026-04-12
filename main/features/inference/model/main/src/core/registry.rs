@@ -11,11 +11,11 @@ use std::collections::HashMap;
 /// call `build_model()` with config and weights. The registry selects
 /// the right builder based on `config.architecture` — no match
 /// statements, no architecture knowledge in the consumer.
-pub struct ModelRegistry {
+pub struct ModelBuilderRegistry {
     builders: HashMap<String, Box<dyn ModelBuilder>>,
 }
 
-impl ModelRegistry {
+impl ModelBuilderRegistry {
     pub fn new() -> Self {
         Self {
             builders: HashMap::new(),
@@ -63,7 +63,7 @@ mod tests {
 
     #[test]
     fn test_empty_registry_rejects_unknown_arch() {
-        let reg = ModelRegistry::new();
+        let reg = ModelBuilderRegistry::new();
         let config = ModelConfig {
             architecture: "nonexistent".to_string(),
             ..Default::default()
@@ -73,7 +73,7 @@ mod tests {
 
     #[test]
     fn test_architectures_lists_registered() {
-        let mut reg = ModelRegistry::new();
+        let mut reg = ModelBuilderRegistry::new();
         // Register a dummy builder
         struct DummyBuilder;
         impl ModelBuilder for DummyBuilder {

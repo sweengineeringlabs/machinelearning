@@ -20,6 +20,9 @@ pub enum DaemonError {
 
     #[error("Internal error: {0}")]
     Internal(String),
+
+    #[error("Server at capacity (max concurrent={0})")]
+    AtCapacity(usize),
 }
 
 impl IntoResponse for DaemonError {
@@ -30,6 +33,7 @@ impl IntoResponse for DaemonError {
             DaemonError::GenerationFailed(_) => StatusCode::INTERNAL_SERVER_ERROR,
             DaemonError::LoadFailed(_) => StatusCode::INTERNAL_SERVER_ERROR,
             DaemonError::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            DaemonError::AtCapacity(_) => StatusCode::SERVICE_UNAVAILABLE,
         };
 
         let body = serde_json::json!({
@@ -41,6 +45,7 @@ impl IntoResponse for DaemonError {
                     DaemonError::GenerationFailed(_) => "generation_error",
                     DaemonError::LoadFailed(_) => "load_error",
                     DaemonError::Internal(_) => "internal_error",
+                    DaemonError::AtCapacity(_) => "at_capacity",
                 },
             }
         });

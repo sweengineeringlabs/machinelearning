@@ -107,9 +107,11 @@ fn main() -> Result<()> {
             let bundle = api
                 .get_cached(model_id)
                 .with_context(|| format!("Model not cached: {model_id}"))?;
-            let config = bundle
-                .load_config_sync()
-                .with_context(|| format!("Failed to load config for {model_id}"))?;
+            let config: serde_json::Value = serde_json::from_str(
+                &std::fs::read_to_string(bundle.config_path())
+                    .with_context(|| format!("Failed to read config for {model_id}"))?,
+            )
+            .with_context(|| format!("Failed to parse config for {model_id}"))?;
             println!("{}", serde_json::to_string_pretty(&config)?);
         }
     }

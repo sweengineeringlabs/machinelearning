@@ -31,7 +31,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
 async fn health(State(state): State<Arc<AppState>>) -> Json<HealthResponse> {
     Json(HealthResponse {
         status: "ok".into(),
-        model: Some(state.bundle.model_id.clone()),
+        model: Some(state.model.model_id().to_string()),
     })
 }
 
@@ -39,7 +39,7 @@ async fn list_models(State(state): State<Arc<AppState>>) -> Json<ModelsResponse>
     Json(ModelsResponse {
         object: "list",
         data: vec![ModelInfo {
-            id: state.bundle.model_id.clone(),
+            id: state.model.model_id().to_string(),
             object: "model",
             owned_by: "local".into(),
         }],
@@ -112,17 +112,24 @@ async fn handle_blocking(
     state: Arc<AppState>,
     req: ChatCompletionRequest,
 ) -> Result<axum::response::Response, DaemonError> {
+    let permit = state
+        .throttle
+        .try_acquire()
+        .ok_or_else(|| DaemonError::AtCapacity(state.throttle.capacity()))?;
+
     let owned_messages = collect_messages(&req);
     let max_tokens = req.max_tokens;
     let temperature = req.temperature;
     let top_k = req.top_k;
     let top_p = req.top_p;
     let repetition_penalty = req.repetition_penalty;
-    let model_id = state.bundle.model_id.clone();
+    let model_id = state.model.model_id().to_string();
 
     // Run inference on a blocking thread to avoid starving the tokio runtime.
+    // `permit` moves into the closure; dropped when inference completes.
     let (output, prompt_tokens, completion_tokens) = tokio::task::spawn_blocking(move || {
-        let mut generator = state.bundle.build_generator(temperature);
+        let _permit = permit;
+        let mut generator = state.model.build_generator(temperature);
         if let Some(k) = top_k {
             generator = generator.with_top_k(k);
         }
@@ -189,9 +196,14 @@ async fn handle_streaming(
     state: Arc<AppState>,
     req: ChatCompletionRequest,
 ) -> Result<axum::response::Response, DaemonError> {
+    let permit = state
+        .throttle
+        .try_acquire()
+        .ok_or_else(|| DaemonError::AtCapacity(state.throttle.capacity()))?;
+
     let completion_id = build_completion_id();
     let created = chrono::Utc::now().timestamp();
-    let model_id = state.bundle.model_id.clone();
+    let model_id = state.model.model_id().to_string();
     let owned_messages = collect_messages(&req);
     let max_tokens = req.max_tokens;
     let temperature = req.temperature;
@@ -203,7 +215,8 @@ async fn handle_streaming(
 
     let stream_state = Arc::clone(&state);
     tokio::task::spawn_blocking(move || {
-        let mut generator = stream_state.bundle.build_generator(temperature);
+        let _permit = permit;
+        let mut generator = stream_state.model.build_generator(temperature);
         if let Some(k) = top_k {
             generator = generator.with_top_k(k);
         }
@@ -219,7 +232,7 @@ async fn handle_streaming(
             .map(|(r, c)| (r.as_str(), c.as_str()))
             .collect();
 
-        let tokenizer = stream_state.bundle.tokenizer.as_ref();
+        let tokenizer = stream_state.model.tokenizer();
         let _ = generator.generate_turn_stream(&messages, max_tokens, |token_id| {
             match tokenizer.decode(&[token_id]) {
                 Ok(piece) => tx.blocking_send(piece).is_ok(),
@@ -265,8 +278,8 @@ async fn embeddings(
         return Err(DaemonError::InvalidRequest("input must not be empty".into()));
     }
 
-    let model_id = state.bundle.model_id.clone();
-    let tokenizer = state.bundle.tokenizer.as_ref();
+    let model_id = state.model.model_id().to_string();
+    let tokenizer = state.model.tokenizer();
 
     // Tokenize all inputs upfront (cheap, keep on async thread).
     let mut all_token_ids: Vec<Vec<u32>> = Vec::with_capacity(inputs.len());
@@ -279,8 +292,14 @@ async fn embeddings(
         all_token_ids.push(ids);
     }
 
+    let permit = state
+        .throttle
+        .try_acquire()
+        .ok_or_else(|| DaemonError::AtCapacity(state.throttle.capacity()))?;
+
     let state = Arc::clone(&state);
     let data = tokio::task::spawn_blocking(move || {
+        let _permit = permit;
         let start = Instant::now();
         let mut results: Vec<(usize, Vec<f32>)> = Vec::with_capacity(all_token_ids.len());
 
@@ -290,7 +309,6 @@ async fn embeddings(
             let input_tensor = Tensor::new(f32_vec_to_bytes(input_data), vec![1, seq_len], DType::F32);
 
             let embedding = state
-                .bundle
                 .model
                 .embed(&input_tensor, PoolingStrategy::Mean)
                 .map_err(|e| DaemonError::GenerationFailed(format!("Embedding failed: {}", e)))?;

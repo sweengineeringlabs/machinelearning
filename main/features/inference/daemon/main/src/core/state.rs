@@ -1,9 +1,13 @@
-use rustml_model::{LanguageModel, LlmModel, OptProfile};
+use crate::api::model::Model;
+use crate::api::throttle::Throttle;
+use rustml_inference_layers::PoolingStrategy;
+use rustml_model::{LanguageModel, LlmModel, ModelResult, OptProfile};
 use rustml_generation::Generator;
 use rustml_tokenizer::Tokenizer;
+use swe_ml_tensor::Tensor;
 
-/// Loaded model bundle: model + tokenizer + metadata needed for generation.
-pub struct ModelBundle {
+/// Default model instance: holds an LLM, tokenizer, and generation config.
+pub struct DefaultModel {
     pub model: LlmModel,
     pub tokenizer: Box<dyn Tokenizer + Send + Sync>,
     pub model_id: String,
@@ -13,9 +17,12 @@ pub struct ModelBundle {
     pub profile: OptProfile,
 }
 
-impl ModelBundle {
-    /// Build a `Generator` borrowing from this bundle.
-    pub fn build_generator(&self, temperature: f32) -> Generator<'_> {
+impl Model for DefaultModel {
+    fn model_id(&self) -> &str {
+        &self.model_id
+    }
+
+    fn build_generator(&self, temperature: f32) -> Generator<'_> {
         let mut generator = Generator::new(&self.model, self.tokenizer.as_ref(), temperature);
         generator = generator.with_optimization_profile(self.profile);
 
@@ -34,9 +41,18 @@ impl ModelBundle {
 
         generator
     }
+
+    fn tokenizer(&self) -> &dyn Tokenizer {
+        self.tokenizer.as_ref()
+    }
+
+    fn embed(&self, input_ids: &Tensor, strategy: PoolingStrategy) -> ModelResult<Tensor> {
+        self.model.embed(input_ids, strategy)
+    }
 }
 
 /// Shared application state behind `Arc` for axum handlers.
 pub struct AppState {
-    pub bundle: ModelBundle,
+    pub model: Box<dyn Model>,
+    pub throttle: Box<dyn Throttle>,
 }
