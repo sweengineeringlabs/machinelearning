@@ -584,6 +584,141 @@ tuning. Consider if the time investment above proves untenable.
 
 ---
 
+### P8: Long-context + high-concurrency via KV cache compression (TurboQuant)
+
+**Different axis from P7.** P7 attacks **weight matmul speed** (per-token decode
+latency). P8 attacks **KV cache memory and bandwidth** (concurrent request
+capacity + long-context decode speed). Orthogonal, stack cleanly, different
+bottlenecks solved.
+
+**Reference algorithm:** TurboQuant (Zandieh et al., Google Research + NYU,
+arXiv 2504.19874, ICLR 2026). Two-stage data-oblivious vector quantization
+for online KV cache compression at 2.5–3.5 bits/coordinate.
+
+**Core pipeline (from paper):**
+1. Randomly rotate input vector `x`. Rotation pushes each coordinate toward
+   a concentrated Beta distribution (→ Gaussian in high dim) with
+   near-independence across coordinates.
+2. Apply precomputed optimal scalar Lloyd-Max quantizer per coordinate
+   (codebooks generated offline via 1D k-means on the Beta distribution).
+3. For unbiased inner products (needed for attention scores): apply `b-1`
+   bit Q_mse, then a 1-bit QJL residual transform on `x - Q_mse⁻¹(Q_mse(x))`.
+
+**Published results:**
+- 3.5 bits/channel → absolute quality neutrality on long-context tasks
+  (needle-in-a-haystack, downstream accuracy)
+- 2.5 bits/channel → marginal quality degradation
+- >5× KV cache memory reduction at neutral quality
+- Within ~2.7× of Shannon's information-theoretic lower bound for MSE;
+  ~1.45× at 1 bit
+- Benchmarks on H100 GPU; CPU applicability plausible but unmeasured in
+  the paper
+
+**Problems this would solve for llmserv:**
+
+1. **Concurrent-request OOM unlock.** v0.8.0 load testing recorded process
+   death at 50 concurrent requests due to KV cache expansion (~416 MB/request
+   × 50 = 20 GB). Throttle mitigated it by rejecting via 503; TurboQuant
+   would let the same machine actually serve those requests (~4 GB at 5×
+   compression).
+2. **Long-context decode speedup.** For contexts > ~4k tokens, KV read
+   bandwidth during attention dominates per-token time. 5× compression =
+   ~5× speedup on that phase. Invisible in our current 8-token benchmark.
+3. **Deployment density.** Same machine serves more concurrent users, or
+   hosts bigger models with the same RAM.
+
+**Problems this does NOT solve:**
+- The Ollama p50 gap on short prompts (that's matmul-bound, P7 territory).
+- Weight storage size (that's P7.5 K-quant territory).
+
+**Scope (estimate, 2–4 weeks focused):**
+
+- `rustml-quant-vector` (new or extend existing `rustml-quant`):
+  - Hadamard-based fast rotation (O(d log d), accelerator-friendly). Paper
+    doesn't pin the rotation family but explicitly targets vectorization;
+    Hadamard / WHT is the natural choice.
+  - Offline codebook generation (continuous 1D Lloyd-Max for Beta-
+    distributed coordinates; store codebooks for b ∈ {2,3,4,5})
+  - 1-bit QJL transform (random ±1 projection + sign)
+  - Q_mse API: `quantize_vector(x: &[f32]) -> (Bytes, Scale)`
+  - Q_prod API: wraps Q_mse + QJL residual
+  - Dequantization helpers for both
+- `rustml-inference-layers::kv_cache`:
+  - New `CompressedKvCache` variant that stores per-token K, V as
+    TurboQuant blobs instead of raw F16
+  - Decompression on attention read (or keep a recent-tokens F16 window
+    for speed, compress older entries — a "rolling compression" variant)
+  - Integration with existing KVCache trait
+
+- Configuration in `application.toml`:
+  ```toml
+  [kv_cache]
+  backend = "compressed"      # or "default"
+  bits_per_coord = 3.5
+  unbiased_inner_product = true   # uses Q_prod vs Q_mse
+  ```
+
+- Correctness validation:
+  - Perplexity on eval set (WikiText-103 or similar): should match
+    F16 baseline at 3.5 bits
+  - Long-context retrieval quality: needle-in-a-haystack test at 4k/8k
+  - Numerical comparison: K × Q / √d scores from compressed vs
+    uncompressed paths within tolerance
+
+- Benchmarking:
+  - Memory: measure per-request KV RSS at various context lengths
+  - Throughput: decode tok/s at 2k / 8k / 32k context
+  - Concurrency: re-run the v0.8.0 load test — does it now serve 50
+    concurrent without OOM?
+
+**Risks:**
+
+- **Rotation cost on CPU.** For gemma-3-1b (head_dim=256), full random
+  rotation = 65k multiplies per K or V vector. Per decode step × 26 layers
+  × 2 (K and V) = ~3.4 M multiplies just for rotation. With fast Hadamard
+  (O(d log d) = ~2k ops per rotation), drops to ~100 k ops / decode step,
+  trivial. With naive dense random rotation, significant. Paper implies
+  Hadamard but doesn't guarantee; we'd need to validate quality holds
+  with Hadamard specifically.
+- **Attention latency regression.** Dequantizing older K, V tokens on
+  every attention read adds per-token cost. For short contexts this could
+  make decode slower, not faster. Mitigation: "recent-window" hybrid
+  (hot recent tokens uncompressed, cold tail compressed).
+- **Perplexity regression risk.** Paper claims neutrality at 3.5 bits but
+  on their eval sets. Our specific models (Gemma / Llama / etc.) may show
+  different tradeoffs. Correctness validation is non-negotiable before
+  making it the default.
+
+**Acceptance criteria:**
+
+- Functional: KVCache trait has a compressed-backend option; unit tests
+  for quantize/dequantize roundtrip fidelity pass at 3.5 bits.
+- Correctness: perplexity on a 1k-sample eval at 3.5 bits within 1%
+  of F16 baseline for gemma-3-1b; needle-in-a-haystack accuracy at
+  8k context matches F16 within 2%.
+- Performance: decode tok/s at 32k context ≥ 2× the F16 baseline on
+  the same machine.
+- Memory: per-request KV RSS at max context ≤ 20% of the F16 baseline.
+- Gating: `[kv_cache].backend` defaults to `"default"` (F16). Switching
+  to `"compressed"` is opt-in until acceptance criteria are met for
+  all supported architectures.
+
+**Do NOT start this unless:**
+- There's a concrete user / workload requirement for long context or
+  high concurrency (currently: the load-testing strategy documents 50-
+  concurrent capacity as a goal but nothing else drives it).
+- OR P7 (matmul speedup) has landed and we're looking for the next
+  non-overlapping optimization target.
+
+**Alternative:** adopt an existing KV cache compression method already
+shipping in llama.cpp (KV quantization via q8_0/q4_0, also 2–4× compression).
+Simpler than implementing TurboQuant from the paper, gives a meaningful
+fraction of the memory benefit, no implementation risk. Worth
+benchmarking the simpler option first before committing to the novel
+algorithm.
+
+---
+
 ## Tooling
 
 ### T1: Bring `llmc load` toward oha parity — scoped by real need
