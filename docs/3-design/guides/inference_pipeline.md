@@ -260,7 +260,7 @@ dequantized[i] = quantized[i] × scale
 | | GPTQ, AWQ | Calibration-based quantization — better quality but requires calibration data |
 | | FP16 / BF16 | 2x compression, no quantization error, but needs hardware support |
 
-**Crate:** `inference/quant/` (kernels), `inference/quantize/` (pipeline)
+**Crate:** `inference/quant/` (kernels); offline conversion CLI lives at `devtools/quantize/`
 
 ---
 

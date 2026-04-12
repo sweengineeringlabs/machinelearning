@@ -367,7 +367,7 @@ Added 2026-04-11. Gemma 3 1B runs ~1-2s/token on CPU. These optimizations target
 - **Expected impact**: Variable, depends on core count and workload
 
 ### P5: Memory-mapped weights (native in gguf/ and hub/) — DONE
-- `GGUFFile::load_tensors_mmap()` in `gguf/`, `load_safetensors_mmap()` in `hub/`, `Tensor::from_mmap()` and `Storage::MMap` in `tensor/`. Zero-copy for F32/F16/Q8/Q4 tensors.
+- `GGUFFile::load_tensors_mmap()` in `gguf/`, `load_safetensors()` in `hub/`, `Tensor::from_mmap()` and `Storage::MMap` in `tensor/`. Zero-copy for F32/F16/Q8/Q4 tensors.
 - Embedding server, daemon, and CLI all use mmap. Old `SafeTensorLoader` (read-all-to-F32) deleted.
 - **Remaining**: Measure startup time and RSS difference.
 

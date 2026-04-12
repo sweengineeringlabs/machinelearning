@@ -1,5 +1,5 @@
 use rustml_gguf::{GGMLType, GGUFValue};
-use rustml_hub::{HubApi, load_safetensors_mmap};
+use rustml_hub::{HubApi, load_safetensors};
 
 use crate::api::error::{QuantizeError, QuantizeResult};
 use crate::api::traits::QuantizeEngine;
@@ -91,7 +91,7 @@ fn run_quantize(config: &QuantizeConfig) -> QuantizeResult<QuantizeReport> {
 
     // Step 4: Load safetensors via mmap
     log::info!("Loading safetensors from {}", safetensors_path.display());
-    let tensors = load_safetensors_mmap(&safetensors_path)?;
+    let tensors = load_safetensors(&safetensors_path)?;
 
     log::info!("Loaded {} tensors", tensors.len());
 

@@ -18,7 +18,7 @@ members = [
     "main/features/inference/tokenizer",
     "main/features/inference/quant",
     "main/features/inference/gguf",
-    "main/features/inference/quantize",
+    "devtools/quantize",
     "main/features/inference/quantizer",
     "main/features/inference/prefill",
     "main/features/inference/thread-config",
