@@ -17,6 +17,15 @@ fn dot_q8_block_scalar(input: &[f32], quantized: &[i8], scale: f32) -> f32 {
     sum * scale
 }
 
+/// Scalar signed i8 × signed i8 → i32 integer dot product, 32 elements.
+fn dot_q8q8_block_scalar(a: &[i8], b: &[i8]) -> i32 {
+    let mut sum: i32 = 0;
+    for i in 0..32 {
+        sum += (a[i] as i32) * (b[i] as i32);
+    }
+    sum
+}
+
 /// Scalar dot product for one Q4_0 block (32 elements).
 fn dot_q4_block_scalar(input: &[f32], packed: &[u8], scale: f32) -> f32 {
     let mut sum = 0.0f32;
@@ -122,6 +131,50 @@ mod x86 {
         let result = _mm_add_ss(sums, shuf2);
 
         _mm_cvtss_f32(result) * scale
+    }
+
+    /// Signed i8 × signed i8 → i32 integer dot product for one 32-element block.
+    ///
+    /// The core primitive of the integer-domain matmul path (P7.2.b). Caller
+    /// multiplies the returned i32 by the product of the two block scales to
+    /// get the f32 dot-product contribution.
+    ///
+    /// Approach: sign-extend 32 × i8 pairs to i16 (two __m256i halves each
+    /// side), then use `_mm256_madd_epi16` which does
+    /// `output[i] = a[2i]*b[2i] + a[2i+1]*b[2i+1]` as signed i16 × i16 → i32.
+    /// Sum the two halves, horizontal-reduce to a scalar i32.
+    ///
+    /// Max output for a 32-element block: |127 * 127 * 32| ≈ 516k, fits in i32
+    /// with room to spare. Accumulation across a 1152-dim row (36 blocks) also
+    /// fits trivially in i32 (max ≈ 18.6M).
+    #[target_feature(enable = "avx2")]
+    pub(super) unsafe fn dot_q8q8_block_avx2(a: &[i8], b: &[i8]) -> i32 {
+        use std::arch::x86_64::*;
+
+        let a_vec = _mm256_loadu_si256(a.as_ptr() as *const __m256i);
+        let b_vec = _mm256_loadu_si256(b.as_ptr() as *const __m256i);
+
+        // Sign-extend each side: 32 × i8 → 16 × i16 + 16 × i16.
+        let a_lo = _mm256_cvtepi8_epi16(_mm256_castsi256_si128(a_vec));
+        let a_hi = _mm256_cvtepi8_epi16(_mm256_extracti128_si256(a_vec, 1));
+        let b_lo = _mm256_cvtepi8_epi16(_mm256_castsi256_si128(b_vec));
+        let b_hi = _mm256_cvtepi8_epi16(_mm256_extracti128_si256(b_vec, 1));
+
+        // Multiply-add: 8 × i32 per half.
+        let mad_lo = _mm256_madd_epi16(a_lo, b_lo);
+        let mad_hi = _mm256_madd_epi16(a_hi, b_hi);
+        let sum_i32 = _mm256_add_epi32(mad_lo, mad_hi);
+
+        // Horizontal sum of 8 × i32.
+        let hi128 = _mm256_extracti128_si256(sum_i32, 1);
+        let lo128 = _mm256_castsi256_si128(sum_i32);
+        let sum128 = _mm_add_epi32(lo128, hi128);
+        let shuf = _mm_shuffle_epi32(sum128, 0b_10_11_00_01);
+        let sum64 = _mm_add_epi32(sum128, shuf);
+        let shuf2 = _mm_shuffle_epi32(sum64, 0b_01_00_11_10);
+        let sum32 = _mm_add_epi32(sum64, shuf2);
+
+        _mm_cvtsi128_si32(sum32)
     }
 
     /// Legacy AVX2-only Q8_0 × F32 block dot product. Retained for CPUs
@@ -615,6 +668,28 @@ pub fn dot_q8_block(input: &[f32], quantized: &[i8], scale: f32) -> f32 {
     dot_q8_block_scalar(input, quantized, scale)
 }
 
+/// Runtime-dispatched signed i8 × signed i8 → i32 integer dot product for
+/// one 32-element block. Core of the integer-domain matmul (P7.2.b).
+pub fn dot_q8q8_block(a: &[i8], b: &[i8]) -> i32 {
+    debug_assert!(a.len() >= 32);
+    debug_assert!(b.len() >= 32);
+
+    #[cfg(target_arch = "x86_64")]
+    {
+        if is_x86_feature_detected!("avx2") {
+            return unsafe { x86::dot_q8q8_block_avx2(a, b) };
+        }
+    }
+
+    #[allow(unreachable_code)]
+    dot_q8q8_block_scalar(a, b)
+}
+
+/// Scalar-reference variant of `dot_q8q8_block`, for tests.
+pub fn dot_q8q8_block_scalar_ref(a: &[i8], b: &[i8]) -> i32 {
+    dot_q8q8_block_scalar(a, b)
+}
+
 /// Runtime-dispatched dot product for one Q4_0 block (32 elements).
 pub fn dot_q4_block(input: &[f32], packed: &[u8], scale: f32) -> f32 {
     debug_assert!(input.len() >= 32);
@@ -739,6 +814,40 @@ mod tests {
 
         assert!((scalar - dispatched).abs() < 1e-3,
             "Q4 scalar {} vs dispatched {}", scalar, dispatched);
+    }
+
+    #[test]
+    fn test_q8q8_dot_scalar_vs_dispatch() {
+        // Mix of positive and negative values across the full i8 range.
+        let a: Vec<i8> = (0..32).map(|i| ((i - 16) * 7) as i8).collect();
+        let b: Vec<i8> = (0..32).map(|i| ((i * 5) - 60) as i8).collect();
+
+        let scalar = dot_q8q8_block_scalar_ref(&a, &b);
+        let dispatched = dot_q8q8_block(&a, &b);
+
+        assert_eq!(scalar, dispatched,
+            "Q8×Q8 scalar {} vs dispatched {}", scalar, dispatched);
+    }
+
+    #[test]
+    fn test_q8q8_dot_extremes() {
+        // All max positive values vs all max positive values.
+        let a = [i8::MAX; 32];
+        let b = [i8::MAX; 32];
+        let expected: i32 = 32 * (127 * 127);
+        assert_eq!(dot_q8q8_block(&a, &b), expected);
+
+        // Max negative vs max negative = large positive.
+        let a = [i8::MIN; 32];
+        let b = [i8::MIN; 32];
+        let expected: i32 = 32 * (i8::MIN as i32) * (i8::MIN as i32);
+        assert_eq!(dot_q8q8_block(&a, &b), expected);
+
+        // Opposite signs = negative sum.
+        let a = [i8::MAX; 32];
+        let b = [i8::MIN; 32];
+        let expected: i32 = 32 * (127_i32) * (i8::MIN as i32);
+        assert_eq!(dot_q8q8_block(&a, &b), expected);
     }
 
     #[test]

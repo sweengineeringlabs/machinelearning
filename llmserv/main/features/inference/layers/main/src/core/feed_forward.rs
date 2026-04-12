@@ -181,6 +181,7 @@ impl FeedForward {
             out_features,
             frozen: true,
             use_native_q4: false,
+            use_native_q8: false,
         });
         true
     }

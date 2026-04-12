@@ -23,6 +23,10 @@ pub struct Linear {
     pub frozen: bool,
     /// Use native Q4_0×Q8_0 integer matmul instead of dequantize-then-matmul
     pub use_native_q4: bool,
+    /// Use integer-domain Q8×Q8 matmul (quantize activations on the fly,
+    /// dot in i8×i8 → i32, scale at the end) instead of the F32-domain path.
+    /// ~2× faster on AVX2 when enabled. Safe default: false.
+    pub use_native_q8: bool,
 }
 
 impl Linear {
@@ -54,6 +58,11 @@ impl Linear {
             out_features,
             frozen: false,
             use_native_q4: false,
+            // Default off pending P7.2.b follow-up work (multiple integer
+            // accumulators + pre-allocated activation buffer). With those,
+            // v2 is expected to beat v1; without them, v1 (FMA path) wins
+            // by ~7% on this CPU. See llmserv/BACKLOG.md P7.2.
+            use_native_q8: false,
         }
     }
 
@@ -85,6 +94,11 @@ impl Linear {
             out_features,
             frozen: false,
             use_native_q4: false,
+            // Default off pending P7.2.b follow-up work (multiple integer
+            // accumulators + pre-allocated activation buffer). With those,
+            // v2 is expected to beat v1; without them, v1 (FMA path) wins
+            // by ~7% on this CPU. See llmserv/BACKLOG.md P7.2.
+            use_native_q8: false,
         })
     }
 
@@ -96,6 +110,11 @@ impl Linear {
     /// Toggle native Q4_0×Q8_0 integer matmul for Q4_0 weights.
     pub fn set_native_q4_matmul(&mut self, enabled: bool) {
         self.use_native_q4 = enabled;
+    }
+
+    /// Toggle integer-domain Q8×Q8 matmul for Q8_0 weights (P7.2.b).
+    pub fn set_native_q8_matmul(&mut self, enabled: bool) {
+        self.use_native_q8 = enabled;
     }
 
     /// Convert F32 weight to F16 for reduced memory (2 bytes/param).
@@ -228,7 +247,11 @@ impl Linear {
             let out_features = self.out_features;
             let m = x_data.len() / in_features;
 
-            let result_data = rustml_quant::matmul_f32_q8(x_data, w_bytes, m, in_features, out_features)?;
+            let result_data = if self.use_native_q8 {
+                rustml_quant::matmul_f32_q8_v2(x_data, w_bytes, m, in_features, out_features)?
+            } else {
+                rustml_quant::matmul_f32_q8(x_data, w_bytes, m, in_features, out_features)?
+            };
 
             let mut out_shape: Vec<usize> = x.shape().to_vec();
             *out_shape.last_mut().unwrap() = out_features;

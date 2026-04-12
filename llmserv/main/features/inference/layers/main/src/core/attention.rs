@@ -331,6 +331,7 @@ impl MultiHeadAttention {
             out_features,
             frozen: true,
             use_native_q4: false,
+            use_native_q8: false,
         });
         self.fused_q_dim = self.q_proj.out_features;
         self.fused_kv_dim = self.k_proj.out_features;
