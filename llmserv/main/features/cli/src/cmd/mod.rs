@@ -1,6 +1,7 @@
 pub mod gguf;
 pub mod hub;
 pub mod infer;
+pub mod load;
 pub mod tokenizer;
 
 use clap::Subcommand;
@@ -19,6 +20,10 @@ pub enum Command {
 
     /// Run text generation on a GGUF model.
     Infer(infer::InferArgs),
+
+    /// HTTP load test an endpoint — fires N requests at C concurrency,
+    /// reports latency percentiles and status distribution.
+    Load(load::LoadArgs),
 }
 
 pub fn run(command: Command) -> anyhow::Result<()> {
@@ -27,5 +32,6 @@ pub fn run(command: Command) -> anyhow::Result<()> {
         Command::Tokenizer(args) => tokenizer::run(args),
         Command::Hub(args) => hub::run(args),
         Command::Infer(args) => infer::run(args),
+        Command::Load(args) => load::run(args),
     }
 }

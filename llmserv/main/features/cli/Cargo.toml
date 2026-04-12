@@ -1,20 +1,22 @@
 [package]
-name = "rustml-cli"
+name = "llm_cli"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Unified CLI facade for RustML — sweai binary with infer, hub, gguf, tokenizer subcommands"
+description = "llmc — developer CLI for llmserv (infer, hub, gguf, tokenizer, load)"
 
 [[bin]]
-name = "sweai"
+name = "llmc"
 path = "src/main.rs"
 
 [dependencies]
 clap.workspace = true
 anyhow.workspace = true
+serde.workspace = true
 serde_json.workspace = true
 rayon.workspace = true
+tokio.workspace = true
 rustml-model.workspace = true
 rustml-quantizer.workspace = true
 rustml-thread-config.workspace = true
@@ -33,3 +35,7 @@ rustml-arch-gemma3.workspace = true
 rustml-arch-gemma4.workspace = true
 rustml-arch-bert.workspace = true
 rustml-arch-nomic-bert.workspace = true
+# For `llmc load` — native load testing (oha-equivalent, no external binary).
+reqwest.workspace = true
+futures-util.workspace = true
+hdrhistogram = "7.5"

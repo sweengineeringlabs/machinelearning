@@ -3,9 +3,11 @@ mod cmd;
 use anyhow::Result;
 use clap::Parser;
 
-/// SweAI — unified CLI for RustML.
+/// llmc — developer CLI for llmserv.
+///
+/// Subcommands: infer, hub, gguf, tokenizer, load.
 #[derive(Parser)]
-#[command(name = "sweai", version, about)]
+#[command(name = "llmc", version, about)]
 struct Cli {
     #[command(subcommand)]
     command: cmd::Command,

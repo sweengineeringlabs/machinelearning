@@ -177,6 +177,12 @@ checksum = "9e1b586273c5702936fe7b7d6896644d8be71e6314cfe09d3167c95f712589e8"
 
 [[package]]
 name = "base64"
+version = "0.21.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9d297deb1925b89f2ccc13d7635fa0714f12c87adce1c75356b39ca9b7178567"
+
+[[package]]
+name = "base64"
 version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
@@ -395,6 +401,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9481c1c90cbf2ac953f07c8d4a58aa3945c425b7185c9154d67a65e4230da511"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "crossbeam-channel"
+version = "0.5.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "82b8f8f868b36967f9606790d1903570de9ceaf870a7bf9fbbd3016d636a2cb2"
+dependencies = [
+ "crossbeam-utils",
 ]
 
 [[package]]
@@ -1116,6 +1131,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4f467dd6dccf739c208452f8014c75c18bb8301b050ad1cfb27153803edb0f51"
 
 [[package]]
+name = "hdrhistogram"
+version = "7.5.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "765c9198f173dd59ce26ff9f95ef0aafd0a0fe01fb9d72841bc5066a4c06511d"
+dependencies = [
+ "base64 0.21.7",
+ "byteorder",
+ "crossbeam-channel",
+ "flate2",
+ "nom",
+ "num-traits",
+]
+
+[[package]]
 name = "heck"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1550,6 +1579,39 @@ name = "litemap"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92daf443525c4cce67b150400bc2316076100ce0b3686209eb8cf3c31612e6f0"
+
+[[package]]
+name = "llm_cli"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "env_logger",
+ "futures-util",
+ "hdrhistogram",
+ "log",
+ "rayon",
+ "reqwest",
+ "rustml-arch-bert",
+ "rustml-arch-falcon",
+ "rustml-arch-gemma3",
+ "rustml-arch-gemma4",
+ "rustml-arch-gpt2",
+ "rustml-arch-llama",
+ "rustml-arch-mixtral",
+ "rustml-arch-nomic-bert",
+ "rustml-compute",
+ "rustml-generation",
+ "rustml-gguf",
+ "rustml-hub",
+ "rustml-model",
+ "rustml-quantizer",
+ "rustml-thread-config",
+ "rustml-tokenizer",
+ "serde",
+ "serde_json",
+ "tokio",
+]
 
 [[package]]
 name = "lock_api"
@@ -2463,34 +2525,6 @@ dependencies = [
  "rustml-inference-layers",
  "rustml-model",
  "swe-ml-tensor",
-]
-
-[[package]]
-name = "rustml-cli"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "env_logger",
- "log",
- "rayon",
- "rustml-arch-bert",
- "rustml-arch-falcon",
- "rustml-arch-gemma3",
- "rustml-arch-gemma4",
- "rustml-arch-gpt2",
- "rustml-arch-llama",
- "rustml-arch-mixtral",
- "rustml-arch-nomic-bert",
- "rustml-compute",
- "rustml-generation",
- "rustml-gguf",
- "rustml-hub",
- "rustml-model",
- "rustml-quantizer",
- "rustml-thread-config",
- "rustml-tokenizer",
- "serde_json",
 ]
 
 [[package]]
