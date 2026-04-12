@@ -1,7 +1,0 @@
-[quantization]
-attention = "q8_0"
-feed_forward = "q8_0"
-output = "q8_0"
-gate = "q8_0"
-moe = "q8_0"
-min_dim = 0

@@ -25,6 +25,17 @@ impl QuantConfig {
         Self::from_strategy(s)
     }
 
+    /// Parse from an in-memory TOML string. The TOML must contain a
+    /// `[quantization]` table; unknown sections are ignored. On parse
+    /// error, falls back to defaults.
+    pub(crate) fn from_toml_str(toml_str: &str) -> Self {
+        let s = QuantStrategy::from_toml(toml_str).unwrap_or_else(|e| {
+            log::warn!("Invalid quantization TOML: {}. Using defaults.", e);
+            QuantStrategy::default()
+        });
+        Self::from_strategy(s)
+    }
+
     /// Convert a QuantStrategy into a QuantConfig.
     pub(crate) fn from_strategy(s: QuantStrategy) -> Self {
         Self {

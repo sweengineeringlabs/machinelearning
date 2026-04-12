@@ -21,6 +21,13 @@ impl ConfigQuantizer {
         Self { strategy }
     }
 
+    /// Parse quantization config from an in-memory TOML string.
+    /// Caller is responsible for reading / merging the config first.
+    pub fn from_toml_str(toml_str: &str) -> Self {
+        let strategy = swe_ml_tensor::quant_config_from_toml_str(toml_str);
+        Self { strategy }
+    }
+
     /// Create with uniform Q8_0 quantization for all layers.
     pub fn q8_all() -> Self {
         Self {

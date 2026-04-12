@@ -64,6 +64,12 @@ pub fn quant_config_from_toml_file(path: &std::path::Path) -> QuantConfig {
     QuantConfig::from_toml_file(path)
 }
 
+/// Parse a QuantConfig from an in-memory TOML string. Expects a
+/// `[quantization]` table; unknown sections are ignored.
+pub fn quant_config_from_toml_str(toml_str: &str) -> QuantConfig {
+    QuantConfig::from_toml_str(toml_str)
+}
+
 /// Get the attention quantization target.
 pub fn quant_config_attention(c: &QuantConfig) -> crate::api::quant::target::QuantTarget {
     c.attention()

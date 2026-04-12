@@ -110,7 +110,11 @@ pub fn load_gguf(path: &Path, profile: OptProfile) -> Result<DefaultModel> {
 }
 
 /// Load a model from HuggingFace SafeTensors.
-pub fn load_safetensors(model_id: &str, profile: OptProfile) -> Result<DefaultModel> {
+///
+/// `quantization_toml` is the merged TOML text whose `[quantization]` section
+/// configures the runtime weight quantizer. Callers produce it from the
+/// application config loader.
+pub fn load_safetensors(model_id: &str, profile: OptProfile, quantization_toml: &str) -> Result<DefaultModel> {
     let hub = HubApi::new();
     let bundle = match hub.get_cached(model_id) {
         Some(b) => {
@@ -155,7 +159,7 @@ pub fn load_safetensors(model_id: &str, profile: OptProfile) -> Result<DefaultMo
 
     // Post-construction optimization via pluggable providers
     if !model.output.is_quantized() {
-        let quantizer = rustml_quantizer::ConfigQuantizer::from_toml(std::path::Path::new("quantization.toml"));
+        let quantizer = rustml_quantizer::ConfigQuantizer::from_toml_str(quantization_toml);
         match quantizer.quantize(&mut model) {
             Ok(n) if n > 0 => log::info!("  Quantized {} linear layers ({})", n, quantizer.describe()),
             Ok(_) => {}
