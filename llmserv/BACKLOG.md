@@ -379,6 +379,62 @@ Added 2026-04-11. Gemma 3 1B runs ~1-2s/token on CPU. These optimizations target
 
 ---
 
+## Documentation Debt
+
+### D1: Sweep docs for the CLI rename (sweai → llmc, rustml-cli → llm_cli)
+
+In commit `8a293ec` (`feat(cli): rename to llmc; add 'load' subcommand`) the
+developer CLI was renamed:
+- crate:  `rustml-cli` → `llm_cli`
+- binary: `sweai` → `llmc`
+
+The code is consistent, but docs still reference the old names in **18 files**
+(~194 total references).
+
+**Rename mapping:**
+- `sweai` → `llmc`
+- `sweai infer` / `sweai hub` / `sweai gguf` / `sweai tokenizer` — subcommand names unchanged; just swap `sweai` → `llmc`
+- `cargo build -p rustml-cli` → `cargo build -p llm_cli`
+- `-p rustml-cli` (as a cargo package selector) → `-p llm_cli`
+
+**Files, ordered by reference count** (biggest offenders first):
+
+| File | Refs |
+|---|---|
+| `docs/5-testing/manual_sweai_tests.md` | 81 |
+| `docs/7-operations/user_manual.md` | 54 |
+| `docs/5-testing/manual_testing.md` | 20 |
+| `docs/5-testing/manual_infer_tests.md` | 7 |
+| `docs/4-development/developer_guide.md` | 6 |
+| `docs/6-deployment/deployment_guide.md` | 4 |
+| `llmserv/main/features/experimentation/llmforge/ARCHIVED.md` | 3 |
+| `docs/3-design/adr/adr-001-unified-llmmodel-for-gpt2.md` | 2 |
+| `docs/3-design/adr/adr-002-retire-llmforge-prototype.md` | 2 |
+| `docs/3-design/inference_dataflow.md` | 2 |
+| `docs/3-design/project_structure.md` | 2 |
+| `docs/5-testing/manual_gguf_inspect_tests.md` | 2 |
+| `docs/5-testing/manual_hub_cli_tests.md` | 2 |
+| `docs/5-testing/manual_tokenizer_tests.md` | 2 |
+| `docs/7-operations/operations_guide.md` | 2 |
+| `docs/4-development/guides/model-verification.md` | 1 |
+| `llmserv/README.md` | 1 |
+| `main/features/tensor/docs/0-ideation/growth-roadmap.md` | 1 |
+
+**Additional rename to apply at the same time:** `manual_sweai_tests.md` itself
+should be renamed to `manual_llmc_tests.md` (the file name is now stale).
+
+**Out of scope:** ADRs are historical records. Consider leaving them alone,
+or prefixing with a "nomenclature note" that says what the old names are now
+called, rather than rewriting history.
+
+**Acceptance:**
+- `grep -rn "sweai\|rustml-cli" docs/ llmserv/ main/ --include="*.md"` returns
+  only historical ADR references (if any).
+- `manual_sweai_tests.md` renamed.
+- `git grep -n "\`sweai\`\|\`rustml-cli\`"` is clean in active docs.
+
+---
+
 ## Test Commands
 
 ```bash
