@@ -35,4 +35,4 @@ Thumbs.db
 nul
 
 # Load test run artifacts (keep the script, ignore output)
-main/features/inference/daemon/scripts/out/
+llmserv/main/features/daemon/scripts/out/

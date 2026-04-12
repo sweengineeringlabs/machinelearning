@@ -4,7 +4,7 @@
 > **Platform**: Windows 11, x86_64, AVX2, 8 rayon threads
 > **Model**: google/gemma-3-1b-it (1.3B params, SafeTensors, Q8_0 quantized, mmap-loaded)
 > **Binary**: `target/release/swellmd.exe --safetensors google/gemma-3-1b-it --port 8080`
-> **Client**: `main/features/inference/daemon/scripts/load_test.sh N` (bash + curl, N parallel subshells)
+> **Client**: `llmserv/main/features/daemon/scripts/load_test.sh N` (bash + curl, N parallel subshells)
 
 ## Summary
 
@@ -52,7 +52,7 @@ The exact allocation site wasn't pinpointed — no backtrace was captured. A fut
 
 ### No admission control
 
-`main/features/inference/daemon/main/src/core/router.rs` calls `tokio::task::spawn_blocking` directly in both `handle_blocking` and `handle_streaming`. There is no semaphore, no queue, no per-request timeout governor. The tokio blocking pool has a 512-thread default ceiling, so 50 requests all get CPU immediately and compete for memory.
+`llmserv/main/features/daemon/main/src/core/router.rs` calls `tokio::task::spawn_blocking` directly in both `handle_blocking` and `handle_streaming`. There is no semaphore, no queue, no per-request timeout governor. The tokio blocking pool has a 512-thread default ceiling, so 50 requests all get CPU immediately and compete for memory.
 
 ## Recommendations
 
@@ -67,13 +67,13 @@ The exact allocation site wasn't pinpointed — no backtrace was captured. A fut
 target/release/swellmd.exe --safetensors google/gemma-3-1b-it --port 8080
 
 # Fire N concurrent requests
-./main/features/inference/daemon/scripts/load_test.sh 16   # or any N
+./llmserv/main/features/daemon/scripts/load_test.sh 16   # or any N
 
 # N > ~20 on Windows/Cygwin may hit fork exhaustion — that's a client-side
 # limit, not a server issue. For large N, use a Python or Rust client.
 ```
 
-Output lands in `main/features/inference/daemon/scripts/out/` (gitignored): one `stat_$i.txt` and `resp_$i.json` per request.
+Output lands in `llmserv/main/features/daemon/scripts/out/` (gitignored): one `stat_$i.txt` and `resp_$i.json` per request.
 
 ## Fix: admission control via `Throttle` trait
 

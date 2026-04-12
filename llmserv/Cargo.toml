@@ -4,28 +4,123 @@
 # library (under main/features/inference/) plus serving frontends (daemon,
 # cli, embedding server, experimentation).
 #
-# Cross-workspace dependencies flow one way: llmserv crates may depend on
+# Cross-workspace dependencies flow one way: llmserv crates depend on
 # foundation crates in the root workspace (tensor, hub, activation,
-# normalization, training) via path. The root workspace never depends
-# on llmserv.
-#
-# Phase 1: workspace skeleton only. Crates move in under members[] in
-# subsequent phases.
+# normalization, architectures, training, embedding/conversion) via path.
+# The root workspace has a single tool-level backward arrow from
+# devtools/quantize into llmserv, accepted because quantize is a tool.
 
 [workspace]
 resolver = "2"
 members = [
-    # Populated in Phase 2 (model + daemon) and beyond.
+    # Inference compute stack (library — reusable by any frontend).
+    "main/features/inference/model",
+    "main/features/inference/layers",
+    "main/features/inference/generation",
+    "main/features/inference/tokenizer",
+    "main/features/inference/gguf",
+    "main/features/inference/quant",
+    "main/features/inference/quantizer",
+    "main/features/inference/prefill",
+    "main/features/inference/thread-config",
+    "main/features/inference/compute",
+    "main/features/inference/architectures/llama",
+    "main/features/inference/architectures/gpt2",
+    "main/features/inference/architectures/falcon",
+    "main/features/inference/architectures/mixtral",
+    "main/features/inference/architectures/gemma3",
+    "main/features/inference/architectures/gemma4",
+    "main/features/inference/architectures/bert",
+    "main/features/inference/architectures/nomic_bert",
+    # Serving frontends (leaves — each removable without breaking the stack).
+    "main/features/daemon",
+    "main/features/cli",
+    "main/features/embedding/server",
+    # Note: experimentation/llmforge has its own nested workspace; excluded below.
+]
+exclude = [
+    "main/features/experimentation/llmforge",
 ]
 
 [workspace.package]
-edition = "2024"
 version = "0.1.0"
+edition = "2024"
 license = "MIT OR Apache-2.0"
+authors = ["phdsystems <developer@phdsystems.com>"]
+repository = "https://github.com/sweengineeringlabs/machinelearning"
 
 [workspace.dependencies]
-# Cross-workspace foundation crates (will be wired as crates move in).
-# swe-ml-tensor      = { path = "../main/features/tensor" }
-# rustml-hub         = { path = "../main/features/hub" }
-# swe-ml-activation  = { path = "../main/features/activation" }
-# swe-ml-normalization = { path = "../main/features/normalization" }
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+# Async
+tokio = { version = "1", features = ["full"] }
+# Error handling
+thiserror = "2"
+anyhow = "1"
+# CLI
+clap = { version = "4", features = ["derive"] }
+# Utilities
+rand = "0.8"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4"] }
+regex = "1"
+dirs = "6"
+# HTTP
+reqwest = { version = "0.12", features = ["json"] }
+futures-util = "0.3"
+# Testing
+approx = "0.5"
+# Logging
+log = "0.4"
+env_logger = "0.11"
+# Shared low-level crates
+bytemuck = { version = "1", features = ["extern_crate_alloc"] }
+half = { version = "2.3", features = ["bytemuck"] }
+rayon = "1.8"
+memmap2 = "0.9"
+crc32fast = "1.3"
+hf-hub = "0.4"
+smallvec = { version = "1.11", features = ["const_generics"] }
+safetensors = "0.3"
+tokenizers = "0.21"
+# Web server deps (daemon, embedding/server)
+axum = "0.7"
+tokio-stream = "0.1"
+
+# ──────────────────────────────────────────────────────────────────────
+# Cross-workspace foundations (consumed from the root workspace via path).
+# These are not owned by llmserv; llmserv just uses them.
+# ──────────────────────────────────────────────────────────────────────
+swe-ml-tensor        = { path = "../main/features/tensor" }
+swe-ml-normalization = { path = "../main/features/normalization" }
+swe-ml-activation    = { path = "../main/features/activation" }
+swe-ml-embedding     = { path = "../main/features/embedding/conversion" }
+rustml-hub           = { path = "../main/features/hub" }
+swe-ml-architectures = { path = "../main/features/architectures" }
+swe-ml-training      = { path = "../main/features/training" }
+
+# ──────────────────────────────────────────────────────────────────────
+# Inference library (internal to this workspace).
+# ──────────────────────────────────────────────────────────────────────
+rustml-model            = { path = "main/features/inference/model" }
+rustml-inference-layers = { path = "main/features/inference/layers" }
+rustml-generation       = { path = "main/features/inference/generation" }
+rustml-tokenizer        = { path = "main/features/inference/tokenizer" }
+rustml-gguf             = { path = "main/features/inference/gguf" }
+rustml-quant            = { path = "main/features/inference/quant" }
+rustml-quantizer        = { path = "main/features/inference/quantizer" }
+rustml-prefill          = { path = "main/features/inference/prefill" }
+rustml-thread-config    = { path = "main/features/inference/thread-config" }
+rustml-compute          = { path = "main/features/inference/compute" }
+rustml-arch-llama       = { path = "main/features/inference/architectures/llama" }
+rustml-arch-gpt2        = { path = "main/features/inference/architectures/gpt2" }
+rustml-arch-falcon      = { path = "main/features/inference/architectures/falcon" }
+rustml-arch-mixtral     = { path = "main/features/inference/architectures/mixtral" }
+rustml-arch-gemma3      = { path = "main/features/inference/architectures/gemma3" }
+rustml-arch-gemma4      = { path = "main/features/inference/architectures/gemma4" }
+rustml-arch-bert        = { path = "main/features/inference/architectures/bert" }
+rustml-arch-nomic-bert  = { path = "main/features/inference/architectures/nomic_bert" }
+swe-ml-embed-server     = { path = "main/features/embedding/server" }
+swellmd                 = { path = "main/features/daemon" }

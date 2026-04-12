@@ -1,45 +1,21 @@
 [workspace]
 resolver = "2"
 members = [
-    # Tensor math
+    # Foundations — consumed by llmserv workspace and any future workspaces.
     "main/features/tensor",
-    # Normalization
     "main/features/normalization",
-    # Activation
     "main/features/activation",
-    # Embedding
     "main/features/embedding/conversion",
-    "main/features/embedding/server",
-    # LLM inference stack
-    "main/features/inference/layers",
     "main/features/hub",
-    "main/features/model",
-    "main/features/inference/generation",
-    "main/features/inference/tokenizer",
-    "main/features/inference/quant",
-    "main/features/inference/gguf",
-    "devtools/quantize",
-    "main/features/inference/quantizer",
-    "main/features/inference/prefill",
-    "main/features/inference/thread-config",
-    "main/features/inference/compute",
-    "main/features/inference/cli",
-    "main/features/inference/daemon",
-    # Training
-    "main/features/training",
-    # Inference architecture builders
-    "main/features/inference/architectures/llama",
-    "main/features/inference/architectures/gpt2",
-    "main/features/inference/architectures/falcon",
-    "main/features/inference/architectures/mixtral",
-    "main/features/inference/architectures/gemma3",
-    "main/features/inference/architectures/gemma4",
-    "main/features/inference/architectures/bert",
-    "main/features/inference/architectures/nomic_bert",
-    # Training model architectures
     "main/features/architectures",
+    "main/features/training",
+    # Developer tools — build-time utilities, not runtime.
+    # Note: devtools/quantize depends on llmserv crates (quantizer, gguf, model)
+    # via cross-workspace path deps. This is the single backward arrow we
+    # accept, because it's a tool, not a library.
+    "devtools/quantize",
 ]
-exclude = ["main/features/inference", "main/features/embedding", "main/features/inference/architectures", "llmserv"]
+exclude = ["llmserv"]
 
 [workspace.package]
 version = "0.1.0"
@@ -52,6 +28,7 @@ repository = "https://github.com/sweengineeringlabs/machinelearning"
 # Serialization
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+toml = "0.8"
 # Async
 tokio = { version = "1", features = ["full"] }
 # Error handling
@@ -73,35 +50,7 @@ approx = "0.5"
 # Logging
 log = "0.4"
 env_logger = "0.11"
-# Internal crates
-swe-ml-tensor = { path = "main/features/tensor" }
-swe-ml-normalization = { path = "main/features/normalization" }
-swe-ml-activation = { path = "main/features/activation" }
-swe-ml-embedding = { path = "main/features/embedding/conversion" }
-swe-ml-embed-server = { path = "main/features/embedding/server" }
-rustml-inference-layers = { path = "main/features/inference/layers" }
-rustml-hub = { path = "main/features/hub" }
-rustml-quantizer = { path = "main/features/inference/quantizer" }
-rustml-prefill = { path = "main/features/inference/prefill" }
-rustml-thread-config = { path = "main/features/inference/thread-config" }
-rustml-compute = { path = "main/features/inference/compute" }
-rustml-model = { path = "main/features/model" }
-rustml-arch-llama = { path = "main/features/inference/architectures/llama" }
-rustml-arch-gpt2 = { path = "main/features/inference/architectures/gpt2" }
-rustml-arch-falcon = { path = "main/features/inference/architectures/falcon" }
-rustml-arch-mixtral = { path = "main/features/inference/architectures/mixtral" }
-rustml-arch-gemma3 = { path = "main/features/inference/architectures/gemma3" }
-rustml-arch-gemma4 = { path = "main/features/inference/architectures/gemma4" }
-rustml-arch-bert = { path = "main/features/inference/architectures/bert" }
-rustml-arch-nomic-bert = { path = "main/features/inference/architectures/nomic_bert" }
-rustml-generation = { path = "main/features/inference/generation" }
-rustml-tokenizer = { path = "main/features/inference/tokenizer" }
-rustml-quant = { path = "main/features/inference/quant" }
-rustml-gguf = { path = "main/features/inference/gguf" }
-swe-ml-architectures = { path = "main/features/architectures" }
-swe-ml-training = { path = "main/features/training" }
-swellmd = { path = "main/features/inference/daemon" }
-# Shared deps for quant/gguf crates
+# Shared low-level crates
 bytemuck = { version = "1", features = ["extern_crate_alloc"] }
 half = { version = "2.3", features = ["bytemuck"] }
 rayon = "1.8"
@@ -112,6 +61,25 @@ smallvec = { version = "1.11", features = ["const_generics"] }
 safetensors = "0.3"
 tokenizers = "0.21"
 swe-readline = { path = "../swebash/swe-readline" }
+
+# Foundation crates (in this workspace)
+swe-ml-tensor        = { path = "main/features/tensor" }
+swe-ml-normalization = { path = "main/features/normalization" }
+swe-ml-activation    = { path = "main/features/activation" }
+swe-ml-embedding     = { path = "main/features/embedding/conversion" }
+rustml-hub           = { path = "main/features/hub" }
+swe-ml-architectures = { path = "main/features/architectures" }
+swe-ml-training      = { path = "main/features/training" }
+
+# Cross-workspace deps to llmserv — used only by devtools/quantize.
+# devtools is a tool, so the backward arrow is acceptable.
+rustml-model        = { path = "llmserv/main/features/inference/model" }
+rustml-quantizer    = { path = "llmserv/main/features/inference/quantizer" }
+rustml-gguf         = { path = "llmserv/main/features/inference/gguf" }
+rustml-quant        = { path = "llmserv/main/features/inference/quant" }
+rustml-tokenizer    = { path = "llmserv/main/features/inference/tokenizer" }
+rustml-inference-layers = { path = "llmserv/main/features/inference/layers" }
+rustml-thread-config = { path = "llmserv/main/features/inference/thread-config" }
 
 [profile.release]
 lto = "thin"

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Concurrent load test for the swellmd daemon.
 #
-# Usage: ./main/features/inference/daemon/scripts/load_test.sh [N] [URL]
+# Usage: ./llmserv/main/features/daemon/scripts/load_test.sh [N] [URL]
 #   N   — number of concurrent requests (default: 4)
 #   URL — endpoint (default: http://127.0.0.1:8080/v1/chat/completions)
 #
