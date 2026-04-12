@@ -743,6 +743,103 @@ toolchain to build llmserv.
 - An IDE integration or desktop consumer actually uses it — don't ship
   without a first consumer, it becomes dead code.
 
+### T3: Migrate perf instrumentation to `swe-observ-tracing` + `tracing`
+
+Replace the ad-hoc `log::debug!("[perf] foo::bar {:.3}ms", ...)` pattern
+used across the inference stack with the standard `tracing` crate idioms,
+backed by the sibling `swe-observ` workspace at
+`C:/phd-systems/swelabs/observability/`.
+
+**Why:** the current pattern works for what it is (we produced the P7.1
+profile from it) but it's a reinvention. `tracing` + `tracing-subscriber`
+is the Rust standard; `swe-observ-subscriber` provides an
+`ObservabilityLayer: tracing_subscriber::Layer` that routes events and
+spans to `swe-observ-tracing` / `swe-observ-logging` / `swe-observ-metrics`
+pluggable backends (file, Jaeger, OTLP). Gains:
+
+- Typed key-value span attributes (no regex parsing of format strings)
+- Native histograms via `swe-observ-metrics` (no Python post-processing
+  for percentiles)
+- Pluggable backends including file JSON, Jaeger, OTLP
+- Full `tracing` ecosystem compatible as additional layers:
+  `tracing-flame` (flamegraphs when spans carry parent_span_id),
+  `tokio-console` (async task inspector), `tracing-tree` / `tracing-forest`
+  (dev pretty-print), `tracing-futures` (async-aware spans)
+- Cross-project consistency with the `swe-observ` workspace
+
+**Honest caveat about "unlocks visualization":** structured output does
+NOT automatically give you flamegraphs. Flamegraphs need parent-child
+span hierarchy. `swe-observ-tracing`'s SPI is `serde_json::Value` —
+whatever JSON the caller emits is what gets exported. Hierarchy only
+appears if we emit OTLP-shaped spans with `parent_span_id` fields (the
+Jaeger/OTEL backends do this natively). Percentile histograms via
+`swe-observ-metrics` ARE a real native win. Dashboards are marginally
+easier with structured data but possible either way.
+
+**Scope (~0.5 day):**
+- Add workspace deps: `tracing`, `tracing-subscriber`,
+  `swe-observ-subscriber` (via path or registry to the sibling workspace)
+- Wire up subscriber at daemon startup (~10 lines in
+  `llmserv/main/features/daemon/main/src/bin/serve.rs`):
+  ```rust
+  use tracing_subscriber::prelude::*;
+  let observ = ObservabilityLayer::new(logging_backend, tracing_backend);
+  tracing_subscriber::registry().with(observ).init();
+  ```
+- Mechanically convert ~30 `log::debug!("[perf] ...")` call sites:
+  - Simple timers → `#[tracing::instrument(level = "debug")]` attribute
+    (auto-timing, attrs from fn args)
+  - Scoped blocks → `let _s = tracing::debug_span!("foo::bar", ...).entered();`
+  - Metrics-style counters → `swe-observ-metrics` API directly
+- Update the call-site list:
+  - `generator.rs`: prefill, sample, decode_step (×2 paths: raw + chat)
+  - `forward.rs`: embedding / layers / norm / projection
+  - `attention.rs`, `feed_forward.rs`, `transformer_block.rs`: per-layer
+  - `kv_cache.rs`: get_view, update
+  - `linear.rs`, `quantize.rs`: per-op
+- Re-run P7.1 profile with the new backend and confirm numbers match
+  (embedding / layers / norm / projection percentages should be
+  unchanged; that's the correctness check).
+
+**Files touched (~12):**
+- `Cargo.toml` (workspace deps)
+- `llmserv/Cargo.toml` (workspace deps)
+- `llmserv/main/features/daemon/main/src/bin/serve.rs` (subscriber init)
+- All files with current `[perf]` debug log calls (mechanical rewrite)
+
+**Explicit non-goals (for this T3):**
+- Not writing our own Jaeger UI
+- Not adding Prometheus metrics export (separate task if wanted)
+- Not replacing every `log::info!` / `log::warn!` — those are fine as
+  logs; only replace the `[perf]` timers
+
+**Acceptance:**
+- `RUST_LOG=rustml_generation=debug swellmd` still produces readable
+  output on stderr (via `tracing-subscriber::fmt::Layer`).
+- `ObservabilityLayer` wired to a file backend produces JSON Lines
+  trace data at a configurable path.
+- The P7.1 profile numbers (from `docs/` or the backlog) can be
+  regenerated with the new instrumentation — a 2-page script runs a
+  chat completion, parses the trace file, prints the same percentage
+  breakdown we documented in P7.2 status.
+- All existing tests pass; no behavior change visible to consumers.
+
+**Risk:** low. `swe-observ-subscriber` already implements the `Layer`
+trait; the `ObservabilityLayer` is just a glue layer. If anything goes
+wrong, the fallback is `tracing_subscriber::fmt::Layer` for dev-grade
+stderr output — we get the structured API without the swe-observ
+backend path. Worst-case: we never wire the file backend and just use
+the tracing ecosystem's own stdout formatter, which is still a win
+over ad-hoc `log::debug!` parsing.
+
+**Alternative (skip swe-observ, adopt plain tracing):** if the
+sibling workspace isn't stable yet or we don't want the cross-workspace
+coupling, we can migrate to just `tracing` + `tracing-subscriber` + a
+standalone file or stdout appender. Smaller scope, same API surface in
+the source code, just different backend plumbing. Preserves the option
+to switch to `swe-observ-subscriber` later — source code stays
+unchanged.
+
 ---
 
 ## Documentation Debt
