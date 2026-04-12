@@ -750,13 +750,176 @@ submodule without changing the `LlamaCppBackend` trait surface.
 
 **What this deliberately does NOT do.**
 
-- Does not delete the `NativeRustBackend` path. Keeping it means we
-  still own the full stack for teaching/research and for platforms
-  where C++ is unwelcome.
+- Does not delete the native-Rust path. Keeping it means we still own
+  the full stack for teaching/research and for platforms where C++ is
+  unwelcome.
 - Does not port our SIMD kernels into llama.cpp's GGML framework.
   That's a separate, much larger project.
 - Does not change the `ComputeBackend` trait. `VulkanBackend` still
   fits there for future per-op GPU work.
+
+---
+
+### P7.B.1: Trait-surface refactor — prerequisite for LlamaCppBackend
+
+P7.B assumed `LlamaCppModel` could satisfy the daemon's `Model` trait
+cleanly. Audit showed the trait surface leaks native-Rust types:
+
+- `Model::build_generator(temperature) -> Generator<'_>` returns a
+  concrete struct from `rustml-generation`, not a trait object.
+- `Generator<'a>` holds `&'a dyn LanguageModel`, and `LanguageModel`
+  (in `rustml-model/src/api/types.rs:573`) exposes:
+    - `forward(&self, input_ids: &Tensor) -> ModelResult<Tensor>`
+      — leaks our concrete `Tensor` type
+    - `forward_with_cache(&self, input_ids: &Tensor, cache: &mut KVCache)`
+      — leaks our concrete `KVCache` from `rustml-inference-layers`
+    - `build_kv_cache(&self, max_seq_len) -> KVCache` — same leak
+- llama.cpp owns its own tensor representation AND its own KV cache
+  internally. A `LlamaCppLanguageModel` impl receiving `&mut KVCache`
+  would be forced to ignore it — a semantic lie baked into the trait.
+
+Two paths were considered. **Decision: Option 2 (refactor the trait
+surface).** Option 1 (accept the lie + per-step tensor copy) was
+rejected because the `KVCache` no-op semantics would be a permanent
+landmine for anyone maintaining the trait, and a vocab-sized float
+copy per token (50k floats × 20 tok/s = small but pointless memcpy
+traffic) compounds with any future work.
+
+**Target trait surface.**
+
+```rust
+// New module: llmserv/main/features/inference/generation/main/src/api/completer.rs
+pub struct CompletionParams {
+    pub temperature: f32,
+    pub top_k: Option<usize>,
+    pub top_p: Option<f32>,
+    pub repetition_penalty: Option<f32>,
+    pub max_tokens: usize,
+    pub deadline: Option<Instant>,
+}
+
+pub trait TextCompleter: Send {
+    fn complete(
+        &mut self,
+        prompt: &str,
+        params: &CompletionParams,
+    ) -> CompletionResult<String>;
+
+    fn complete_stream(
+        &mut self,
+        prompt: &str,
+        params: &CompletionParams,
+        callback: &mut dyn FnMut(u32) -> bool,
+    ) -> CompletionResult<(usize, usize)>;  // (prompt_tokens, completion_tokens)
+
+    fn complete_turn_stream(
+        &mut self,
+        messages: &[(String, String)],
+        params: &CompletionParams,
+        callback: &mut dyn FnMut(u32) -> bool,
+    ) -> CompletionResult<(usize, usize)>;
+}
+
+// Updated daemon-side Model trait:
+pub trait Model: Send + Sync {
+    fn model_id(&self) -> &str;
+    fn open_text_completer(&self) -> Box<dyn TextCompleter + '_>;  // replaces build_generator
+    fn tokenizer(&self) -> &dyn Tokenizer;
+    fn embed(&self, input_ids: &Tensor, strategy: PoolingStrategy) -> ModelResult<Tensor>;
+}
+```
+
+**Design rationale for each choice.**
+
+- **`Box<dyn TextCompleter>` return** — the DI seam. Backends own their
+  own KV cache, tokenizer bindings, and decode state internally.
+  Neither `Tensor` nor `KVCache` appears in the trait surface.
+- **`&mut self` on completer methods** — llama.cpp's `LlamaContext`
+  is mutable; our decode loop mutates KV cache state; matches reality.
+- **`&mut dyn FnMut(u32) -> bool` instead of `<F: FnMut>`** — generic
+  type parameters block `dyn`-compatibility. Dynamic dispatch on the
+  callback adds one indirect call per token (~ns) against a
+  millisecond-scale decode step. Negligible overhead, buys us the
+  trait object.
+- **`CompletionParams` struct instead of `.with_top_k(k).with_top_p(p)`
+  builder chain** — builder methods taking `self` by value don't work
+  on `Box<dyn Trait>`. Moving per-request params into a struct is
+  also more explicit at call sites.
+- **Model-level defaults stay inside the impl** — EOS, BOS, chat
+  template, context length, optimization profile are model-scoped
+  config read from `DefaultModel` fields at completer construction,
+  NOT passed per-request. `CompletionParams` only carries what the
+  HTTP caller actually varies.
+- **Remove `LanguageModel` trait from public API** — after this
+  refactor, `LanguageModel` is an internal implementation detail of
+  the native-Rust completer, not part of the backend contract. No
+  `Tensor` / `KVCache` leak to backends.
+
+**Naming fixes folded into this refactor.**
+
+Audit surfaced two related smells:
+
+- `Generator` is a generic nominalized verb (like `Handler`, `Manager`).
+  Doesn't say what modality — in a multimodal future (`ImageCompleter`,
+  `AudioCompleter`) it squats the namespace. Also clashes with
+  `std::ops::Generator` / coroutines.
+- `TextGenerator` already exists in the same crate
+  (`generation.rs:18`) as an older, simpler tensor-in/tensor-out
+  variant. Two types, same concept, different names, same crate —
+  violates the "descriptive names, no collisions" rule.
+- `build_generator` doesn't "build" anything — it copies a config
+  struct. `open_text_completer` reads honestly.
+
+Renames performed as part of this work:
+
+| From | To | Location |
+|---|---|---|
+| `Generator` (struct) | `DefaultTextCompleter` | `core/generator.rs` → becomes the `TextCompleter` impl |
+| `TextGenerator` (old, simpler) | delete | `core/generation.rs` — folded into the new completer or removed; nothing uses its API surface that isn't subsumed |
+| `Model::build_generator` | `Model::open_text_completer` | `daemon/api/model.rs:8` + `daemon/core/state.rs:25` |
+| `GenerationError` / `GenerationResult` | `CompletionError` / `CompletionResult` | follow trait naming |
+| crate `rustml-generation` | `llmtext` (optional, defer) | matches `llmkernel` / `llmcompute` sweep — lower priority, can happen in a separate pass |
+
+**Execution order — each step = one commit, `cargo build --release`
+verified between steps.**
+
+1. Add `TextCompleter` trait + `CompletionParams` struct to
+   `rustml-generation/src/api/completer.rs`. Export from SAF.
+   Additive. No behavior change.
+2. Implement `TextCompleter` for the existing `Generator` struct as
+   an adapter. Behavior preserved via delegation. Tests still green.
+3. Add `Model::open_text_completer()` alongside the old
+   `build_generator`. Both exist. Call sites unchanged.
+4. Implement `open_text_completer()` on `DefaultModel`
+   (`daemon/core/state.rs`) returning a boxed `Generator` as
+   `Box<dyn TextCompleter + '_>`.
+5. Migrate router.rs call sites (4 places: `router.rs:133`, `:220`,
+   `:306`, other chat/completion handlers). Replace
+   `.build_generator(t).with_top_k(k).with_top_p(p)...` with
+   `CompletionParams { temperature: t, top_k, top_p, ... }` construction
+   and `completer.complete_turn_stream(..., &params, &mut cb)`.
+6. Remove `Model::build_generator` from the trait. Remove the old
+   `Generator`-returning impl from `DefaultModel`.
+7. Rename `Generator` → `DefaultTextCompleter`. Delete old
+   `TextGenerator` (generation.rs). Rename error types.
+8. Delete dead `let compute = CpuBackend;` in serve.rs:40.
+9. Now P7.B steps 2–8 (add llama-cpp-2 dep, implement
+   `LlamaCppTextCompleter: TextCompleter`, wire config, parity tests,
+   benchmark, CI) become straightforward — they implement the same
+   trait the native path already satisfies.
+
+**Estimated work:** 2–3 days for the refactor (steps 1–8), before
+P7.B's 8–10 day llama.cpp work can start. Total stack: 10–13 days.
+
+**Validation after the refactor (before P7.B step 2 begins):**
+
+- [ ] `cargo build --release` clean across the entire `llmserv/` workspace
+- [ ] `cargo test --release` all green
+- [ ] Live smoke: `swellmd` serves a completion + streamed completion,
+      byte-identical output vs pre-refactor for a fixed seed
+- [ ] No `Tensor` or `KVCache` types appear in `daemon/src/api/` or in
+      the `TextCompleter` trait surface (mechanical check: grep the
+      public API files)
 
 ---
 
