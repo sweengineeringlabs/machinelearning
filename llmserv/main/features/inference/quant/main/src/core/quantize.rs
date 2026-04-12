@@ -47,6 +47,47 @@ pub fn quantize_q8_0(data: &[f32]) -> QuantResult<Vec<u8>> {
     Ok(output)
 }
 
+/// Quantize an f32 slice to Q8_0 format INTO a caller-provided buffer.
+/// Same layout as `quantize_q8_0` but without the per-call allocation,
+/// so callers can reuse a thread-local / per-matmul scratch buffer. Hot
+/// path for `matmul_f32_q8_v2` (P7.2.b).
+pub fn quantize_q8_0_into(data: &[f32], out: &mut Vec<u8>) -> QuantResult<()> {
+    let n_elements = data.len();
+    if n_elements % Q8_0_BLOCK_SIZE != 0 {
+        return Err(QuantError::BlockAlignment(format!(
+            "Q8_0 requires element count divisible by {}, got {}",
+            Q8_0_BLOCK_SIZE, n_elements
+        )));
+    }
+
+    let n_blocks = n_elements / Q8_0_BLOCK_SIZE;
+    let needed = n_blocks * Q8_0_BLOCK_BYTES;
+    out.clear();
+    out.resize(needed, 0);
+
+    for block_idx in 0..n_blocks {
+        let src_offset = block_idx * Q8_0_BLOCK_SIZE;
+        let dst_offset = block_idx * Q8_0_BLOCK_BYTES;
+        let block = &data[src_offset..src_offset + Q8_0_BLOCK_SIZE];
+
+        let amax = block.iter().fold(0.0f32, |acc, &v| acc.max(v.abs()));
+        let scale = if amax == 0.0 { 0.0 } else { amax / 127.0 };
+        let inv_scale = if scale == 0.0 { 0.0 } else { 1.0 / scale };
+
+        let scale_f16 = f16::from_f32(scale);
+        let scale_bytes = scale_f16.to_le_bytes();
+        out[dst_offset] = scale_bytes[0];
+        out[dst_offset + 1] = scale_bytes[1];
+
+        for i in 0..Q8_0_BLOCK_SIZE {
+            let quantized = (block[i] * inv_scale).round().clamp(-128.0, 127.0) as i8;
+            out[dst_offset + 2 + i] = quantized as u8;
+        }
+    }
+
+    Ok(())
+}
+
 /// Dequantize Q8_0 bytes back to f32.
 pub fn dequantize_q8_0(raw: &[u8], n_elements: usize) -> QuantResult<Vec<f32>> {
     let n_blocks = n_elements / Q8_0_BLOCK_SIZE;
@@ -405,7 +446,8 @@ pub fn matmul_f32_q8_v2(
 
     // Step 1: quantize the entire input (M rows × in_features) to Q8_0 once.
     // Cost is linear in m × in_features; amortized across m × out_features
-    // inner-loop dot products.
+    // inner-loop dot products. One Vec<u8> allocation per matmul call is
+    // dwarfed by the per-output-column SIMD work that follows.
     let input_q8 = quantize_q8_0(input_data)?;
     let in_row_bytes = blocks_per_row * Q8_0_BLOCK_BYTES;
 
