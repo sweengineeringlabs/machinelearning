@@ -58,6 +58,19 @@ typedef enum LlmError {
 typedef struct LlmHandle LlmHandle;
 
 /**
+ * Callback invoked for each generated token. Receives:
+ *
+ * - `piece`: NUL-terminated UTF-8 string, the decoded token text.
+ *   Valid ONLY for the duration of this callback — copy it if you need
+ *   to keep it.
+ * - `user_data`: the opaque pointer passed to `llmserv_complete_stream`.
+ *
+ * Return `true` to keep generating, `false` to stop early. Panics in
+ * the callback are caught and converted to "stop generation."
+ */
+typedef bool (*LlmTokenCallback)(const char *piece, void *user_data);
+
+/**
  * Load the model specified by `application.toml` (found via the
  * standard XDG search path). Writes an opaque handle to `*out_handle`
  * on success.
@@ -101,6 +114,28 @@ int llmserv_complete(const struct LlmHandle *handle,
                      uint32_t max_tokens,
                      float temperature,
                      char **out_text);
+
+/**
+ * Streaming completion: calls `callback` for each generated token as
+ * it's decoded. Blocks until the generator stops (EOS, max_tokens,
+ * or callback returned `false`).
+ *
+ * `max_tokens = 0` means use the model's default context length.
+ * `temperature = 0.0` means greedy sampling.
+ *
+ * # Safety
+ * `handle` is a valid handle from `llmserv_init`. `prompt` is a
+ * NUL-terminated UTF-8 string. `callback` is a function pointer that
+ * remains valid for the duration of this call. `user_data` is opaque
+ * to this library and passed through unchanged.
+ */
+
+int llmserv_complete_stream(const struct LlmHandle *handle,
+                            const char *prompt,
+                            uint32_t max_tokens,
+                            float temperature,
+                            LlmTokenCallback callback,
+                            void *user_data);
 
 /**
  * Compute a mean-pooled embedding for the given input text. On success,

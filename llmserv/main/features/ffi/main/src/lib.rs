@@ -42,7 +42,7 @@
 #![allow(clippy::missing_safety_doc)]
 
 use std::ffi::{CStr, CString};
-use std::os::raw::{c_char, c_int};
+use std::os::raw::{c_char, c_int, c_void};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::RwLock;
 
@@ -226,6 +226,98 @@ pub unsafe extern "C" fn llmserv_complete(
         unsafe {
             *out_text = cs.into_raw();
         }
+        Ok(())
+    })
+}
+
+// ─── complete_stream ─────────────────────────────────────────────────
+
+/// Callback invoked for each generated token. Receives:
+///
+/// - `piece`: NUL-terminated UTF-8 string, the decoded token text.
+///   Valid ONLY for the duration of this callback — copy it if you need
+///   to keep it.
+/// - `user_data`: the opaque pointer passed to `llmserv_complete_stream`.
+///
+/// Return `true` to keep generating, `false` to stop early. Panics in
+/// the callback are caught and converted to "stop generation."
+pub type LlmTokenCallback =
+    extern "C" fn(piece: *const c_char, user_data: *mut c_void) -> bool;
+
+/// Streaming completion: calls `callback` for each generated token as
+/// it's decoded. Blocks until the generator stops (EOS, max_tokens,
+/// or callback returned `false`).
+///
+/// `max_tokens = 0` means use the model's default context length.
+/// `temperature = 0.0` means greedy sampling.
+///
+/// # Safety
+/// `handle` is a valid handle from `llmserv_init`. `prompt` is a
+/// NUL-terminated UTF-8 string. `callback` is a function pointer that
+/// remains valid for the duration of this call. `user_data` is opaque
+/// to this library and passed through unchanged.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn llmserv_complete_stream(
+    handle: *const LlmHandle,
+    prompt: *const c_char,
+    max_tokens: u32,
+    temperature: f32,
+    callback: LlmTokenCallback,
+    user_data: *mut c_void,
+) -> c_int {
+    wrap(|| {
+        let h = unsafe { handle.as_ref() }.ok_or(LlmError::InvalidInput)?;
+        let prompt_str = unsafe { cstr_to_str(prompt)? };
+        let cb = callback;
+
+        let guard = h.inner.read().map_err(|_| LlmError::Internal)?;
+        let model = guard.as_ref().ok_or(LlmError::Destroyed)?;
+
+        // user_data is *mut c_void — not Send. Wrap in a transparent
+        // newtype with an explicit unsafe Send assertion. Callers who
+        // share state across the generator thread must ensure their
+        // user_data is thread-safe; we don't use threads internally
+        // here (the generator runs inline), so this is fine.
+        struct Ctx(*mut c_void);
+        unsafe impl Send for Ctx {}
+        let ctx = Ctx(user_data);
+
+        let tokenizer = model.tokenizer();
+        let generator = model.build_generator(temperature);
+        let max = if max_tokens == 0 { 256 } else { max_tokens as usize };
+
+        let _ = generator
+            .generate_stream(prompt_str, max, |token_id| {
+                // Decode just this token to a piece.
+                let piece = match tokenizer.decode(&[token_id]) {
+                    Ok(s) => s,
+                    Err(e) => {
+                        log::warn!(
+                            "llmserv_complete_stream: decode failed for token {}: {}",
+                            token_id,
+                            e
+                        );
+                        return false;
+                    }
+                };
+                let cstr = match CString::new(piece) {
+                    Ok(c) => c,
+                    Err(_) => return false, // piece contained a NUL byte
+                };
+                // Panic in the caller's callback -> stop generation.
+                match catch_unwind(AssertUnwindSafe(|| cb(cstr.as_ptr(), ctx.0))) {
+                    Ok(continue_flag) => continue_flag,
+                    Err(_) => {
+                        log::error!("llmserv_complete_stream: user callback panicked");
+                        false
+                    }
+                }
+            })
+            .map_err(|e| {
+                log::error!("llmserv_complete_stream: generate_stream failed: {}", e);
+                LlmError::Runtime
+            })?;
+
         Ok(())
     })
 }

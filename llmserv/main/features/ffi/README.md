@@ -37,7 +37,8 @@ See `include/llmserv.h` for the canonical declarations. Summary:
 | Function | Purpose |
 |---|---|
 | `llmserv_init(LlmHandle**)` | Load the model specified by `application.toml`. |
-| `llmserv_complete(h, prompt, max_tokens, temperature, out_text**)` | Single completion (blocking). |
+| `llmserv_complete(h, prompt, max_tokens, temperature, out_text**)` | Single completion (blocking, returns full text). |
+| `llmserv_complete_stream(h, prompt, max_tokens, temperature, cb, ctx)` | Streaming completion — `cb` called per token; return `false` to stop. |
 | `llmserv_embed(h, text, out_vec**, out_dim*)` | Mean-pooled embedding. |
 | `llmserv_tokenize(h, text, out_ids**, out_len*)` | Encode to token ids. |
 | `llmserv_token_count(h, text, out_count*)` | Just the count (IDE keystroke-frequency use). |
@@ -154,9 +155,9 @@ $XDG_CONFIG_HOME/llmserv/application.toml:
 ## Limitations (today)
 
 - **Blocking only.** No async FFI; callers wrap in their own async
-  (Python asyncio threadpool, Go goroutine, etc.).
-- **No streaming.** `llmserv_complete` returns the full text; there's no
-  token-by-token callback yet. Planned as T2.5.
+  (Python asyncio threadpool, Go goroutine, etc.). `llmserv_complete_stream`
+  is still blocking from the caller's thread — it just reports progress
+  via the callback as it goes.
 - **Single handle per model load.** Multiple handles in the same process
   load weights independently — no `Arc<Mmap>` sharing. Not a bottleneck
   for desktop use.
