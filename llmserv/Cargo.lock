@@ -2904,6 +2904,7 @@ dependencies = [
  "anyhow",
  "axum",
  "clap",
+ "dirs",
  "env_logger",
  "log",
  "rustml-arch-nomic-bert",
@@ -2916,6 +2917,7 @@ dependencies = [
  "swe-ml-embedding",
  "swe-ml-tensor",
  "tokio",
+ "toml",
 ]
 
 [[package]]

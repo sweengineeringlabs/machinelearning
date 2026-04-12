@@ -24,6 +24,15 @@ host = "127.0.0.1"
 port = 8081
 
 # ──────────────────────────────────────────────────────────────────────
+# [embedding.model] — embedding model source
+#
+# Currently GGUF only. Set gguf_path to an absolute or workspace-relative
+# path before running swe-ml-embed.
+# ──────────────────────────────────────────────────────────────────────
+[embedding.model]
+gguf_path = ""
+
+# ──────────────────────────────────────────────────────────────────────
 # [model] — which model to load
 #
 # source = "safetensors" → loads from HuggingFace Hub (cached), id required
