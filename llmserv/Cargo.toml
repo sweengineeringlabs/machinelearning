@@ -1,0 +1,31 @@
+# LLM serving workspace.
+#
+# This workspace holds the inference-server stack: the inference compute
+# library (under main/features/inference/) plus serving frontends (daemon,
+# cli, embedding server, experimentation).
+#
+# Cross-workspace dependencies flow one way: llmserv crates may depend on
+# foundation crates in the root workspace (tensor, hub, activation,
+# normalization, training) via path. The root workspace never depends
+# on llmserv.
+#
+# Phase 1: workspace skeleton only. Crates move in under members[] in
+# subsequent phases.
+
+[workspace]
+resolver = "2"
+members = [
+    # Populated in Phase 2 (model + daemon) and beyond.
+]
+
+[workspace.package]
+edition = "2024"
+version = "0.1.0"
+license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+# Cross-workspace foundation crates (will be wired as crates move in).
+# swe-ml-tensor      = { path = "../main/features/tensor" }
+# rustml-hub         = { path = "../main/features/hub" }
+# swe-ml-activation  = { path = "../main/features/activation" }
+# swe-ml-normalization = { path = "../main/features/normalization" }

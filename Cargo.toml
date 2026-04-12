@@ -39,7 +39,7 @@ members = [
     # Training model architectures
     "main/features/architectures",
 ]
-exclude = ["main/features/inference", "main/features/embedding", "main/features/inference/architectures"]
+exclude = ["main/features/inference", "main/features/embedding", "main/features/inference/architectures", "llmserv"]
 
 [workspace.package]
 version = "0.1.0"

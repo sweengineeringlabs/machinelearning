@@ -1,0 +1,93 @@
+# llmserv application configuration — single source of truth.
+#
+# Load order per consumer (first found wins, overlaid with deep-merge):
+#   1. $XDG_CONFIG_HOME/llmserv/application.toml       (user override, highest precedence)
+#   2. $XDG_CONFIG_DIRS/llmserv/application.toml       (system-wide)
+#   3. llmserv/main/features/<feature>/config/application.toml  (per-feature override, bundled)
+#   4. llmserv/main/config/application.toml            (this file — bundled defaults)
+#
+# No CLI flags override these values. To run against a different config,
+# set XDG_CONFIG_HOME=/path/to/dir where the file lives under llmserv/.
+
+# ──────────────────────────────────────────────────────────────────────
+# [server] — HTTP daemon (swellmd) bind settings
+# ──────────────────────────────────────────────────────────────────────
+[server]
+host = "127.0.0.1"
+port = 8080
+
+# ──────────────────────────────────────────────────────────────────────
+# [embedding.server] — embedding HTTP server (swe-ml-embed-server)
+# ──────────────────────────────────────────────────────────────────────
+[embedding.server]
+host = "127.0.0.1"
+port = 8081
+
+# ──────────────────────────────────────────────────────────────────────
+# [model] — which model to load
+#
+# source = "safetensors" → loads from HuggingFace Hub (cached), id required
+# source = "gguf"        → loads from local GGUF file,        path required
+# ──────────────────────────────────────────────────────────────────────
+[model]
+source = "safetensors"
+id = "google/gemma-3-1b-it"
+# path = "/path/to/model.gguf"  # used when source = "gguf"
+
+# ──────────────────────────────────────────────────────────────────────
+# [runtime] — tensor runtime configuration
+#
+# opt_profile: optimized | baseline | aggressive
+# threads: number of rayon worker threads (0 = auto-detect)
+# ──────────────────────────────────────────────────────────────────────
+[runtime]
+opt_profile = "optimized"
+threads = 0
+
+# ──────────────────────────────────────────────────────────────────────
+# [throttle] — admission control (dependency injection point)
+#
+# provider = "semaphore"  → bounded-concurrency SemaphoreThrottle
+# provider = "none"       → no limit (test/dev only, NOT for production)
+#
+# Each provider reads its own sub-table for parameters.
+# ──────────────────────────────────────────────────────────────────────
+[throttle]
+provider = "semaphore"
+
+[throttle.semaphore]
+max_concurrent = 2
+
+# ──────────────────────────────────────────────────────────────────────
+# [quantization] — runtime weight quantization (rustml-quantizer)
+#
+# Per-layer-type targets. Valid values: f32, f16, bf16, q8_0, q4_0, q4_1
+# min_dim: skip tensors with any dimension < min_dim (0 = no minimum)
+# ──────────────────────────────────────────────────────────────────────
+[quantization]
+attention = "q8_0"
+feed_forward = "q8_0"
+output = "q8_0"
+gate = "q8_0"
+moe = "q8_0"
+min_dim = 0
+
+# ──────────────────────────────────────────────────────────────────────
+# [hub] — HuggingFace Hub client
+#
+# cache_dir: override the default cache location (XDG_CACHE_HOME/rustml-hub)
+# token: HF_TOKEN for gated models; prefer setting HF_TOKEN env var instead
+# ──────────────────────────────────────────────────────────────────────
+[hub]
+# cache_dir = "/custom/cache/path"
+# token = "hf_..."
+
+# ──────────────────────────────────────────────────────────────────────
+# [logging] — env_logger filter configuration
+#
+# level: trace | debug | info | warn | error
+# format: default | json
+# ──────────────────────────────────────────────────────────────────────
+[logging]
+level = "info"
+format = "default"
