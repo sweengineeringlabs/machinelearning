@@ -379,6 +379,79 @@ Added 2026-04-11. Gemma 3 1B runs ~1-2s/token on CPU. These optimizations target
 
 ---
 
+## Tooling
+
+### T1: Bring `llmc load` toward oha parity — scoped by real need
+
+`llmc load` (commits `8a293ec` and `2d1bd2f`) is focused on llmserv
+testing: CO-correct open-loop via `--rate`, our JSON schema, no extra
+install. It is **not** a drop-in `oha` replacement. This item tracks
+closing the gap where it actually matters, and explicitly deferring the
+rest.
+
+For context on tradeoffs see the glossary's "Coordinated omission"
+entry and the `--rate` docs in `llmserv/main/features/cli/src/cmd/load.rs`.
+
+#### Priority 0 — add these (real scenarios need them)
+
+**T1.1 — Body / URL templating with variables.**
+Our load tests today send the same body every request. Realistic
+benchmarking needs varying prompts (different lengths, different
+content) so the server doesn't get a caching-friendly fixed input.
+Minimum: support `{{VAR}}` substitution in the URL and body from a
+values file or a generator function. Oha supports this.
+
+**T1.2 — Progress output during long runs.**
+Currently the tool is silent until the summary at the end. A soak
+test at `-z 1h` gives no feedback. Minimum: periodic stderr status
+line every N seconds with running count, achieved RPS, p95. No TUI.
+
+**T1.3 — `--insecure` flag for TLS.**
+When someone stands up the daemon with a self-signed cert behind a
+local reverse proxy, `llmc load https://...` fails with cert error.
+Thread through reqwest's `danger_accept_invalid_certs`.
+
+#### Priority 1 — add if a scenario demands it
+
+**T1.4 — Histogram snapshot file output.**
+Write the hdrhistogram to a `.hgrm` file (hdrhistogram's native
+log format) so runs can be merged across hosts or compared over time
+with existing hdrhistogram tooling.
+
+**T1.5 — DNS / connect / TTFB breakdown.**
+Separate timings for DNS resolution, TCP connect, TLS handshake,
+time-to-first-byte, and body transfer. Requires using hyper directly
+(reqwest hides these). Useful when diagnosing why a request is slow.
+
+**T1.6 — HTTP/2 and HTTP/1.1 force-protocol.**
+`--http2` / `--http1` to pin the protocol, for reproducing issues
+under one or the other. Reqwest supports this behind a builder flag.
+
+#### Priority 2 — deferred or explicit non-goals
+
+- **Full TUI (ratatui dashboard).** Low ROI for our workflow — CI wants
+  JSON, dev wants one-shot summaries. Skip unless demand emerges.
+- **HTTP/3 / QUIC.** Our daemon doesn't speak it. Add when it does.
+- **Cookie / redirect / session control.** We test APIs, not browser
+  flows.
+- **Distributed multi-host load generation.** Listed as non-goal in
+  `docs/5-testing/load_testing_strategy.md` — one client host is
+  sufficient at 1B-model CPU inference speeds.
+- **Request recording / replay from a pcap or HAR.** Interesting but
+  way out of scope.
+
+#### Acceptance
+
+- T1.1, T1.2, T1.3 shipped as incremental commits, each with smoke
+  tests against a live daemon.
+- Glossary entry updated to reflect added capabilities.
+- Docs (`docs/5-testing/load_testing_strategy.md`) mention `llmc load`
+  as the canonical driver and note which P1/P2 gaps remain.
+- Each P2 deferral has an explicit rationale in this backlog so it
+  doesn't get rediscovered and reconsidered silently.
+
+---
+
 ## Documentation Debt
 
 ### D1: Sweep docs for the CLI rename (sweai → llmc, rustml-cli → llm_cli)
