@@ -12,6 +12,18 @@ Keep this focused. Add terms when someone has to ask what one means, not preempt
 
 **In this codebase**: `core/throttle.rs` uses `tokio::sync::Semaphore` (an async-aware implementation) as the backing store for `SemaphoreThrottle`. Capacity is configured at `[throttle.semaphore].max_concurrent` in `llmserv/main/config/application.toml`. Request handlers call `try_acquire` (fail-fast variant) before `spawn_blocking`; failure returns HTTP 503 instead of queueing. See `llmserv/main/features/daemon/docs/3-design/architecture.md` for the full admission-control design.
 
+Separately, `llmc load`'s open-loop mode uses a different semaphore to cap
+in-flight requests during rate-targeted load generation — see below on
+coordinated omission.
+
+## Coordinated omission
+
+**What it is**: A systematic tail-latency under-reporting bias in closed-loop load tests. If a server stalls for 5 seconds at a target rate of 100 req/s, the client — politely waiting for each request to return before sending the next — *omits* the 500 requests it should have sent during the stall. Only the requests that actually happened get measured, so the recorded tail hides the stall entirely.
+
+**Origin**: Identified and named by Gil Tene (Azul Systems, ~2013) while benchmarking JVM garbage-collection pauses. The fix has since been adopted by `wrk2`, `tsung`, and most serious latency benchmarks. See Tene's talk *"How NOT to Measure Latency"* for the canonical treatment.
+
+**In this codebase**: `llmc load --rate R` runs in open-loop mode: a scheduler dispatches one request every `1/R` seconds regardless of whether previous ones have finished. Each request's latency is measured from its **scheduled time**, not its actual send time. When the server stalls, requests queue up on the concurrency semaphore and their measured latency includes the wait, so percentiles reflect reality. Without `--rate`, `llmc load` runs closed-loop (workers fire as fast as possible) — suitable for "how fast can the server go?" questions but not CO-correct for SLO measurements.
+
 ## Permit
 
 **What it is**: A handle representing the right to use a limited resource, issued by a semaphore or similar primitive. Holding the permit means you have a slot; dropping it releases the slot back.

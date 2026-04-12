@@ -1,19 +1,25 @@
 //! `llmc load` — HTTP load test an endpoint.
 //!
-//! Native implementation (no external oha binary). Fires N requests at C
-//! concurrency, collects latency distribution via `hdrhistogram`, reports
-//! percentiles + status code breakdown. JSON output mode for CI consumption.
+//! Native implementation (no external oha binary). Two modes:
 //!
-//! Scope: what we actually need for llmserv load testing.
-//! - fixed total count (-n) OR fixed duration (-z)
-//! - concurrency (-c) implemented via N concurrent tokio tasks draining a
-//!   shared counter
-//! - arbitrary method (-X), headers (-H), body (-d / -d @file)
-//! - text summary or machine-readable JSON
+//! - **Closed-loop** (default): C workers each fire as fast as they can.
+//!   Good for "how fast can this server go?" measurements. Not CO-correct
+//!   when you want tail latency at a target rate.
+//! - **Open-loop / rate-targeted** (`--rate R`): a scheduler fires a request
+//!   every 1/R seconds. Latency is measured from each request's scheduled
+//!   time, not its actual send time, so a server stall inflates the
+//!   percentiles honestly. This compensates for coordinated omission.
+//!   Use this for SLO-grade tail measurements.
 //!
-//! Not included (YAGNI): HTTP/3, SSE parsing, gRPC, rate targeting, response
-//! body capture, multi-URL randomization. Add when a real scenario demands
-//! it.
+//! Both modes record latencies into an `hdrhistogram::Histogram` and report
+//! p50/p90/p95/p99/p99.9/max. Text or JSON output.
+//!
+//! Scope: fixed count (-n) or duration (-z); concurrency (-c); method (-X);
+//! repeatable headers (-H); body inline or `@file` (-d); per-request timeout
+//! (-t); rate target (-r); JSON output (--json).
+//!
+//! Not included (YAGNI): HTTP/3, SSE parsing, gRPC, response-body capture,
+//! multi-URL randomization. Add when a real scenario needs them.
 
 use std::fs;
 use std::path::PathBuf;
@@ -26,7 +32,7 @@ use clap::Args;
 use hdrhistogram::Histogram;
 use reqwest::{Client, Method};
 use serde::Serialize;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, Semaphore};
 
 #[derive(Args, Debug)]
 pub struct LoadArgs {
@@ -61,6 +67,16 @@ pub struct LoadArgs {
     #[arg(short = 't', long, default_value_t = 30)]
     pub timeout_secs: u64,
 
+    /// Target rate in requests per second. When set, switches to open-loop
+    /// (scheduled) mode: a request is dispatched every 1/rate seconds and
+    /// latency is measured from the scheduled time. This is the mode for
+    /// SLO-grade tail measurements — it compensates for coordinated
+    /// omission by keeping the send schedule even when the server stalls.
+    /// Without --rate, runs in closed-loop mode (c workers firing as fast
+    /// as possible).
+    #[arg(short = 'r', long)]
+    pub rate: Option<u64>,
+
     /// Emit a JSON result blob to stdout instead of a text summary.
     #[arg(long)]
     pub json: bool,
@@ -72,6 +88,11 @@ pub fn run(args: LoadArgs) -> Result<()> {
     }
     if args.concurrency == 0 {
         bail!("--concurrency must be at least 1");
+    }
+    if let Some(r) = args.rate {
+        if r == 0 {
+            bail!("--rate must be at least 1");
+        }
     }
 
     let runtime = tokio::runtime::Runtime::new().context("create tokio runtime")?;
@@ -137,6 +158,39 @@ struct Report {
     error_samples: Vec<String>,
 }
 
+/// Shared request-dispatch context. Cheap to clone (all fields are either
+/// `Arc`-cheap or small stack copies).
+#[derive(Clone)]
+struct DispatchCtx {
+    client: Client,
+    url: String,
+    method: Method,
+    headers: reqwest::header::HeaderMap,
+    body: Option<Vec<u8>>,
+}
+
+/// Send one request, measure latency from `scheduled_at`, record into `acc`.
+async fn fire_one(ctx: &DispatchCtx, scheduled_at: Instant, acc: &Mutex<Accumulator>) {
+    let mut req = ctx
+        .client
+        .request(ctx.method.clone(), &ctx.url)
+        .headers(ctx.headers.clone());
+    if let Some(b) = &ctx.body {
+        req = req.body(b.clone());
+    }
+    match req.send().await {
+        Ok(resp) => {
+            let status = resp.status().as_u16();
+            let _ = resp.bytes().await; // drain so keep-alive works
+            let micros = scheduled_at.elapsed().as_micros() as u64;
+            acc.lock().await.record_success(micros, status);
+        }
+        Err(e) => {
+            acc.lock().await.record_error(e.to_string());
+        }
+    }
+}
+
 async fn execute(args: LoadArgs) -> Result<Report> {
     let method = args
         .method
@@ -176,60 +230,23 @@ async fn execute(args: LoadArgs) -> Result<Report> {
         None
     };
 
+    let ctx = DispatchCtx {
+        client,
+        url: args.url.clone(),
+        method,
+        headers: header_map,
+        body: body_bytes,
+    };
+
     let acc = Arc::new(Mutex::new(Accumulator::new()));
-    let remaining = Arc::new(AtomicU64::new(args.count.unwrap_or(u64::MAX)));
     let deadline = duration.map(|d| Instant::now() + d);
     let started = Instant::now();
 
-    let mut handles = Vec::with_capacity(args.concurrency);
-    for _ in 0..args.concurrency {
-        let client = client.clone();
-        let url = args.url.clone();
-        let method = method.clone();
-        let headers = header_map.clone();
-        let body = body_bytes.clone();
-        let acc = Arc::clone(&acc);
-        let remaining = Arc::clone(&remaining);
-        let deadline = deadline;
-
-        handles.push(tokio::spawn(async move {
-            loop {
-                if let Some(d) = deadline {
-                    if Instant::now() >= d {
-                        break;
-                    }
-                }
-                // Decrement-and-test: bail when the budget runs out.
-                let prev = remaining.fetch_sub(1, Ordering::Relaxed);
-                if prev == 0 {
-                    remaining.fetch_add(1, Ordering::Relaxed);
-                    break;
-                }
-
-                let mut req = client.request(method.clone(), &url).headers(headers.clone());
-                if let Some(b) = &body {
-                    req = req.body(b.clone());
-                }
-
-                let t0 = Instant::now();
-                match req.send().await {
-                    Ok(resp) => {
-                        let status = resp.status().as_u16();
-                        // Drain body so keep-alive works.
-                        let _ = resp.bytes().await;
-                        let micros = t0.elapsed().as_micros() as u64;
-                        acc.lock().await.record_success(micros, status);
-                    }
-                    Err(e) => {
-                        acc.lock().await.record_error(e.to_string());
-                    }
-                }
-            }
-        }));
-    }
-
-    for h in handles {
-        let _ = h.await;
+    if let Some(rate) = args.rate {
+        run_open_loop(&ctx, &acc, started, deadline, args.count, rate, args.concurrency)
+            .await;
+    } else {
+        run_closed_loop(&ctx, &acc, deadline, args.count, args.concurrency).await;
     }
 
     let elapsed = started.elapsed();
@@ -267,6 +284,108 @@ async fn execute(args: LoadArgs) -> Result<Report> {
         })
     } else {
         Ok(report)
+    }
+}
+
+/// Closed-loop: `concurrency` workers, each grabs a request from the
+/// shared counter and fires it. Next request starts only when the previous
+/// finishes. Good for "max throughput" / stress-testing. Latency is
+/// measured from actual-send, so it does NOT compensate for coordinated
+/// omission.
+async fn run_closed_loop(
+    ctx: &DispatchCtx,
+    acc: &Arc<Mutex<Accumulator>>,
+    deadline: Option<Instant>,
+    count: Option<u64>,
+    concurrency: usize,
+) {
+    let remaining = Arc::new(AtomicU64::new(count.unwrap_or(u64::MAX)));
+    let mut handles = Vec::with_capacity(concurrency);
+    for _ in 0..concurrency {
+        let ctx = ctx.clone();
+        let acc = Arc::clone(acc);
+        let remaining = Arc::clone(&remaining);
+        handles.push(tokio::spawn(async move {
+            loop {
+                if let Some(d) = deadline {
+                    if Instant::now() >= d {
+                        break;
+                    }
+                }
+                let prev = remaining.fetch_sub(1, Ordering::Relaxed);
+                if prev == 0 {
+                    remaining.fetch_add(1, Ordering::Relaxed);
+                    break;
+                }
+                let t0 = Instant::now();
+                fire_one(&ctx, t0, &acc).await;
+            }
+        }));
+    }
+    for h in handles {
+        let _ = h.await;
+    }
+}
+
+/// Open-loop / rate-targeted: a scheduler dispatches a request every
+/// `1/rate` seconds. Latency is measured from the *scheduled* time, not
+/// the actual send time. When the server stalls, new requests still get
+/// scheduled on time; they wait on the concurrency semaphore and their
+/// measured latency includes the wait. This is the correct way to
+/// measure tail latency against an SLO — it compensates for coordinated
+/// omission by refusing to "let the client politely wait" during a stall.
+///
+/// `concurrency` caps the number of requests in flight simultaneously.
+/// If it's exhausted, the scheduler blocks on the semaphore, which
+/// itself is CO-correct: the next slot gets served when one frees up.
+async fn run_open_loop(
+    ctx: &DispatchCtx,
+    acc: &Arc<Mutex<Accumulator>>,
+    started: Instant,
+    deadline: Option<Instant>,
+    count: Option<u64>,
+    rate: u64,
+    concurrency: usize,
+) {
+    let interval_nanos = 1_000_000_000u64 / rate;
+    let interval = Duration::from_nanos(interval_nanos);
+    let semaphore = Arc::new(Semaphore::new(concurrency));
+    let total = count.unwrap_or(u64::MAX);
+
+    let mut handles: Vec<tokio::task::JoinHandle<()>> = Vec::new();
+    for i in 0..total {
+        // Scheduled send time for request i relative to start.
+        let scheduled_at = started + interval * (i as u32);
+
+        if let Some(d) = deadline {
+            if scheduled_at >= d {
+                break;
+            }
+        }
+
+        // Sleep until the scheduled tick, unless we're already late.
+        let now = Instant::now();
+        if scheduled_at > now {
+            tokio::time::sleep(scheduled_at - now).await;
+        }
+
+        // Acquire a concurrency slot. If the server is stalled and the
+        // slot isn't free yet, this await is exactly the CO-correct
+        // "the client is waiting" latency contribution.
+        let permit = match semaphore.clone().acquire_owned().await {
+            Ok(p) => p,
+            Err(_) => break, // semaphore closed
+        };
+
+        let ctx = ctx.clone();
+        let acc = Arc::clone(acc);
+        handles.push(tokio::spawn(async move {
+            let _permit = permit;
+            fire_one(&ctx, scheduled_at, &acc).await;
+        }));
+    }
+    for h in handles {
+        let _ = h.await;
     }
 }
 
