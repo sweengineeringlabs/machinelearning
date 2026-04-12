@@ -40,7 +40,7 @@ Two traits mediate between handlers and the things they depend on:
 - **`Model`** (`api/model.rs`) — what a handler needs from a loaded model: `model_id()`, `build_generator(temperature)`, `tokenizer()`, `embed(input, strategy)`. The router never touches `LlmModel` directly.
 - **`Throttle`** (`api/throttle.rs`) — admission control: `try_acquire()`, `capacity()`, `available()`. Returns an RAII `Permit` whose drop releases the slot.
 
-`DefaultModel` (holds `LlmModel` + tokenizer + generation config) implements `Model`. `SemaphoreThrottle` (wraps `tokio::sync::Semaphore`) implements `Throttle`. `AppState` stores `Box<dyn Model>` and `Box<dyn Throttle>` — the router is fully abstract over implementation.
+`DefaultModel` (holds `LlmModel` + tokenizer + generation config) implements `Model`. `SemaphoreThrottle` (wraps `tokio::sync::Semaphore` — see [glossary](../../../../../../docs/3-design/glossary.md#semaphore)) implements `Throttle`. `AppState` stores `Box<dyn Model>` and `Box<dyn Throttle>` — the router is fully abstract over implementation.
 
 This matters because:
 - Tests can substitute fakes without loading a real model.
@@ -65,7 +65,7 @@ The permit moves into the `spawn_blocking` closure and drops when inference comp
 
 Rationale for **fail fast over queueing**: CPU inference is slow (seconds per request). Silently queueing a 50-request burst behind a 2-wide throttle means the last client waits 25× the single-request latency with no indication. Returning 503 immediately gives clients a retry signal and keeps tail latency bounded. If async admission is needed later, `acquire().await` with a bounded timeout can be added to the trait without breaking callers.
 
-Default capacity is `--max-concurrent 2`. Higher values oversubscribe the rayon thread pool inside each request. For a 1B model on 8 cores, empirically 2–4 is the sweet spot (see `docs/5-testing/report/load_testing.md`).
+Default capacity is `--max-concurrent 2`. Higher values oversubscribe the rayon thread pool inside each request. For a 1B model on 8 cores, empirically 2–4 is the sweet spot (see `docs/5-testing/report/load_testing_2026_04_12_admission_control.md`).
 
 ### Request handling: `spawn_blocking` for compute
 
@@ -122,5 +122,5 @@ No reload, no graceful shutdown drain — the process is the unit of deployment.
 ## Testing
 
 - Unit tests for `SemaphoreThrottle` live in `core/throttle.rs` (capacity, permit release, clamp-to-1).
-- End-to-end load tests via `scripts/load_test.sh N [URL]` (relative to this crate). See `docs/5-testing/report/load_testing.md` for the burst/capacity matrix.
+- End-to-end load tests via `scripts/load_test.sh N [URL]` (relative to this crate). See `docs/5-testing/report/load_testing_2026_04_12_admission_control.md` for the burst/capacity matrix.
 - HTTP integration tests are absent — the OpenAI-compat shape is validated manually against `curl` and the openai-python client.
