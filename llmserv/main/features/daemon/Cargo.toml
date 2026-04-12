@@ -33,7 +33,6 @@ rustml-model.workspace = true
 rustml-quantizer.workspace = true
 rustml-prefill.workspace = true
 rustml-thread-config.workspace = true
-llmcompute.workspace = true
 rustml-arch-llama.workspace = true
 rustml-arch-gpt2.workspace = true
 rustml-arch-falcon.workspace = true

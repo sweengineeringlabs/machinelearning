@@ -10,7 +10,6 @@ use swellmd::{
 };
 use rustml_model::OptProfile;
 use rustml_thread_config::ThreadConfig;
-use llmcompute::ComputeBackend;
 
 /// swellmd — HTTP daemon for RustML LLM inference.
 ///
@@ -36,9 +35,6 @@ async fn main() -> Result<()> {
 
     let thread_config = rustml_thread_config::AutoThreadConfig::new();
     log::info!("Thread config: {} threads ({})", thread_config.num_threads(), thread_config.describe());
-
-    let compute = llmcompute::CpuBackend;
-    log::info!("Compute backend: {}", compute.name());
 
     let model = load_model(&loaded.app, profile, &loaded.merged_toml)?;
     let model_id = model.model_id().to_string();

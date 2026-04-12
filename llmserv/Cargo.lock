@@ -3039,7 +3039,6 @@ dependencies = [
  "dirs",
  "env_logger",
  "futures-util",
- "llmcompute",
  "log",
  "rayon",
  "reqwest",
