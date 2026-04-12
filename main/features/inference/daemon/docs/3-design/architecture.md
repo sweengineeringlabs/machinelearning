@@ -122,5 +122,5 @@ No reload, no graceful shutdown drain — the process is the unit of deployment.
 ## Testing
 
 - Unit tests for `SemaphoreThrottle` live in `core/throttle.rs` (capacity, permit release, clamp-to-1).
-- End-to-end load tests via `tmp/load_test.sh N [URL]`. See `docs/5-testing/report/load_testing.md` for the burst/capacity matrix.
+- End-to-end load tests via `scripts/load_test.sh N [URL]` (relative to this crate). See `docs/5-testing/report/load_testing.md` for the burst/capacity matrix.
 - HTTP integration tests are absent — the OpenAI-compat shape is validated manually against `curl` and the openai-python client.

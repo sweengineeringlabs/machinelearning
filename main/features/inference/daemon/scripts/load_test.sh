@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # Concurrent load test for the swellmd daemon.
 #
-# Usage: ./tmp/load_test.sh [N] [URL]
+# Usage: ./main/features/inference/daemon/scripts/load_test.sh [N] [URL]
 #   N   — number of concurrent requests (default: 4)
 #   URL — endpoint (default: http://127.0.0.1:8080/v1/chat/completions)
+#
+# Output lands in $SCRIPT_DIR/out/ (gitignored).
 #
 # Note on Windows/Cygwin: bash fork() is expensive. N > ~20 may hit
 # "Resource temporarily unavailable" due to cygheap fork exhaustion,
@@ -13,7 +15,8 @@ set -u
 
 N="${1:-4}"
 URL="${2:-http://127.0.0.1:8080/v1/chat/completions}"
-OUTDIR="./tmp/loadtest_out"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+OUTDIR="$SCRIPT_DIR/out"
 
 rm -rf "$OUTDIR" && mkdir -p "$OUTDIR"
 
