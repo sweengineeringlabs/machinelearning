@@ -450,6 +450,94 @@ under one or the other. Reqwest supports this behind a builder flag.
 - Each P2 deferral has an explicit rationale in this backlog so it
   doesn't get rediscovered and reconsidered silently.
 
+### T2: Ship an FFI / `cdylib` for desktop and IDE integration
+
+Motivated by **deployment ergonomics**, not performance. An IDE plugin
+that calls llmserv via HTTP has to manage port binding, process
+lifecycle, crash-restart, and firewall prompts on first run. An FFI
+path collapses all of that: the plugin process *is* the inference
+process, one binary ships, no server to manage.
+
+Be honest about what this does NOT buy:
+- Chat completion is ~3000 ms of compute; the ~1 ms HTTP loopback
+  overhead is 0.03% of that. FFI does not make generation faster.
+- Embedding single texts shaves ~2–10% (1 ms of 10–30 ms compute).
+- Tokenizer / token-count calls are where FFI is meaningfully faster,
+  because compute itself is sub-millisecond.
+
+So the motivation is: *make integrations feasible*, not *make them fast*.
+
+#### Scope
+
+New crate at `llmserv/main/features/ffi/`:
+- `crate-type = ["cdylib"]` — C-compatible ABI, so Python/Go/C#/Java/
+  Swift consumers can load it via `ctypes`/`cgo`/`P/Invoke`/`JNI`/
+  bridging headers. `dylib` (Rust ABI) is *not* an option — unstable
+  across compiler versions.
+- Narrow API surface. Don't expose the full inference library — expose
+  what a desktop/IDE integration actually needs:
+    * `llmserv_init(config_toml_path)` → opaque handle (loads model,
+      applies quantization, constructs runtime per application.toml)
+    * `llmserv_complete(handle, prompt, out_text)` → blocking completion
+    * `llmserv_embed(handle, text, out_vec)` → blocking embedding
+    * `llmserv_tokenize(handle, text, out_ids)` → tokenizer encode
+    * `llmserv_token_count(handle, text)` → just the count (most common
+      IDE call, every keystroke)
+    * `llmserv_destroy(handle)`
+    * `llmserv_free_*` — all Rust-allocated buffers freed via Rust
+  Each function wrapped in `std::panic::catch_unwind`; panics never
+  cross the FFI boundary.
+- `cbindgen` auto-generates the C header; commit it alongside the
+  `.so` output so consumers don't need a Rust toolchain to build bindings.
+
+#### Priority 0 — minimum viable
+
+**T2.1** — crate scaffold: Cargo.toml with `cdylib`, `#[no_mangle] extern
+"C"` function stubs, `catch_unwind` wrappers, opaque handle type.
+**T2.2** — core functions (init, complete, embed, destroy) backed by the
+existing `rustml-model` / `rustml-generation` / `rustml-tokenizer`.
+Blocking only — own a single-threaded tokio runtime inside the handle.
+**T2.3** — `cbindgen.toml` and generated `include/llmserv.h`.
+**T2.4** — Python smoke test (`ctypes` binding) that loads a model,
+generates a few tokens, asserts the output is non-empty. Confirms the
+ABI works end-to-end.
+
+#### Priority 1 — add when a scenario demands
+
+**T2.5** — streaming completion via a C callback:
+`llmserv_complete_stream(handle, prompt, cb, cb_ctx)` where `cb` is
+called per token. Needed for interactive IDE completion UIs.
+**T2.6** — thread-safety contract documentation: can the same handle
+be called from multiple caller threads concurrently? (Answer depends on
+whether the inference stack allows re-entrant `generate`.)
+**T2.7** — prebuilt `.so`/`.dll`/`.dylib` artifacts attached to GitHub
+releases for each tagged version, so consumers don't need a Rust
+toolchain to build llmserv.
+
+#### Priority 2 — explicit non-goals (for now)
+
+- **Async FFI.** FFI boundary is blocking; languages calling us can
+  wrap in their own async (Python asyncio threadpool, Go goroutine).
+- **Cross-version ABI stability guarantee.** Versioning via the soname
+  / `.pc` / header version and bumping on every breaking surface change.
+  Don't try to evolve `repr(C)` structs in place.
+- **Multi-handle sharing of loaded weights.** Each handle owns its model.
+  Could be added later via `Arc<Mmap>` shared between handles, but
+  complexity isn't warranted until a real multi-handle consumer appears.
+- **C++ classes / method syntax.** The `.h` is C, not C++. C++ callers
+  include it in `extern "C" { ... }`.
+
+#### Acceptance
+
+- T2.1–T2.4 shipped: `cargo build --release -p llmserv-ffi` produces a
+  `.dll` on Windows / `.so` on Linux / `.dylib` on macOS.
+- `include/llmserv.h` committed and kept in sync with the Rust source
+  (ideally regenerated in CI and diffed).
+- Python smoke test script at `llmserv/main/features/ffi/examples/smoke.py`
+  runs green against the built `.so`.
+- An IDE integration or desktop consumer actually uses it — don't ship
+  without a first consumer, it becomes dead code.
+
 ---
 
 ## Documentation Debt
