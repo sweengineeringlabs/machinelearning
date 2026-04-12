@@ -65,6 +65,68 @@ fn dot_q4_1_q8_block_scalar(packed_q4: &[u8], q8_values: &[i8]) -> (i32, i32) {
 
 #[cfg(target_arch = "x86_64")]
 mod x86 {
+    /// Q8_0 × F32 block dot product, AVX2 + FMA path.
+    ///
+    /// Two optimizations over the legacy AVX2-only kernel:
+    /// - Uses four independent accumulators so the four FMAs can issue in
+    ///   parallel instead of serializing on one accumulator's dependency chain.
+    /// - Uses `_mm256_fmadd_ps` (1 instruction, 1 latency) in place of
+    ///   `mul_ps` + `add_ps` (2 instructions, add-after-mul dependency).
+    ///
+    /// The i8→f32 conversion pattern (loadl + cvtepi8_epi32 + cvtepi32_ps) is
+    /// unchanged from the legacy version.
+    #[target_feature(enable = "avx2,fma")]
+    pub(super) unsafe fn dot_q8_block_avx2_fma(input: &[f32], quantized: &[i8], scale: f32) -> f32 {
+        use std::arch::x86_64::*;
+
+        let mut acc0 = _mm256_setzero_ps();
+        let mut acc1 = _mm256_setzero_ps();
+        let mut acc2 = _mm256_setzero_ps();
+        let mut acc3 = _mm256_setzero_ps();
+
+        // Chunk 0
+        let inp0 = _mm256_loadu_ps(input.as_ptr().add(0));
+        let q_i8_0 = _mm_loadl_epi64(quantized.as_ptr().add(0) as *const __m128i);
+        let q_vec_0 = _mm256_cvtepi32_ps(_mm256_cvtepi8_epi32(q_i8_0));
+        acc0 = _mm256_fmadd_ps(inp0, q_vec_0, acc0);
+
+        // Chunk 1
+        let inp1 = _mm256_loadu_ps(input.as_ptr().add(8));
+        let q_i8_1 = _mm_loadl_epi64(quantized.as_ptr().add(8) as *const __m128i);
+        let q_vec_1 = _mm256_cvtepi32_ps(_mm256_cvtepi8_epi32(q_i8_1));
+        acc1 = _mm256_fmadd_ps(inp1, q_vec_1, acc1);
+
+        // Chunk 2
+        let inp2 = _mm256_loadu_ps(input.as_ptr().add(16));
+        let q_i8_2 = _mm_loadl_epi64(quantized.as_ptr().add(16) as *const __m128i);
+        let q_vec_2 = _mm256_cvtepi32_ps(_mm256_cvtepi8_epi32(q_i8_2));
+        acc2 = _mm256_fmadd_ps(inp2, q_vec_2, acc2);
+
+        // Chunk 3
+        let inp3 = _mm256_loadu_ps(input.as_ptr().add(24));
+        let q_i8_3 = _mm_loadl_epi64(quantized.as_ptr().add(24) as *const __m128i);
+        let q_vec_3 = _mm256_cvtepi32_ps(_mm256_cvtepi8_epi32(q_i8_3));
+        acc3 = _mm256_fmadd_ps(inp3, q_vec_3, acc3);
+
+        // Reduce tree: two pairwise adds, then hsum.
+        let sum01 = _mm256_add_ps(acc0, acc1);
+        let sum23 = _mm256_add_ps(acc2, acc3);
+        let acc = _mm256_add_ps(sum01, sum23);
+
+        let hi = _mm256_extractf128_ps(acc, 1);
+        let lo = _mm256_castps256_ps128(acc);
+        let sum128 = _mm_add_ps(lo, hi);
+        let shuf = _mm_movehdup_ps(sum128);
+        let sums = _mm_add_ps(sum128, shuf);
+        let shuf2 = _mm_movehl_ps(sums, sums);
+        let result = _mm_add_ss(sums, shuf2);
+
+        _mm_cvtss_f32(result) * scale
+    }
+
+    /// Legacy AVX2-only Q8_0 × F32 block dot product. Retained for CPUs
+    /// that support AVX2 but not FMA3 — a narrow window today (roughly
+    /// pre-2013 Intel, pre-2014 AMD), but the fallback is free.
     #[target_feature(enable = "avx2")]
     pub(super) unsafe fn dot_q8_block_avx2(input: &[f32], quantized: &[i8], scale: f32) -> f32 {
         use std::arch::x86_64::*;
@@ -523,12 +585,18 @@ mod arm {
 // --- Public dispatch functions ---
 
 /// Runtime-dispatched dot product for one Q8_0 block (32 elements).
+///
+/// Preference order on x86_64:
+///   AVX2 + FMA3 (fastest)  →  AVX2 only  →  SSE4.1  →  SSE2.
 pub fn dot_q8_block(input: &[f32], quantized: &[i8], scale: f32) -> f32 {
     debug_assert!(input.len() >= 32);
     debug_assert!(quantized.len() >= 32);
 
     #[cfg(target_arch = "x86_64")]
     {
+        if is_x86_feature_detected!("avx2") && is_x86_feature_detected!("fma") {
+            return unsafe { x86::dot_q8_block_avx2_fma(input, quantized, scale) };
+        }
         if is_x86_feature_detected!("avx2") {
             return unsafe { x86::dot_q8_block_avx2(input, quantized, scale) };
         }
