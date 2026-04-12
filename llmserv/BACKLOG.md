@@ -432,12 +432,67 @@ Without P7.3, it's wasted effort.
 **P7.6 — KV cache pooling.** Small win. Reuse per-request caches via a
 slab allocator instead of allocating fresh per request.
 
-**Expected overall impact**: P7.2 alone should close ~50% of the
-remaining gap (1.5–2× speedup on matmul-dominated workloads). P7.2 +
-P7.3 + P7.5 should close most of the remaining kernel gap.
-Realistically, reaching parity with llama.cpp on a single model
-family is a months-long effort — llama.cpp has had hundreds of
-contributors and many years.
+**Expected overall impact (ORIGINAL, now refined by measurement)**: see
+"Status update 2026-04-12" below. P7.2.a delivered ~6%. P7.2.b as
+originally specified did NOT deliver the hoped 2–3× on its own.
+
+### P7.2 status update (2026-04-12) — measured, not speculative
+
+**P7.2.a shipped (commit 9309043):** FMA + 4 independent accumulators
+in `dot_q8_block_avx2_fma`. Measured: **p50 2699 → 2540 ms, ~6% speedup.**
+Correctness verified by existing test_q8_dot_scalar_vs_dispatch.
+
+**P7.2.b infrastructure shipped (commits 463f6e5, 1640358), default off:**
+- New `matmul_f32_q8_v2` using integer-domain dot product
+- New `dot_q8q8_block_avx2` (signed i8×i8 → i32 via madd_epi16)
+- New `quantize_q8_0_into` (allocation-free variant)
+- New `use_native_q8` flag on Linear (routes v1 vs v2)
+- 2 new tests (test_q8_matmul_v2_matches_v1, test_q8q8_dot_extremes)
+
+**Enabled measurement:** use_native_q8 = true → p50 **2728 ms**. That's
+**7% SLOWER** than P7.2.a. The "integer-domain beats FMA" hypothesis did
+not hold on this CPU / with this implementation.
+
+**Why it didn't win:** three compounding reasons, none trivial to fix:
+
+1. **Throughput parity, not advantage.** `_mm256_madd_epi16` is single-
+   port (1 op/cycle) on Skylake+/Zen+. `_mm256_fmadd_ps` is dual-port
+   (2 ops/cycle). v1 already extracts FMA's full ILP via 4 independent
+   accumulator chains (from P7.2.a); v2 has a single madd chain.
+2. **Allocation hypothesis was wrong.** Per-call `Vec<u8>` in
+   `quantize_q8_0` is ~13 μs/token total, not the explanation.
+3. **Extra per-block scalar work.** Two scale f16→f32 + scalar multiply
+   per block, vs v1's single scale multiply.
+
+**What would actually deliver a speedup from v2** (unshipped, estimated):
+
+- **P7.2.b.1 — Multi-accumulator integer kernel.** Mirror the 4-
+  accumulator pattern from P7.2.a inside dot_q8q8. Likely requires
+  restructuring to process 4 output columns in parallel per activation
+  block (since scales differ per block, we can't keep integer
+  accumulators across blocks).
+- **P7.2.b.2 — Cross-block SIMD f32 accumulator.** Use a single __m256
+  f32 accumulator living across blocks for one output column; reduce
+  once per column, not per block. Saves 5 hsum ops per block × 36 blocks
+  × ~6912 columns per FFN matmul ≈ 1.2M SIMD ops saved per matmul.
+
+Realistic effort estimate: ~1 week of focused SIMD work + benchmarking
+for each of .b.1 and .b.2. Expected combined speedup: plausibly 1.5–2×
+on the matmul kernel, closing ~30–50% of the remaining Ollama gap. Not
+certain — measurement trumps estimate.
+
+**Alternative concrete path to close the gap (recommended for triage):**
+wrap llama.cpp's `ggml_mul_mat` as a `ComputeBackend` provider (the trait
+already exists from P6). Effort: ~1-2 weeks including FFI binding, build
+integration, CI. Outcome: parity with llama.cpp on the kernels that matter,
+at the cost of a C++ toolchain dependency. Ships concrete performance
+parity faster than reimplementing their SIMD in Rust.
+
+**Recommendation going forward:** accept current performance (p50 2540 ms,
+3.3× slower than ollama) unless raw speed is a hard requirement. If it
+is, pursue the llama.cpp-wrapper path (P7.x tbd) rather than continuing
+to hand-tune Rust SIMD — the same engineer-time delivers larger and
+more predictable gains wrapping a mature kernel library.
 
 **Alternative "pragmatic" path**: wrap llama.cpp itself as a
 `ComputeBackend` provider (we already have the trait from P6). Lose
