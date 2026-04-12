@@ -39,13 +39,21 @@ typedef enum LlmError {
    * Internal error (should not happen in normal operation).
    */
   INTERNAL = 5,
+  /**
+   * The handle was destroyed (via `llmserv_destroy`). Any call that
+   * observes this should treat the handle as gone and not retry.
+   */
+  DESTROYED = 6,
 } LlmError;
 
 /**
  * Opaque session handle. Returned by `llmserv_init`, consumed by the
  * other functions, freed by `llmserv_destroy`.
  *
- * The actual layout is private and may change between versions.
+ * The actual layout is private and may change between versions. The
+ * handle pointer remains valid for the lifetime of the process after
+ * init — destroy releases the inner model but not the outer struct, so
+ * any stray pointer use returns `Destroyed` rather than segfaulting.
  */
 typedef struct LlmHandle LlmHandle;
 
@@ -60,12 +68,16 @@ typedef struct LlmHandle LlmHandle;
  int llmserv_init(struct LlmHandle **out_handle);
 
 /**
- * Destroy a handle returned by `llmserv_init`. Calling any other
- * function with the handle after destroy is undefined behavior.
+ * Destroy a handle: drops the inner model, releasing weights and
+ * activations. Idempotent — calling destroy twice is a safe no-op.
+ * Safe to call concurrently with in-flight ops: waits for them to
+ * finish, then transitions atomically. Subsequent calls on the handle
+ * return `LlmError::Destroyed`.
  *
  * # Safety
- * `handle` must be a pointer returned by `llmserv_init` that has not
- * already been destroyed. Passing null is a no-op.
+ * `handle` must be a pointer returned by `llmserv_init`. Passing null
+ * is a safe no-op. The handle pointer itself remains valid after this
+ * call — only the inner model is released.
  */
  void llmserv_destroy(struct LlmHandle *handle);
 

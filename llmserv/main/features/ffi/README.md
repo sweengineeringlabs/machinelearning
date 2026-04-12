@@ -58,14 +58,15 @@ after `llmserv_destroy`.
 
 ## Thread-safety contract
 
-The contract is **strong**. It's defensible because every type under the
-handle (`LlmModel`, `Generator`, all tokenizers) has no interior
-mutability — model weights, configs, and vocabularies are read-only, and
-each generation allocates its own KV cache + activations. The daemon
-exercises the same pattern (one shared model behind `Arc`, many
-concurrent requests) in production.
+The contract is **strong** — the implementation eliminates every
+traditional C-ABI race by construction. Every type under the handle
+(`LlmModel`, `Generator`, all tokenizers) has no interior mutability;
+weights and vocabularies are read-only; each generation allocates its
+own KV cache and activations. The handle itself is wrapped in an
+`RwLock<Option<Model>>`: calls take a read-lock (many concurrent),
+destroy takes a write-lock (waits for all readers).
 
-**What is safe:**
+### What is safe
 
 | Operation | From one thread | From N threads on the same handle | On multiple handles across N threads |
 |---|---|---|---|
@@ -75,31 +76,49 @@ concurrent requests) in production.
 | `llmserv_token_count` | safe | **safe** | safe |
 | `llmserv_free_*` | safe | safe (different buffers) | safe |
 
-**What is NOT safe:**
+### Destroy, use-after-destroy, double-destroy — all safe
 
-- **`llmserv_destroy` concurrent with any other call on the same handle.**
-  Destroy invalidates the memory. Caller must ensure no other thread is
-  inside `llmserv_*(h, ...)` when `llmserv_destroy(h)` is called. Typical
-  pattern: join worker threads before destroy, or wrap the handle in
-  the caller's own lifetime-managing type.
-- **Double-destroy.** Calling `llmserv_destroy` twice on the same handle
-  is undefined behavior. Treat the handle pointer as invalid after the
-  first destroy.
-- **Calling any function on a handle after destroy.** Use-after-free.
-- **Freeing a Rust-allocated buffer with anything other than the
-  matching `llmserv_free_*`.** In particular, do not pass strings to
-  `free()` or `PyMem_Free` from Python.
+The handle pointer returned by `llmserv_init` remains valid for the
+lifetime of the process. `llmserv_destroy` releases the inner model
+(frees weights, activations, tokenizer) but does not free the outer
+handle struct. This means:
 
-**What is *allowed but not useful*:**
+- **`llmserv_destroy` concurrent with any other call** — the destroy
+  waits for in-flight calls to finish, then transitions atomically.
+  In-flight calls complete normally; calls that start after destroy
+  return `LlmError::Destroyed`.
+- **Double-destroy** — a safe no-op. Second and subsequent destroys
+  find the inner already gone and return without error.
+- **Use-after-destroy** — returns `LlmError::Destroyed` instead of
+  undefined behavior. No segfault, no memory corruption.
 
-- Spawning N threads that each call `llmserv_complete` on the same
-  handle does NOT give N× throughput. The underlying matmul uses rayon's
-  global thread pool, so all N calls contend for the same CPUs. See the
-  load-testing report for why concurrency ≈ 2 is the sweet spot on CPU.
+Per-init memory cost: one small struct (~40 bytes) permanently retained
+after destroy. Bounded by the number of `llmserv_init` calls in the
+process lifetime — irrelevant for typical desktop/IDE usage where a
+handle lives for the process.
 
-**Rule of thumb:** share one handle across threads for read-only
-concurrent use; create the handle before spawning workers; destroy
-only after every worker has joined.
+### Still the caller's responsibility
+
+- **Free Rust-allocated buffers with the matching `llmserv_free_*`**,
+  not `free()` / `PyMem_Free` / `delete`. The allocator crossing the
+  FFI boundary must match. Opaque wrapper classes in the host language
+  are the idiomatic fix (see the Python smoke tests for the pattern).
+- **Respect the ownership lifetime of returned buffers.** A pointer
+  from `llmserv_complete` is valid until you call `llmserv_free_string`
+  on it — not after.
+
+### Allowed but not useful
+
+Spawning N threads that each call `llmserv_complete` on the same handle
+does NOT give N× throughput. The underlying matmul uses rayon's global
+thread pool, so all calls contend for the same CPUs. See the load-test
+report for why concurrency ≈ 2 is the sweet spot on CPU.
+
+### Rule of thumb
+
+Share one handle freely across threads. Destroy whenever — the library
+handles synchronization. Free returned buffers with the typed free
+functions.
 
 ## Python example
 

@@ -22,14 +22,20 @@
 //! - Handles are opaque — never dereference the pointer from non-Rust
 //!   code.
 //!
-//! Thread safety:
-//! - `llmserv_init` / `llmserv_destroy` are NOT safe to run concurrently
-//!   with any other call on the same handle.
+//! Thread safety — strong contract:
 //! - `llmserv_complete`, `llmserv_embed`, `llmserv_tokenize`, and
 //!   `llmserv_token_count` ARE safe to call concurrently on the same
-//!   handle from multiple threads. No data races: underlying types have
-//!   no interior mutability, each call allocates its own activations and
-//!   KV cache. See README.md for the full contract.
+//!   handle from multiple threads.
+//! - `llmserv_destroy` IS safe to call concurrently with other ops on
+//!   the same handle. If a call is in flight, destroy waits for it to
+//!   complete, then atomically transitions the handle to "destroyed."
+//! - After destroy, every subsequent call on the handle returns
+//!   `LlmError::Destroyed` — no UB, no segfault, no use-after-free.
+//! - Double-destroy is a safe no-op.
+//! - The handle pointer itself remains valid forever after init; only
+//!   the inner model is freed on destroy. This is a bounded per-init
+//!   leak (one small struct per handle) — acceptable for handle
+//!   lifetimes typical of IDE / desktop use.
 //! - Concurrent calls do not yield N× throughput — rayon's global pool
 //!   means all calls contend for the same CPUs.
 
@@ -38,11 +44,10 @@
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_int};
 use std::panic::{AssertUnwindSafe, catch_unwind};
-use std::ptr;
+use std::sync::RwLock;
 
 use rustml_inference_layers::PoolingStrategy;
 use rustml_model::OptProfile;
-use rustml_tokenizer::Tokenizer;
 use swe_ml_tensor::{DType, Tensor, f32_vec_to_bytes};
 
 use swellmd::{Model, ModelSource};
@@ -61,14 +66,22 @@ pub enum LlmError {
     Panic = 4,
     /// Internal error (should not happen in normal operation).
     Internal = 5,
+    /// The handle was destroyed (via `llmserv_destroy`). Any call that
+    /// observes this should treat the handle as gone and not retry.
+    Destroyed = 6,
 }
 
 /// Opaque session handle. Returned by `llmserv_init`, consumed by the
 /// other functions, freed by `llmserv_destroy`.
 ///
-/// The actual layout is private and may change between versions.
+/// The actual layout is private and may change between versions. The
+/// handle pointer remains valid for the lifetime of the process after
+/// init — destroy releases the inner model but not the outer struct, so
+/// any stray pointer use returns `Destroyed` rather than segfaulting.
 pub struct LlmHandle {
-    model: Box<dyn Model>,
+    // RwLock: many concurrent read-locks (one per in-flight call), one
+    // exclusive write-lock (destroy). Option: None means destroyed.
+    inner: RwLock<Option<Box<dyn Model>>>,
 }
 
 // ─── init / destroy ──────────────────────────────────────────────────
@@ -133,7 +146,14 @@ pub unsafe extern "C" fn llmserv_init(out_handle: *mut *mut LlmHandle) -> c_int 
             }
         };
 
-        let handle = Box::new(LlmHandle { model });
+        let handle = Box::new(LlmHandle {
+            inner: RwLock::new(Some(model)),
+        });
+        // Deliberate: the outer Box is leaked. `destroy` drops the inner
+        // model but never frees this struct, so the handle pointer
+        // remains valid for the lifetime of the process and any stray
+        // use after destroy is a bounded "return Destroyed" rather than
+        // UB. See thread-safety contract in the crate-level docs.
         unsafe {
             *out_handle = Box::into_raw(handle);
         }
@@ -141,19 +161,28 @@ pub unsafe extern "C" fn llmserv_init(out_handle: *mut *mut LlmHandle) -> c_int 
     })
 }
 
-/// Destroy a handle returned by `llmserv_init`. Calling any other
-/// function with the handle after destroy is undefined behavior.
+/// Destroy a handle: drops the inner model, releasing weights and
+/// activations. Idempotent — calling destroy twice is a safe no-op.
+/// Safe to call concurrently with in-flight ops: waits for them to
+/// finish, then transitions atomically. Subsequent calls on the handle
+/// return `LlmError::Destroyed`.
 ///
 /// # Safety
-/// `handle` must be a pointer returned by `llmserv_init` that has not
-/// already been destroyed. Passing null is a no-op.
+/// `handle` must be a pointer returned by `llmserv_init`. Passing null
+/// is a safe no-op. The handle pointer itself remains valid after this
+/// call — only the inner model is released.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn llmserv_destroy(handle: *mut LlmHandle) {
     if handle.is_null() {
         return;
     }
     let _ = catch_unwind(AssertUnwindSafe(|| {
-        let _ = unsafe { Box::from_raw(handle) };
+        // SAFETY: handle is a leaked LlmHandle from `llmserv_init`;
+        // caller contract guarantees the pointer is valid.
+        let h = unsafe { &*handle };
+        if let Ok(mut guard) = h.inner.write() {
+            let _ = guard.take();
+        }
     }));
 }
 
@@ -180,10 +209,13 @@ pub unsafe extern "C" fn llmserv_complete(
     out_text: *mut *mut c_char,
 ) -> c_int {
     wrap(|| {
-        let session = unsafe { handle.as_ref() }.ok_or(LlmError::InvalidInput)?;
+        let h = unsafe { handle.as_ref() }.ok_or(LlmError::InvalidInput)?;
         let prompt_str = unsafe { cstr_to_str(prompt)? };
 
-        let generator = session.model.build_generator(temperature);
+        let guard = h.inner.read().map_err(|_| LlmError::Internal)?;
+        let model = guard.as_ref().ok_or(LlmError::Destroyed)?;
+
+        let generator = model.build_generator(temperature);
         let max = if max_tokens == 0 { 256 } else { max_tokens as usize };
         let output = generator.generate(prompt_str, max).map_err(|e| {
             log::error!("llmserv_complete: generate failed: {}", e);
@@ -214,10 +246,13 @@ pub unsafe extern "C" fn llmserv_embed(
     out_dim: *mut usize,
 ) -> c_int {
     wrap(|| {
-        let session = unsafe { handle.as_ref() }.ok_or(LlmError::InvalidInput)?;
+        let h = unsafe { handle.as_ref() }.ok_or(LlmError::InvalidInput)?;
         let text_str = unsafe { cstr_to_str(text)? };
 
-        let ids = session.model.tokenizer().encode(text_str).map_err(|e| {
+        let guard = h.inner.read().map_err(|_| LlmError::Internal)?;
+        let model = guard.as_ref().ok_or(LlmError::Destroyed)?;
+
+        let ids = model.tokenizer().encode(text_str).map_err(|e| {
             log::error!("llmserv_embed: tokenize failed: {}", e);
             LlmError::Runtime
         })?;
@@ -230,8 +265,7 @@ pub unsafe extern "C" fn llmserv_embed(
             DType::F32,
         );
 
-        let embedding = session
-            .model
+        let embedding = model
             .embed(&input_tensor, PoolingStrategy::Mean)
             .map_err(|e| {
                 log::error!("llmserv_embed: embed failed: {}", e);
@@ -266,10 +300,13 @@ pub unsafe extern "C" fn llmserv_tokenize(
     out_len: *mut usize,
 ) -> c_int {
     wrap(|| {
-        let session = unsafe { handle.as_ref() }.ok_or(LlmError::InvalidInput)?;
+        let h = unsafe { handle.as_ref() }.ok_or(LlmError::InvalidInput)?;
         let text_str = unsafe { cstr_to_str(text)? };
 
-        let ids = session.model.tokenizer().encode(text_str).map_err(|e| {
+        let guard = h.inner.read().map_err(|_| LlmError::Internal)?;
+        let model = guard.as_ref().ok_or(LlmError::Destroyed)?;
+
+        let ids = model.tokenizer().encode(text_str).map_err(|e| {
             log::error!("llmserv_tokenize: tokenize failed: {}", e);
             LlmError::Runtime
         })?;
@@ -298,9 +335,11 @@ pub unsafe extern "C" fn llmserv_token_count(
     out_count: *mut usize,
 ) -> c_int {
     wrap(|| {
-        let session = unsafe { handle.as_ref() }.ok_or(LlmError::InvalidInput)?;
+        let h = unsafe { handle.as_ref() }.ok_or(LlmError::InvalidInput)?;
         let text_str = unsafe { cstr_to_str(text)? };
-        let ids = session.model.tokenizer().encode(text_str).map_err(|e| {
+        let guard = h.inner.read().map_err(|_| LlmError::Internal)?;
+        let model = guard.as_ref().ok_or(LlmError::Destroyed)?;
+        let ids = model.tokenizer().encode(text_str).map_err(|e| {
             log::error!("llmserv_token_count: tokenize failed: {}", e);
             LlmError::Runtime
         })?;
