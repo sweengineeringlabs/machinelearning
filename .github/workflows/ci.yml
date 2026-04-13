@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same branch — saves CI minutes during
+# rapid pushes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  # Fail fast on warnings that would become errors over time. Start
+  # permissive and tighten later — existing warnings are tracked as
+  # cleanup work, not blockers today.
+  RUSTFLAGS: ""
+
+jobs:
+  # Root workspace — foundation crates (tensor, normalization, activation,
+  # architectures, training, hub, embedding-conversion).
+  root:
+    name: root workspace (pure Rust)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        # Channel read from rust-toolchain.toml at the repo root (1.93).
+        # Keep this action pinned to @master so it honors the toolchain file.
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.93"
+          components: rustfmt, clippy
+
+      - name: Cache cargo registry + target
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ". -> target"
+
+      - name: Build
+        run: cargo build --release --workspace --locked
+
+      - name: Test
+        run: cargo test --release --workspace --locked
+
+  # llmserv workspace default build — no C++ toolchain, no llama.cpp.
+  # This is the path every consumer who doesn't opt into backend-llama-cpp
+  # will hit.
+  llmserv-pure-rust:
+    name: llmserv (pure Rust, no C++)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        # Channel read from rust-toolchain.toml at the repo root (1.93).
+        # Keep this action pinned to @master so it honors the toolchain file.
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.93"
+          components: rustfmt, clippy
+
+      - name: Cache cargo registry + target
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "llmserv -> target"
+
+      - name: Build
+        working-directory: llmserv
+        run: cargo build --release --workspace --locked
+
+      - name: Test
+        working-directory: llmserv
+        run: cargo test --release --workspace --locked
+
+  # llmserv workspace with the llama.cpp backend feature active. Today
+  # the skeleton crate has no external C++ dep so this job doesn't yet
+  # invoke cmake — it verifies the feature-gated code paths compile and
+  # tests pass. Once the llama-cpp-2 API wiring lands, cmake + a C++
+  # toolchain become load-bearing here, which is why those are
+  # pre-installed even though they're currently unused.
+  llmserv-llama-cpp:
+    name: llmserv (with backend-llama-cpp feature)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        # Channel read from rust-toolchain.toml at the repo root (1.93).
+        # Keep this action pinned to @master so it honors the toolchain file.
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.93"
+          components: rustfmt, clippy
+
+      - name: Install C++ toolchain + cmake
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential
+
+      - name: Cache cargo registry + target
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "llmserv -> target"
+          key: llama-cpp
+
+      - name: Build with backend-llama-cpp feature
+        working-directory: llmserv
+        run: cargo build --release -p swellmd --features backend-llama-cpp --locked
+
+      - name: Test with backend-llama-cpp feature
+        working-directory: llmserv
+        run: |
+          cargo test --release -p swellmd --features backend-llama-cpp --locked
+          cargo test --release -p rustml-backend-llama-cpp --features llama-cpp --locked
+          cargo test --release -p llmbackend --locked
