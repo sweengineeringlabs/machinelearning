@@ -28,7 +28,45 @@ vendored llama.cpp. Local, single client, greedy decoding.
 
 **swellmd `llama_cpp` is ~7.2× faster than `native_rust` at p50.**
 
-### Larger sample against Ollama (n=50)
+### Multi-client concurrency (n=40)
+
+How the backends scale when the `llmc load` worker pool sends
+requests in parallel. Daemon `throttle.semaphore.max_concurrent`
+set to 4 so admission control isn't the bottleneck; pool can
+lazily grow to 4 concurrent contexts.
+
+| c | llama_cpp p50 | llama_cpp p95 | llama_cpp p99 | Ollama p50 | Ollama p95 | Ollama p99 |
+|---|--------------:|--------------:|--------------:|-----------:|-----------:|-----------:|
+| 1 |       603.65 |        648.70 |        800.77 |     707.58 |     830.98 |    3178.49 |
+| 2 |      1065.98 |       1386.49 |       1521.66 |    1058.82 |    1843.20 |    2191.36 |
+| 4 |      2123.78 |       2332.67 |       2416.64 |    1645.57 |    1912.83 |    2129.92 |
+
+Throughput (req/s): c=1 1.64 vs 1.26 · c=2 1.80 vs 1.71 · c=4 1.87 vs **2.34**.
+
+**The continuous-batching gap.** At c=1 we win on every metric —
+~15% faster at p50, tight tail. At c=2 we're tied. At c=4 Ollama
+pulls ahead: 25% more throughput, 22% better p50. Our latencies
+roughly double as concurrency doubles, meaning we're not actually
+parallelizing — decode wall-clock time is linear in request count.
+
+Mechanism: the pool holds N independent `LlamaContext` instances,
+each running its own llama.cpp decode with its own internal thread
+pool. On an 8-core CPU, 4 contexts × ~8 threads/context = 32
+threads contending for 8 cores plus L1 cache thrashing across
+sequences. Ollama almost certainly uses llama.cpp's **continuous
+batching** — one context, one `llama_decode` call per tick, N
+sequences interleaved by `seq_id`. That's how llama.cpp was
+designed to scale; our "pool of independent contexts" is leaving
+the entire batching mechanism on the table.
+
+Not fixing this in the pool PR. Continuous batching is a bigger
+redesign — admission control becomes "schedule token into batch"
+rather than "allocate permit", the completer's decode loop
+becomes a per-request sub-slice of a shared batch tick, and
+per-sequence buffered streaming needs plumbing. Fine as a separate
+task when c>1 performance matters for a real workload.
+
+### Single-client larger sample against Ollama (n=50)
 
 Before and after context pooling landed. The "before" numbers are
 retained because they justify the pooling change.
