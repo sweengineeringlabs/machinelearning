@@ -1080,6 +1080,105 @@ P7.B's 8–10 day llama.cpp work can start. Total stack: 10–13 days.
 
 ---
 
+### P7.C: Continuous batching in `LlamaCppBackend` — close the c>1 gap
+
+**Motivation — measured, not hypothetical.** `docs/perf/llama-cpp-vs-native.md`
+documents a multi-client benchmark (gemma3:1b, n=40, same GGUF):
+
+| c | llama_cpp p50 | Ollama p50 | llama_cpp req/s | Ollama req/s |
+|---|--------------:|-----------:|----------------:|-------------:|
+| 1 |           604 |        708 |            1.64 |         1.26 |
+| 2 |          1066 |       1059 |            1.80 |         1.71 |
+| 4 |          2124 |   **1646** |            1.87 |     **2.34** |
+
+At c=1 our pool beats Ollama by ~15% p50. At c=4 Ollama pulls 25%
+ahead on throughput, 22% on p50. Our latencies roughly double as
+concurrency doubles — we're not actually parallelizing.
+
+**Root cause.** The pool shipped in `commit 29137e3` holds N
+independent `LlamaContext` instances. Each decode owns its own
+llama.cpp internal thread pool. On 8 cores, 4 parallel contexts ×
+~8 threads/ctx = 32 threads contending for 8 cores plus L1 cache
+thrashing. Ollama almost certainly uses llama.cpp's continuous
+batching (one context, N sequences interleaved by `seq_id`, one
+`llama_decode` call per tick processes all sequences together).
+Our "pool of independent contexts" leaves the entire batching
+mechanism on the table.
+
+**Scope of the refactor (3–5 days).**
+
+1. **Scheduler component.** New long-running task that owns a single
+   `LlamaContext`, pulls from a request queue, packs active
+   sequences into one `LlamaBatch` per tick, calls `llama_decode`
+   once per tick. Returns per-sequence tokens through channels.
+2. **seq_id lifecycle.** Allocate a free id per request;
+   `kv_cache_seq_rm` on EOS/max_tokens/cancel; honor the N-seq
+   upper bound (`LlamaContextParams::with_n_seq_max`, default small
+   — likely needs bumping to daemon throttle capacity).
+3. **Admission control rewrite.** Today: semaphore permit per
+   request gates concurrent pool acquires. After: bounded queue
+   feeding the scheduler with backpressure when the batch is at
+   capacity. `[throttle]` config shape may want revisiting.
+4. **Prefill + decode scheduling.** Decode adds 1 token per tick per
+   request; prefill needs hundreds of tokens in one hit. Either
+   interleave prefill into the same tick (complex) or give prefill
+   its own tick cadence (simpler, higher latency spikes). This
+   scheduling policy is where Ollama/vLLM spend their tuning effort
+   — **getting it right takes iteration, not just implementation**.
+5. **`TextCompleter` trait boundary.** Current
+   `complete_stream(&mut self, prompt, params, callback)` holds a
+   `&mut` on the completer for the whole decode. Continuous batching
+   has N requests active against one context; the scheduler needs
+   all of them simultaneously. Completer becomes a token-channel
+   consumer: scheduler pushes, completer pulls + invokes callback.
+6. **Cancellation / backpressure.** HTTP client disconnects must
+   detach the seq from the batch promptly, else we waste compute
+   generating tokens nobody's reading. Tokio drop-handler wiring.
+
+**Risks specific to this refactor.**
+
+- **c=1 regression.** If the scheduler tick overhead is >10 ms on
+  an idle server, we lose our current c=1 advantage over Ollama
+  (p50 604 vs 708). The existing pool behavior at c=1 is the gold
+  standard to beat; continuous batching must match or exceed it, not
+  just win at c=4. Measure before committing to the redesign.
+- **Harder debugging.** A bug in one request's output could be a
+  scheduler issue affecting unrelated sequences. Current pool
+  isolates failures per-context.
+- **Scheduling policy tail risk.** p99 is sensitive to prefill
+  stalls (a big new request can block ongoing decodes for a tick).
+  Measurement under a mixed-size-prompt workload is essential, not
+  just repeated identical prompts.
+
+**Validation / done-criteria.**
+
+- [ ] c=1 p50 no worse than current (604 ms on gemma3:1b).
+- [ ] c=4 throughput at or above Ollama's (2.34 req/s on same
+      workload).
+- [ ] p95/p99 at c=4 no worse than Ollama's (~2100 ms).
+- [ ] Cancellation: killing `curl` mid-stream stops compute within
+      one tick (~100 ms).
+- [ ] Mixed-prompt workload: interleaving a 500-token prefill into
+      ongoing 20-token decodes doesn't spike p99 beyond 2× the
+      steady-state p99.
+
+**What this deliberately does NOT do.**
+
+- Does not touch the native-Rust backend. Continuous batching on
+  native is a separate (much bigger) project — would need batched
+  matmul, shared KV across sequences, etc.
+- Does not add prefix caching / LRU. That's a follow-up after
+  continuous batching exposes the seq_id lifecycle.
+- Does not target multi-GPU or distributed. Single-host CPU only
+  for this task.
+
+**Skip if:** swellmd's only use cases are single-user IDE /
+desktop / CLI (the current c=1-optimized pool is already ahead of
+Ollama there). Come back to this only when multi-client serving is
+a real workload.
+
+---
+
 ### P6: GPU acceleration (Vulkan)
 - **Architecture done**: `llmcompute` crate with `ComputeBackend` trait, `CpuBackend` provider (wraps existing ops), `VulkanBackend` stub
 - **Remaining**: Implement Vulkan compute shaders for matmul, softmax, GELU, SiLU. Buffer management, shader compilation pipeline, device selection. Wire `ComputeBackend` into `inference/layers/` to replace CPU tensor ops.
