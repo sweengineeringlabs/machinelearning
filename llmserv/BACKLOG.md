@@ -1237,12 +1237,57 @@ quality lags. Investigation narrowed by retest on 2026-04-13:
       decode steps (sliding window, KV cache, multi-step sampling)
       and narrows the bug to: input embedding, embedding scale,
       layer-0 RMSNorm, layer-0 attention, or layer-0 FFN.
-- [ ] **Bisect by layer.** Add per-block intermediate dumps
-      (post-embedding, after each transformer block) to both
-      backends. The first block where outputs disagree is the bug.
-      The 2.3× range expansion in native suggests a missing or
-      doubled multiplicative factor — most likely embedding
-      scale (sqrt(1152) ≈ 33.94).
+- [x] **Bisect by layer (native side only — llama.cpp doesn't
+      need diff at this stage).** Done via the
+      `LLMSERV_DUMP_INTERMEDIATES=1` env-var-gated stats dump in
+      `forward_pass`. Result on gemma3-1b for the same fixed
+      tokens:
+
+      ```
+      post_embed_lookup (raw)   rms=0.029   range=0.86
+      post_embed_scale          rms=0.99    range=29.3   ← scale applied correctly (×33.94)
+      post_layer_00             rms=32.85   range=2593   ← 33× JUMP IN ONE LAYER
+      post_layer_01             rms=33.58   range=2657
+      post_layer_02             rms=53.05   range=3499
+      post_layer_12             rms=852     range=50218  ← compounds severely
+      post_layer_25             rms=630     range=33836
+      post_final_norm           rms=4.62    range=125    ← final norm clamps it back
+      post_lm_head (logits)     rms=6.05    range=52.76
+      ```
+
+      **Bug is in layer 0.** Embedding + scale produce healthy
+      RMS ~1, then layer 0 transforms RMS 1 → RMS 33. For a
+      pre-norm gemma3 block, output should stay close to RMS 1.
+      Subsequent layers don't fix it; magnitude compounds until
+      the final RMSNorm renormalizes for the lm_head.
+
+- [ ] **Bisect WITHIN layer 0.** Add intra-block dumps after each
+      sub-step (norm_1, attn_out, post_attn_norm, residual_1,
+      norm_2, ffn_out, post_ffn_norm, residual_2). The first
+      sub-step where RMS deviates from ~1 is the bug. Most likely
+      candidates ranked by suspicion:
+
+      1. **Attention output projection (out_proj) weights stored
+         with wrong shape/transpose.** A transposed `[1152,1024]
+         vs [1024,1152]` matmul still runs, just produces wrong
+         numbers with possibly large magnitude.
+      2. **GEGLU activation in FFN** (gemma3 uses GEGLU = SiLU(gate) * up).
+         If the gate/up are swapped or the activation is wrong,
+         output magnitude can balloon.
+      3. **Post-attention-norm or post-ffn-norm weight reading
+         the wrong tensor** (e.g. picking up an unrelated
+         transformer-block weight from the safetensors map).
+      4. **Q/K-norm with offset interaction** — gemma3 has Q-norm
+         and K-norm INSIDE attention before scoring; if the
+         offset (+1.0) is being applied twice or skipped on these,
+         attention scores would scale wrong.
+
+- [ ] Compare against `transformers` reference (PyTorch) as a
+      tiebreaker if the bisection points somewhere ambiguous:
+      load `google/gemma-3-1b-it` in PyTorch, capture
+      embedding output and first-block output for `[2, 9259,
+      235269]`, diff against both backends. Three-way diff
+      identifies whether native or llama.cpp is the outlier.
 - [ ] Compare against `transformers` reference (PyTorch) as a
       tiebreaker if the bisection points somewhere ambiguous:
       load `google/gemma-3-1b-it` in PyTorch, capture
