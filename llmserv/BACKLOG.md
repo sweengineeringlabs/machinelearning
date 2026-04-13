@@ -1179,7 +1179,60 @@ a real workload.
 
 ---
 
-### P9: Native-Rust gemma3 forward-pass quality vs llama.cpp
+### ~~P9: Native-Rust gemma3 forward-pass quality~~ — FIXED (commit `<TBD>`)
+
+**Root cause:** `DefaultRmsNorm::forward` called
+`input.as_slice_f32()` directly. That method returns raw storage
+bytes regardless of whether the tensor's logical shape is
+contiguous. For non-contiguous inputs (e.g., produced by
+attention's transpose/matmul chain), the raw byte slice doesn't
+correspond to the shape's row-major layout — `RMSNorm::compute`'s
+per-row indexing then mixes elements across rows, producing
+arithmetically-correct-looking but semantically-wrong outputs.
+
+Why it was hard to spot:
+- Affected every architecture with non-contiguous intermediates
+  (probably most of them with attention), but only became visible
+  on chat-completion content correctness (which we never tested
+  before today's deploy session)
+- The output magnitude statistics looked plausible — tensor-level
+  RMS values stayed in normal ranges, no NaN, no overflow
+- `attention_norm` works correctly because its input (embedding
+  output) is freshly created and contiguous; only the FFN-branch
+  norms saw corrupted data
+- The bug compounds across 26 layers, producing logits with
+  completely different argmax than the same model run through
+  llama.cpp
+
+**Fix:** RMSNorm now checks `is_contiguous()` and materializes a
+contiguous copy via `.iter().collect()` if needed. Adds one
+allocation per non-contiguous call which is acceptable for
+correctness; can be optimized later by either (a) ensuring
+upstream ops always return contiguous tensors or (b) implementing
+strided RMSNorm directly.
+
+**Verification:**
+
+Logits diff (gemma3-1b, fixed token IDs `[2, 9259, 235269]`):
+
+| | BEFORE fix | AFTER fix |
+|---|---|---|
+| argmax token | native=3369, llama=236764 (DIFFERENT) | both = 236764 (MATCH) |
+| top-10 overlap | 0/10 | **8/10** |
+| max abs diff | 24.37 | **2.90** |
+| mean abs diff | 4.32 | **0.47** |
+| logit range | native [-30, 22] (span 53) | native [-16, 9] (span 25) — close to llama's [-14, 8] (span 23) |
+
+Live chat completions (gemma3-1b via native_rust):
+
+| Prompt | BEFORE | AFTER |
+|---|---|---|
+| "What is 13 times 17?" | "" (empty) | "13 times 17 is 221." ✅ |
+| "Largest country in S. America?" | "1. 1. 2." | "Brazil." ✅ |
+| "Haiku about a rusty linker" | "Okay, let's do this!" | Coherent haiku ✅ |
+| "Name three colors" | "What is your favorite color?" | "1. Red, 2. Blue, 3. Green" ✅ |
+
+Bug closed. The investigation that led here:
 
 **Symptom.** The same `google/gemma-3-1b-it` weights (SafeTensors via
 HF Hub) loaded through the native_rust backend produce partially-

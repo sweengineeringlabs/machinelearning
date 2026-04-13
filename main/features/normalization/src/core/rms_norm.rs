@@ -93,13 +93,30 @@ impl Norm for DefaultRmsNorm {
             )));
         }
 
-        let data = input.as_slice_f32().map_err(NnLayerError::Tensor)?;
+        // Critical: as_slice_f32() returns raw storage bytes regardless
+        // of whether the tensor's logical layout is contiguous. If the
+        // input was produced by a non-contiguous op (transpose, slice
+        // view), the raw slice isn't aligned with the shape's natural
+        // row-major layout — RMSNorm's per-row indexing would then
+        // read scrambled data. Materialize a contiguous copy first.
+        // P9 root cause: this was producing wrong outputs for
+        // ffn_norm/post_ffn_norm in gemma3 layer 0 because their
+        // inputs went through non-contiguous attention intermediates.
+        let owned_data: Vec<f32>;
+        let data: &[f32] = if input.is_contiguous() {
+            input.as_slice_f32().map_err(NnLayerError::Tensor)?
+        } else {
+            owned_data = input.iter().collect();
+            &owned_data
+        };
 
         let effective_weight = if self.offset == 0.0 {
             self.weight.clone()
         } else {
             self.weight.add_scalar(self.offset)
         };
+        // Effective weight is freshly produced by add_scalar (or a
+        // clone), so it's always contiguous. Direct slice is fine.
         let weight = effective_weight.as_slice_f32().map_err(NnLayerError::Tensor)?;
 
         let output_data = Self::compute(data, weight, last_dim, self.eps);
