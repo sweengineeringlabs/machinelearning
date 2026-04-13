@@ -719,19 +719,81 @@ submodule without changing the `LlamaCppBackend` trait surface.
 
 **Total: 8–10 days focused work.** Matches the original Path B estimate.
 
-**Open questions to resolve before starting.**
+**Open questions — resolved after docs.rs skim of
+`llama-cpp-2` v0.1.143.**
 
-- Does `llama-cpp-2` expose a stable way to feed a pre-built logits
-  tensor back to our sampler, or does it only surface the final
-  token? (Need: logits vector per step for temperature/top-k/top-p.)
-  — 30 min API skim on docs.rs answers this.
-- How does llama.cpp's context reset interact with our daemon's
-  per-request admission control? Each in-flight request needs its
-  own `LlamaContext`, or one context with sequence IDs? `llama.cpp`
-  supports parallel sequences in one context — prefer that for
-  memory, but verify the crate exposes it.
-- License / distribution: llama.cpp is MIT, `llama-cpp-2` is also
-  permissive. No conflicts. Note in `NOTICE` if we ship binaries.
+- **Logits per decode step: YES.** `LlamaContext` exposes
+  `get_logits() -> &[f32]` and `get_logits_ith(i: i32) -> &[f32]`,
+  plus higher-level `candidates_ith(i) -> impl Iterator<LlamaTokenData>`
+  and `token_data_array_ith(i) -> LlamaTokenDataArray`. Our sampler
+  can consume the raw `&[f32]` directly — parity with the
+  native-Rust path's sampling stays exact (same math, just different
+  input source). No need to use llama.cpp's built-in sampler.
+
+- **Parallel sequences in one context: YES.** Full sequence-ID API:
+  `copy_kv_cache_seq(src, dest, p0, p1)`,
+  `clear_kv_cache_seq(src, p0, p1)`,
+  `kv_cache_seq_add(seq_id, ...)`,
+  `kv_cache_seq_pos_max(seq_id)`,
+  `llama_kv_cache_seq_keep(seq_id)`. `LlamaBatch` takes seq_id per
+  token. This unblocks the "pool shared context across daemon
+  admission slots" strategy from audit finding #3 — preferred for
+  memory efficiency over `Arc<Mutex<LlamaContext>>` or fresh-per-call.
+
+- **Chat template: YES, two variants.**
+  - `LlamaModel::chat_template(name: Option<&str>) -> LlamaChatTemplate`
+    — pulls the template from GGUF metadata.
+  - `LlamaModel::apply_chat_template(&LlamaChatTemplate,
+    &[LlamaChatMessage], add_ass: bool) -> Result<String, _>` —
+    applies it with an optional trailing assistant-turn marker.
+  - Also `apply_chat_template_oaicompat` for passing OpenAI-shape
+    JSON messages directly. Useful if we ever want to skip our own
+    message normalization.
+  - No need for the fallback "manually format from GGUF metadata"
+    path the original plan considered.
+
+- **License / distribution:** llama.cpp is MIT, `llama-cpp-2` is
+  also permissive. No conflicts. Note in `NOTICE` if we ship
+  binaries.
+
+**API reference summary (pinned to v0.1.143 for task 8 implementer).**
+
+```rust
+// Module structure:
+//   context, gguf, llama_backend, llama_batch, model, openai,
+//   sampling, timing, token, token_type
+
+// Startup — once per process:
+let backend = LlamaBackend::init()?;
+
+// Load model — once per daemon lifetime:
+let params = LlamaModelParams::default();
+let model = LlamaModel::load_from_file(&backend, &gguf_path, &params)?;
+
+// Per-request context (or pooled — audit #3 decision):
+let ctx_params = LlamaContextParams::default().with_n_ctx(n_ctx);
+let mut ctx = model.new_context(&backend, ctx_params)?;
+
+// Tokenize:
+let tokens: Vec<LlamaToken> =
+    model.str_to_token(prompt, AddBos::Always)?;
+
+// Decode batch:
+let mut batch = LlamaBatch::new(n_ctx, /* n_seq_max */ 1);
+// ... fill batch.add(token, pos, &[seq_id], logits_flag) ...
+ctx.decode(&mut batch)?;
+
+// Extract logits for the last token (for external sampling):
+let logits: &[f32] = ctx.get_logits_ith(batch.last_logits_index());
+
+// Chat templating:
+let template = model.chat_template(None)?;
+let prompt = model.apply_chat_template(&template, &messages, true)?;
+
+// Detokenize for streaming:
+let mut decoder = encoding_rs::UTF_8.new_decoder();
+let piece = model.token_to_piece(token, &mut decoder, false, None)?;
+```
 
 **Validation / done-criteria.**
 
@@ -826,6 +888,32 @@ implementation. None block starting; all need conscious handling.
   selecting backends at startup.
 - Testing: one test-fixture fix away from being able to run the
   rustml-generation test suite where parity tests will land.
+
+**P7.B.2 — post-skeleton session outcome.** All four "ready to start"
+rows above are resolved and the architectural wiring is shipped:
+
+| Audit row | Status | Commit / task |
+|---|---|---|
+| Completion path trait surface | ✅ clean | P7.B.1 (trait refactor, `05086aa`) |
+| Embedding path `Tensor` leak | ✅ resolved | task 9 (`3e8dabb`); `Model::embed(&[u32], PoolingStrategy) -> Vec<f32>` |
+| Daemon wiring (`[model].backend`) | ✅ wired | task 2 (`3e8dabb`); `ModelBackendLoader` SPI registry |
+| Test-fixture fix | ✅ fixed | task 1 (`41710b2`); `architecture` field added |
+| Audit #2 chat template | ✅ verified | `apply_chat_template` exists in llama-cpp-2 v0.1.143 |
+| Audit #3 context lifecycle | ✅ unblocked | parallel-sequence API confirmed — pool strategy preferred |
+
+Backend-contract crate `llmbackend` extracted, new feature-gated
+crate `rustml-backend-llama-cpp` scaffolded with SEA layout. Daemon
+feature `backend-llama-cpp` forwards to the inner crate's
+`llama-cpp` feature. CI matrix covers both paths
+(`.github/workflows/ci.yml`).
+
+**What remains for a working llama.cpp backend.** Only real
+`llama-cpp-2` API calls inside `LlamaCppModel` — the skeleton
+currently returns "integration pending" errors from load. Blocked
+on installing MSVC Build Tools on the dev box so cmake + llama.cpp
+can be built locally for verification. Once unblocked, the API
+reference block above covers every call the implementation needs.
+Parity test and benchmark (done-criteria below) follow.
 
 ---
 
