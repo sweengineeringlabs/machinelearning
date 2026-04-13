@@ -9,13 +9,12 @@ repository.workspace = true
 
 # When `llama-cpp` is off (default), the crate compiles to an empty
 # shell — workspace builds stay fast and toolchain-free. When on, it
-# exposes `LlamaCppBackendLoader`. The llama-cpp-2 C++ dependency will
-# be added here when the real implementation lands (follow-up subtask);
-# the feature flag stays so the daemon's existing `backend-llama-cpp`
-# feature keeps working.
+# pulls in `llama-cpp-2`, which invokes cmake + a platform C++
+# toolchain to build the bundled llama.cpp sources (~5 min first
+# build, ~50 MB static lib).
 [features]
 default = []
-llama-cpp = []
+llama-cpp = ["dep:llama-cpp-2"]
 
 [dependencies]
 llmbackend.workspace = true
@@ -26,3 +25,4 @@ rustml-model.workspace = true
 swe-ml-tensor.workspace = true
 anyhow.workspace = true
 log.workspace = true
+llama-cpp-2 = { workspace = true, optional = true }

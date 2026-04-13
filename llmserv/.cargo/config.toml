@@ -20,6 +20,21 @@
 # Don't commit a [build] target here — that would freeze every
 # contributor's output to one triple regardless of their platform.
 
+# Note: the `llama-cpp` feature pulls in llama-cpp-2, whose build script
+# uses bindgen. bindgen needs libclang.dll (Windows) / libclang.so
+# (Linux) / libclang.dylib (macOS) at build time. Install options:
+#   Linux   → apt install libclang-dev
+#   macOS   → ships with Xcode CLI tools
+#   Windows → scoop install llvm  (or choco / llvm.org installer in
+#             elevated shell). scoop adds its bin dir to User PATH so
+#             bindgen auto-detects libclang; no LIBCLANG_PATH override
+#             should be needed after a fresh shell.
+#
+# If bindgen can't find libclang, set LIBCLANG_PATH in your own
+# environment (shell or ~/.cargo/config.toml) pointing at the dir
+# containing libclang. Don't pin a personal path here — it'd break
+# every other contributor.
+
 [alias]
 # Backend-llama-cpp convenience. Runs the daemon build / tests with
 # the llama.cpp-backed Model impl active. Requires a C++ toolchain on
