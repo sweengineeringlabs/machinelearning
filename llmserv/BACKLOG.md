@@ -1179,7 +1179,7 @@ a real workload.
 
 ---
 
-### ~~P10: Audit `as_slice_f32()` callsites~~ — FIXED (commit `<TBD>`)
+### ~~P10: Audit `as_slice_f32()` callsites~~ — FIXED (commit `ea079dc`)
 
 Same root-cause class as P9. Audit run on 2026-04-13:
 
@@ -1188,8 +1188,8 @@ Same root-cause class as P9. Audit run on 2026-04-13:
 | `RMSNorm::forward` | yes | ✅ FIXED in P9 (commit `8430e08`) |
 | `RMSNorm::forward_with_normalized` | yes | ✅ FIXED in commit `1709e42` |
 | `LayerNorm::forward_with_normalized` (called by `forward`) | yes | ✅ FIXED in commit `1709e42` |
-| `Activation::Gelu::forward` / `Silu::forward` (element-wise) | element-wise | ✅ FIXED in commit `<TBD>` |
-| `Tensor::add/sub/mul/div` (element-wise binary ops) | element-wise | ✅ FIXED in commit `<TBD>` |
+| `Activation::Gelu::forward` / `Silu::forward` (element-wise) | element-wise | ✅ FIXED in commit `ea079dc` |
+| `Tensor::add/sub/mul/div` (element-wise binary ops) | element-wise | ✅ FIXED in commit `ea079dc` |
 
 **Structural fix shipped:** added
 `Tensor::contiguous_slice_f32() -> Cow<'_, [f32]>`. Returns a
@@ -1215,7 +1215,7 @@ asserts) should land before claiming any of them work end-to-end.
 
 ---
 
-### ~~P9: Native-Rust gemma3 forward-pass quality~~ — FIXED (commit `8430e08` + LayerNorm/forward_with_normalized in `<TBD>`)
+### ~~P9: Native-Rust gemma3 forward-pass quality~~ — FIXED (commit `8430e08` + LayerNorm/forward_with_normalized in `1709e42` + structural helper in `ea079dc`)
 
 **Root cause:** `DefaultRmsNorm::forward` called
 `input.as_slice_f32()` directly. That method returns raw storage
