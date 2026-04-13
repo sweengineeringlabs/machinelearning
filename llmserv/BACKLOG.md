@@ -1205,25 +1205,25 @@ back to architecture-derived markers when the file is missing from
 older caches.
 
 **What's still wrong.** Even with the template applied, output
-quality lags. Likely candidates, ordered by suspicion:
+quality lags. Investigation narrowed by retest on 2026-04-13:
 
-1. **Numerical drift in the gemma3 forward pass.** Gemma3 has
-   distinctive features — sliding-window attention, RMSNorm with a
-   specific epsilon scheme, attention logit cap, final-logit
-   softcapping, embedding scale by sqrt(dim). Any one of these
-   computed slightly differently from the reference implementation
-   produces a model that "kind of works" but loses correctness.
-2. **Runtime quantization corrupting weights.** 183 linear layers
-   are quantized at load time by `ConfigQuantizer` for the F16
-   safetensors path. If a specific layer type (e.g., the embedding
-   table or final lm_head) is mis-quantized for gemma3's layout,
-   outputs would degrade silently.
-3. **BOS token handling.** Official template prepends `<bos>`; we
-   skip it because adding it via the `Special` segment fall back
-   to plain-text encoding when the tokenizer doesn't know the
-   token name. Either the tokenizer adapter doesn't expose `<bos>`
-   under that exact name, or it's `<begin_of_text>` or similar.
-   Worth checking what the HF tokenizer actually calls it.
+| Hypothesis | Status | How verified |
+|---|---|---|
+| Runtime quantization corrupting weights (was suspect #2) | ❌ ruled out | Set `[quantization]` to `f16` everywhere, then `f32` everywhere — outputs identical to default `q8_0` everywhere. Quantization isn't the dominant cause. |
+| Missing `attn_logit_softcapping` / `final_logit_softcapping` features (was a strong candidate) | ❌ ruled out for the 1B model | gemma3-1b's actual `config.json` has both fields = `null`. Only larger gemma3 / gemma2 use them. So missing wiring isn't a bug at this scale (would matter for 4B+). |
+| BOS token handling (was suspect #3) | ⚠️ unclear, low impact | Adding `<bos>` Special segment caused `encode_conversation` to fall through to plain-text fallback (BOS name not resolvable by HF tokenizer adapter), making things worse. Reverted. |
+| **Numerical drift in the gemma3 forward pass** (was suspect #1) | ✅ **most likely** by elimination | Builder code at `architectures/gemma3/src/core/builder.rs` looks correct on inspection: head_dim from config, `query_pre_attn_scalar.sqrt()` as attn_scale, sliding-window pattern on `(i+1) % 6 == 0` for global layers, local/global RoPE base, RMSNorm-with-offset for gemma family, 4-norm transformer block, GEGLU FFN, tied embeddings. Bug must be in the math underneath — attention computation, sliding-window mask shape, RoPE application, RMSNorm formula, or interaction between them. |
+
+**Investigation plan (revised after the 2026-04-13 narrowing).**
+
+- [x] Quantization-off retest — done, ruled out
+- [x] Code inspection of gemma3 builder — done, surface looks correct
+- [ ] **Capture first-token logits from native gemma3 on a fixed prompt; compare against llama.cpp logits on the same prompt + token IDs. The layer where logits first diverge pinpoints the bug.** Requires writing a logits-dump path in both backends or running both against a reference set.
+- [ ] Targeted forward-pass diff: run the FIRST transformer block in isolation on both backends with identical inputs, compare layer outputs (post-attention, post-FFN, post-norm). Narrows by layer.
+- [ ] Check sliding-window attention mask shape against reference (potential subtle off-by-one in pattern dispatch — `(i+1) % 6 == 0` may have wrong starting index).
+- [ ] Compare against `transformers` reference (PyTorch): load
+      `google/gemma-3-1b-it` in PyTorch, tokenize same prompt,
+      capture first-token logits, diff against ours.
 
 **Investigation plan.**
 
