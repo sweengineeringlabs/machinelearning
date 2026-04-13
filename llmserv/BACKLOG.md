@@ -1215,6 +1215,125 @@ asserts) should land before claiming any of them work end-to-end.
 
 ---
 
+### P11: `gemma-4-e2b-it` safetensors loader OOMs on multimodal weights
+
+Found 2026-04-13 while trying to use gemma-4-e2b-it as a second
+content-correctness target for P10 regression coverage.
+
+**Symptom.** `cargo test -p swellmd --test content_correctness` with
+`LLMSERV_CC_HF_ID=google/gemma-4-e2b-it` aborts with:
+
+```
+memory allocation of 9395240960 bytes failed
+STATUS_STACK_BUFFER_OVERRUN (exit 0xc0000409)
+```
+
+before reaching any inference.
+
+**Observed during load.** Weight map logs hundreds of
+`WeightMap: skipping unmapped tensor 'model.vision_tower.*'` and
+`'model.audio_tower.*'`. Correct behavior — the registry is
+language-only — but suggests the allocator is still trying to
+materialize something huge before the skip-list is consulted.
+
+**Hypotheses (not yet bisected).**
+- Full safetensors file is mmap'd and a single tensor (likely a
+  full-vocab LM head or the joined vision+language embedding) is
+  being read into a contiguous allocation without chunking.
+- Gemma-4 has layer_scalar per-layer tensors + vision encoder
+  layernorm weights that aren't being skipped early enough —
+  allocator crosses 4 GB before any skip decision.
+- Windows stack-overrun (`0xc0000409`) rather than an `OutOfMemory`
+  Rust error suggests an unchecked SEH path, possibly in
+  safetensors-rs's mmap layer.
+
+**What we'd need to know.**
+- Whether a text-only gemma-4 variant exists on HF (e.g. language-
+  model-only checkpoint). If yes, try that first.
+- Whether the loader can skip non-registered tensors **before**
+  allocating their buffer, not just during the weight-map copy.
+- Peak RSS during gemma-3-1b load for comparison (known-good
+  baseline).
+
+**Skip if:** we don't need gemma-4 end-to-end and are satisfied
+with gemma-3-1b as the canonical gemma test. P11 lives only because
+we tried to broaden the content-correctness matrix.
+
+---
+
+### P12: `llama_cpp` backend content-correctness beyond gemma3-1b
+
+Only `gemma3-1b` GGUF is content-verified on the `llama_cpp`
+backend. Docs and commit messages imply "llama.cpp works" broadly;
+the evidence base is one model family.
+
+**Unverified on llama_cpp:**
+- Llama family GGUFs (TinyLlama, Llama-3.x, etc.)
+- Mistral, Qwen, Phi GGUFs
+- Mixtral GGUFs
+- Gemma-4 GGUFs (separate from the native gemma4 garbage issue at
+  BACKLOG.md:307 — the llama.cpp path may be fine)
+
+**What's in question.**
+- Chat-template application: we read `tokenizer_config.json` for
+  HF-cache paths, but for raw GGUF paths we rely on llama.cpp's
+  built-in template via metadata. Not all GGUFs ship clean
+  templates — some silently fall through to no-template behavior
+  that produces off-prompt output.
+- KV-cache-reset path: currently uses `clear_kv_cache_seq` with a
+  `clear_kv_cache()` fallback. Confirmed working on gemma3; not
+  confirmed on architectures where seq-id semantics differ.
+- BOS/EOS handling per architecture.
+
+**Action.** Extend the content-correctness test to take a matrix of
+GGUFs. Minimum viable: one Llama-family GGUF + one Qwen/Phi GGUF.
+Each needs a local path (no network dep) since GGUFs aren't in our
+HF-cache pipeline.
+
+---
+
+### P13: IBM Granite architecture support
+
+`ibm-granite/granite-3.3-2b-instruct` (`model_type: "granite"`,
+`architectures: ["GraniteForCausalLM"]`) is not loadable today. Our
+registry has no `granite` entry. Granite is LLaMA-like but adds
+four scaling constants that standard LLaMA does not apply:
+
+| Field | Example value | Applied where |
+|---|---|---|
+| `embedding_multiplier` | 12.0 | after embedding lookup, before first block |
+| `attention_multiplier` | 0.015625 | replaces `1/sqrt(head_dim)` attention scale |
+| `residual_multiplier` | 0.22 | scales each residual add |
+| `logits_scaling` | 8.0 | divides final logits before softmax/sampling |
+
+Aliasing `granite` to `LlamaBuilder` in the registry will **load
+and run** but produce arithmetically-wrong outputs (the same
+"plausible garbage" failure mode that P9 was). Not acceptable per
+the content-correctness rule.
+
+**Options.**
+1. **New `rustml-arch-granite` crate** — mirrors `rustml-arch-llama`
+   with the 4 multipliers wired through embed/attention/residual/
+   final-logits. Register as `granite`. Real work: several hours,
+   new crate, tests, integration.
+2. **Parametrize `LlamaBuilder` with optional scaling** — less SEA
+   pure but smaller change. Breaks the "no hardcoded dispatch"
+   pattern if done naively (match on arch inside LlamaBuilder).
+   If done as a `LlamaScaling` struct passed to the builder with
+   `Default::default()` meaning "no scaling", stays clean.
+
+**Action pending user direction.** See conversation 2026-04-13 for
+the decision framing. Needed before any IBM Granite model can be a
+content-correctness target.
+
+**Skip if:** IBM Granite is not a product requirement. The
+instruct-tuned Granite family is the only credible second arch for
+content-correctness we've surveyed today — alternatives (Qwen2.5
+0.5B, SmolLM2) are also untested and don't carry the same
+production-readiness signal.
+
+---
+
 ### ~~P9: Native-Rust gemma3 forward-pass quality~~ — FIXED (commit `8430e08` + LayerNorm/forward_with_normalized in `1709e42` + structural helper in `ea079dc`)
 
 **Root cause:** `DefaultRmsNorm::forward` called
