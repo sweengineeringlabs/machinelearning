@@ -236,16 +236,52 @@ the unexplored fast-path for multi-core concurrency work.
 
 ## Caveats
 
+- **Run-to-run variance on the dev box is large.** Back-to-back
+  n=50 benches of the pooled `llama_cpp` path on this Windows 11
+  workstation produced p95 in the 628–1955 ms range across
+  different runs of the same binary — roughly 3× spread. The
+  "pooled llama_cpp at p50 549.89 / p95 627.71 / p99 667.65"
+  headline in the single-client table was the best of several runs,
+  not a stable central estimate. What IS stable across runs:
+  (a) pooled beats fresh-per-call at every percentile, (b) the
+  pooled tail is tight relative to fresh-per-call. The absolute
+  millisecond figures shouldn't be read as ±10 ms accurate; think
+  ±200–400 ms at p95. Cause is almost certainly background load
+  (Claude Code, editor, other dev processes) on a shared workstation
+  — a dedicated bench runner on a quiet machine would produce
+  tighter numbers. The multi-client (n=40) section is more stable
+  because the longer wall-clock run averages out transient noise.
+
+- **Small samples for tail metrics.** n=10, n=40, n=50 all give
+  coarse p99/p99.9 estimates — the p99 column in a 50-sample run is
+  literally the single slowest request. Real SLO measurement would
+  want n≥1000.
+
 - **Different quantizations.** Q4_K_M vs F16 is not apples-to-apples
   at the weight level. The native-Rust path could be pushed toward
   Q8_0 or Q4_0 in its runtime quantizer to narrow this factor.
   Full K-quant (Q4_K_M) support in the native path is tracked as
   P7.5 in BACKLOG.md.
-- **Single-client workload.** p50 numbers say nothing about
-  multi-client contention. That's a separate axis from the
-  fresh-context penalty above.
+
+- **Single hardware, single OS, single model.** All numbers come
+  from one 8-core AVX2 Windows 11 workstation running gemma3:1b.
+  Linux and macOS numbers would almost certainly differ — CPU
+  microarchitecture, allocator (jemalloc vs Windows heap),
+  scheduler, thermal behavior all change. Larger models (7B, 13B)
+  also change the ratio: memory bandwidth becomes more dominant
+  than per-token compute. The CI matrix in
+  `.github/workflows/ci.yml` runs builds on Linux/macOS/Windows but
+  doesn't yet run perf benches — perf CI is future work.
+
+- **Single prompt shape.** Every request is the same 5-token
+  prompt with 20-token generation. Real workloads mix short and
+  long prompts, and long-prompt prefill is where scheduling
+  behavior diverges. P7.C's done-criteria include a mixed-prompt
+  benchmark; until that exists, steady-state numbers here are
+  best-case.
+
 - **Local-only.** One machine, one network hop to localhost. No
-  TLS, no external proxy.
+  TLS, no external proxy, no real network latency.
 
 ## How to reproduce the Ollama comparison
 
