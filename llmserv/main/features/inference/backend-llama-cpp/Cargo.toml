@@ -14,7 +14,7 @@ repository.workspace = true
 # build, ~50 MB static lib).
 [features]
 default = []
-llama-cpp = ["dep:llama-cpp-2"]
+llama-cpp = ["dep:llama-cpp-2", "dep:encoding_rs"]
 
 [dependencies]
 llmbackend.workspace = true
@@ -26,3 +26,5 @@ swe-ml-tensor.workspace = true
 anyhow.workspace = true
 log.workspace = true
 llama-cpp-2 = { workspace = true, optional = true }
+# Used by token_to_piece — llama-cpp-2 takes an encoding_rs Decoder.
+encoding_rs = { version = "0.8", optional = true }

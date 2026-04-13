@@ -2755,6 +2755,7 @@ name = "rustml-backend-llama-cpp"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "encoding_rs",
  "llama-cpp-2",
  "llmbackend",
  "log",

@@ -121,8 +121,28 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: brew install cmake
 
-      # windows-latest ships with MSVC Build Tools 2022 + cmake already
-      # on PATH via the GitHub-hosted image. No install step needed.
+      - name: Install libclang (Windows, via scoop)
+        if: matrix.os == 'windows-latest'
+        # libclang.dll isn't in the GitHub-hosted image by default;
+        # bindgen (used by llama-cpp-sys-2) requires it. scoop install
+        # is user-scope, no admin needed. cmake + MSVC are already
+        # on PATH via the windows-latest image.
+        shell: pwsh
+        run: |
+          Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+          Invoke-RestMethod get.scoop.sh | Invoke-Expression
+          scoop install llvm
+
+      - name: Set MSVC CRT alignment (Windows)
+        if: matrix.os == 'windows-latest'
+        # Every C/C++ object on the link line must use the same CRT.
+        # Rust's `-msvc` target uses dynamic CRT (/MD); force llama.cpp
+        # (via cmake) and esaxx-rs (via cc-rs) to match.
+        shell: bash
+        run: |
+          echo "CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL" >> $GITHUB_ENV
+          echo "CFLAGS=-MD"                                  >> $GITHUB_ENV
+          echo "CXXFLAGS=-MD"                                >> $GITHUB_ENV
 
       - name: Cache cargo registry + target
         uses: Swatinem/rust-cache@v2

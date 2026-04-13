@@ -35,6 +35,28 @@
 # containing libclang. Don't pin a personal path here — it'd break
 # every other contributor.
 
+# Windows MSVC CRT alignment for the `llama-cpp` feature.
+#
+# Building with `--features backend-llama-cpp` on Windows requires
+# THREE env vars to be set before cargo invocations, otherwise link
+# fails with `LNK1319: mismatches detected`. Root cause: Rust on the
+# `-msvc` target uses dynamic CRT (/MD); llama.cpp's cmake and
+# esaxx-rs's cc-rs both default to static CRT (/MT). Every compiled
+# C/C++ object on the link line has to agree.
+#
+# Set these in your shell before the build (PowerShell / bash both):
+#
+#     export CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL
+#     export CFLAGS=-MD
+#     export CXXFLAGS=-MD
+#     cargo build-llama
+#
+# These aren't pinned in `[env]` here because `-MD` is an MSVC-specific
+# flag that gcc/clang on Linux/macOS would reject (where it means
+# something else — "emit dependency file" — and changes semantics).
+# Cargo's `[env]` is global, not OS-conditional. CI sets them only on
+# the Windows job; see `.github/workflows/ci.yml`.
+
 [alias]
 # Backend-llama-cpp convenience. Runs the daemon build / tests with
 # the llama.cpp-backed Model impl active. Requires a C++ toolchain on
