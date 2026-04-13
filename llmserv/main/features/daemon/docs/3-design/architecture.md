@@ -57,6 +57,39 @@ Loading paths:
 
 After weights are loaded, the loader runs post-construction optimization: config-driven quantization (per layer type, from `quantization.toml`), then weight fusion (gate+up projection, QKV projection). A single forward-pass warmup triggers any lazy initialization so the first real request isn't slow.
 
+### Chat template application
+
+Instruct-tuned models expect prompts wrapped in architecture-specific scaffolding (gemma3 wants `<start_of_turn>user\n…<end_of_turn>\n<start_of_turn>model\n`, llama wants `[INST] … [/INST]`, etc.). Without it, the model receives raw text and emits base-model gibberish — a silent footgun because it looks like a model-quality problem rather than a templating problem.
+
+The template comes from a different file than every other piece of model config, which has historically been the cause of bugs:
+
+```
+HuggingFace Hub                      what we use it for
+─────────────────                    ──────────────────
+config.json              ─────────►  architecture, dim, layer count, vocab size
+                                     (parsed into ModelConfig)
+model.safetensors        ─────────►  weights
+tokenizer.json           ─────────►  BPE/SentencePiece tables
+tokenizer_config.json    ─────────►  chat_template (Jinja2 string)   ← here, NOT in config.json
+```
+
+For GGUF models the template is in the GGUF metadata, no separate file. For SafeTensors via HF Hub, `load_safetensors` extracts it in this order:
+
+1. **`tokenizer_config.json["chat_template"]`** — the canonical source. The hub crate downloads this file alongside the weights; the loader reads it and copies the string into `ModelConfig.chat_template`.
+2. **Architecture-derived marker** — fallback when the file isn't in cache (older downloads predating the hub crate fetching it):
+
+   | architecture | marker substring |
+   |---|---|
+   | `gemma3` / `gemma3_text` | `<start_of_turn>` |
+   | `gemma4` / `gemma4_text` | `<\|turn>` |
+   | `qwen2`                  | `<\|im_start\|>` |
+   | `llama` / `mistral`      | `[INST]` |
+
+   The marker is enough because `Generator::build_multi_turn_segments` dispatches on substring presence (`template.contains("<start_of_turn>")`), not on the full Jinja2 program. It loses Jinja2-driven nuance (system messages, `add_generation_prompt`, tool schemas) but routes to the right token layout for simple user→assistant chat.
+3. **`None`** — only if neither file nor marker applies. `Generator::encode_conversation` then falls back to plain-text `"user: …\nassistant: "` which most instruct-tuned models do NOT recognize. **This path emits gibberish and looks like a model bug.** Catch it by checking the loader log line for `Chat template:` — its absence on an instruct-tuned model means we hit this fallback.
+
+The full read path lives in `daemon/core/loader.rs::load_safetensors`; the application path lives in `inference/generation/core/generator.rs::build_multi_turn_segments`. The `LlamaCppBackendLoader` path is independent — it pulls the template via `LlamaModel::chat_template(None)` from GGUF metadata directly, no JSON parsing.
+
 ### Admission control: fail fast, don't queue
 
 Each compute handler (`handle_blocking`, `handle_streaming`, `embeddings`) calls `state.throttle.try_acquire()` before `tokio::task::spawn_blocking`. On `None`, the handler returns `DaemonError::AtCapacity(capacity)` → HTTP 503 with body `{"error":{"type":"at_capacity","message":"Server at capacity (max concurrent=N)"}}`.
