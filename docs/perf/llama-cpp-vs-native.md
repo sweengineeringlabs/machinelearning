@@ -30,13 +30,18 @@ vendored llama.cpp. Local, single client, greedy decoding.
 
 ### Larger sample against Ollama (n=50)
 
-| Backend             | p50 (ms) | p90 (ms) | p95 (ms) | p99 (ms) | req/sec |
-|---------------------|---------:|---------:|---------:|---------:|--------:|
-| Ollama (11434)      |   648.70 |   773.63 |   792.58 |   806.40 |    1.50 |
-| swellmd `llama_cpp` |   698.88 |  1599.49 |  1954.82 |  4186.11 |    1.08 |
+Before and after context pooling landed. The "before" numbers are
+retained because they justify the pooling change.
 
-**swellmd is p50-competitive (+8%) but tail is 2.5–5× worse.** The
-tail is the open cost.
+| Backend                              | p50 (ms) | p90 (ms) | p95 (ms) | p99 (ms) | req/sec |
+|--------------------------------------|---------:|---------:|---------:|---------:|--------:|
+| Ollama (11434)                       |   648.70 |   773.63 |   792.58 |   806.40 |    1.50 |
+| swellmd `llama_cpp` — fresh-per-call |   698.88 |  1599.49 |  1954.82 |  4186.11 |    1.08 |
+| swellmd `llama_cpp` — pooled         | **549.89** | **588.80** | **627.71** | **667.65** | **1.79** |
+
+**Pooling closed the tail gap entirely.** Every percentile beats
+Ollama: p50 −15%, p95 −21%, p99 −17%. Throughput up 66% vs the
+pre-pooling version and 19% vs Ollama.
 
 ## Interpretation
 
@@ -129,31 +134,37 @@ Benchmark each daemon in turn:
   -n 10 -c 1 -t 60
 ```
 
-## Next step: context pooling
+## Context pooling — implementation notes
 
-The tail-latency gap has a clear fix. Instead of creating a fresh
-`LlamaContext` per request, keep one (or N, keyed per
-admission-control slot) alive in `LlamaCppModel` and reset sequence
-positions via `kv_cache_seq_rm` between requests. `llama-cpp-2`
-exposes the full sequence-ID API (`copy_kv_cache_seq`,
-`clear_kv_cache_seq`, `kv_cache_seq_add`, etc.) so one context can
-serve many logical conversations, which is what Ollama does.
+The fresh-per-call strategy allocated ~44 MB of KV cache per
+request. Pooling amortizes that over the daemon's lifetime. Design:
 
-Sketch:
+1. `LlamaCppModel` holds a `Mutex<VecDeque<OwnedContext>>`.
+   Lazily populated — first N requests each construct a context
+   and return it to the pool on scope exit; subsequent requests
+   reuse.
+2. `OwnedContext` wraps `LlamaContext<'static>` — the `'static` is
+   a lie that's safe because:
+   - `LlamaCppModel.context_pool` is declared BEFORE `.model` in
+     the struct, so Rust drops the pool first (freeing all
+     contexts) before dropping the model they borrowed from.
+   - A single `unsafe impl Send` covers the Mutex-serialized use
+     from the tokio blocking pool.
+3. Acquire: pop from pool, or build a new context if empty. The
+   daemon's admission-control throttle already bounds in-flight
+   requests, so the pool effectively caps at that capacity.
+4. Release (`Drop` on `PooledContext`): call
+   `clear_kv_cache_seq(None, None, None)` to wipe all sequences,
+   then push back to the pool. If clearing fails, drop the context
+   instead of pooling a dirty one.
+5. Context window (`n_ctx`) is fixed at pool init — default 8192,
+   capped at `model.n_ctx_train()`. Requests exceeding that fail
+   fast rather than re-allocating.
 
-1. Add a `Mutex<Option<LlamaContext<'static>>>` pool inside
-   `LlamaCppModel` (one slot per admission-control permit — the
-   throttle already bounds concurrency).
-2. `LlamaCppTextCompleter::run_decode` acquires a context from the
-   pool; if none free, create. Reset its KV cache before use;
-   return to the pool on drop.
-3. Size `n_ctx` at pool init using the model's `n_ctx_train` so
-   one context can serve any reasonable prompt.
-
-Expected impact: p95 should drop to ~800–900 ms (matching Ollama)
-because memory allocation is no longer on the request hot path.
-Correctness risk is small — KV cache reset is how llama.cpp
-serves parallel sequences in its own server.
+This is one of the three strategies flagged under P7.B audit
+finding #3. "Fresh-per-call" was the simplest; this ("pool
+serialized via Mutex") is the middle option; per-thread pools are
+the unexplored fast-path for multi-core concurrency work.
 
 ## Caveats
 
