@@ -1216,14 +1216,51 @@ quality lags. Investigation narrowed by retest on 2026-04-13:
 
 **Investigation plan (revised after the 2026-04-13 narrowing).**
 
-- [x] Quantization-off retest — done, ruled out
+- [x] Quantization-off retest — done, ruled out (with caveat: the
+      verification log added in commit `<TBD>` proved q8_0 vs f16
+      was a real comparison; the f32 leg was a no-op because the
+      tensor crate's TOML parser silently coerces "f32" to Q8_0,
+      filed as side bug below).
 - [x] Code inspection of gemma3 builder — done, surface looks correct
-- [ ] **Capture first-token logits from native gemma3 on a fixed prompt; compare against llama.cpp logits on the same prompt + token IDs. The layer where logits first diverge pinpoints the bug.** Requires writing a logits-dump path in both backends or running both against a reference set.
-- [ ] Targeted forward-pass diff: run the FIRST transformer block in isolation on both backends with identical inputs, compare layer outputs (post-attention, post-FFN, post-norm). Narrows by layer.
-- [ ] Check sliding-window attention mask shape against reference (potential subtle off-by-one in pattern dispatch — `(i+1) % 6 == 0` may have wrong starting index).
-- [ ] Compare against `transformers` reference (PyTorch): load
-      `google/gemma-3-1b-it` in PyTorch, tokenize same prompt,
-      capture first-token logits, diff against ours.
+- [x] **Capture first-token logits from native gemma3 + diff
+      against llama.cpp on the same fixed token IDs.** Done via:
+      - `swellmd/.../bin/dump_logits_native.rs` — bin, prints
+        262144 logits for `[2, 9259, 235269]` from native fwd pass
+      - `backend-llama-cpp/tests/dump_logits.rs` — test, same
+        token IDs through llama.cpp's `LlamaContext::get_logits_ith`
+      - `backend-llama-cpp/tests/diff_logits.py` — diff harness:
+        argmax, top-10 overlap, max/mean abs diff, range stats
+      Result on gemma3-1b: **0/10 top-10 overlap, max |diff|
+      24.37, mean |diff| 4.32, native logit range 2.3× wider
+      than llama.cpp's**. Logits fundamentally disagree at step 0.
+      This rules out everything that could only matter at later
+      decode steps (sliding window, KV cache, multi-step sampling)
+      and narrows the bug to: input embedding, embedding scale,
+      layer-0 RMSNorm, layer-0 attention, or layer-0 FFN.
+- [ ] **Bisect by layer.** Add per-block intermediate dumps
+      (post-embedding, after each transformer block) to both
+      backends. The first block where outputs disagree is the bug.
+      The 2.3× range expansion in native suggests a missing or
+      doubled multiplicative factor — most likely embedding
+      scale (sqrt(1152) ≈ 33.94).
+- [ ] Compare against `transformers` reference (PyTorch) as a
+      tiebreaker if the bisection points somewhere ambiguous:
+      load `google/gemma-3-1b-it` in PyTorch, capture
+      embedding output and first-block output for `[2, 9259,
+      235269]`, diff against both backends. Three-way diff
+      identifies whether native or llama.cpp is the outlier.
+
+### Side bug found during P9: `[quantization]` "f32" silently coerced
+
+`swe_ml_tensor::quant_config_from_toml_str` parses unknown target
+strings as Q8_0 default, including "f32". So setting
+`output = "f32"` in `[quantization]` produces Q8_0 weights without
+warning. Discovered when verifying P9's quantization-off claim:
+expected loader log to print `output.weight=F32`, got `Q8_0`.
+
+Fix: parser should error on unknown values (or accept "f32" as
+"keep weights at f32, no quantization"). Small change, separate
+from the P9 main-line.
 
 **Investigation plan.**
 

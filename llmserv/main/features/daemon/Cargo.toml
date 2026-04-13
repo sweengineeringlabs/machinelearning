@@ -13,6 +13,12 @@ path = "main/src/lib.rs"
 name = "swellmd"
 path = "main/src/bin/serve.rs"
 
+# Diagnostic binary for P9 investigation — dumps first-token
+# logits from native_rust forward pass for a fixed token sequence.
+[[bin]]
+name = "dump-logits-native"
+path = "main/src/bin/dump_logits_native.rs"
+
 [features]
 default = []
 # Enables the llama.cpp-backed model backend. Pulls in the

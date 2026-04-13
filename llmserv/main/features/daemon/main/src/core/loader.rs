@@ -271,6 +271,18 @@ pub fn load_safetensors(model_id: &str, profile: OptProfile, quantization_toml: 
     let (total_params, _) = model.parameter_count();
     log::info!("  Model ready: {:.1}M params", total_params as f64 / 1e6);
 
+    // Diagnostic: log dtype of representative weights so we can verify
+    // the [quantization] config actually took effect (vs being read but
+    // silently no-op'd, or not read at all). Touches output (lm_head)
+    // and first-layer attention.q_proj as the two layer types most
+    // likely to differ. Costs a single println; remove once
+    // P9 investigation closes.
+    log::info!(
+        "  Weight dtypes after quantize: output.weight={:?}, layer0.attn.q_proj.weight={:?}",
+        model.output.weight.dtype(),
+        model.layers.first().map(|l| l.attention.q_proj.weight.dtype()),
+    );
+
     let tokenizer_json = bundle.tokenizer_json_path();
     let tokenizer: Box<dyn Tokenizer + Send + Sync> = if tokenizer_json.exists() {
         let hf = HFTokenizer::from_file(&tokenizer_json)
