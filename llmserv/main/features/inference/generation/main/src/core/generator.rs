@@ -99,6 +99,13 @@ fn build_multi_turn_segments(messages: &[(&str, &str)], template: &str) -> Vec<T
     }
 
     // Gemma 3 format: <start_of_turn>user\n{msg}<end_of_turn>\n<start_of_turn>model\n
+    // The official template prepends `{{ bos_token }}`; we leave it
+    // off because adding `<bos>` as a Special segment whose name the
+    // tokenizer doesn't know triggers the encode_conversation
+    // plain-text fallback (which wrecks the structure). Without the
+    // BOS, gemma3 in our native path still produces partially-
+    // correct output but quality varies — see BACKLOG P9 for the
+    // standing quality gap on the native gemma3 forward pass.
     if template.contains("<start_of_turn>") {
         for &(role, content) in messages {
             let model_role = if role == "assistant" { "model" } else { role };

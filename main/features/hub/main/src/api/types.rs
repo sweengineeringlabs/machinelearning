@@ -37,6 +37,13 @@ impl ModelFiles {
         self.model_dir.join("tokenizer.json")
     }
 
+    /// Get path to tokenizer_config.json. Holds the chat-template
+    /// Jinja2 string for instruct-tuned models (separate from
+    /// config.json which has architectural params only).
+    pub fn tokenizer_config_path(&self) -> PathBuf {
+        self.model_dir.join("tokenizer_config.json")
+    }
+
 }
 
 /// A bundle for GGUF model files

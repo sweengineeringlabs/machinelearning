@@ -1179,6 +1179,84 @@ a real workload.
 
 ---
 
+### P9: Native-Rust gemma3 forward-pass quality vs llama.cpp
+
+**Symptom.** The same `google/gemma-3-1b-it` weights (SafeTensors via
+HF Hub) loaded through the native_rust backend produce partially-
+correct or off-prompt chat completions, while llama.cpp on the same
+weights (Q4_K_M GGUF) returns clean coherent answers to identical
+prompts.
+
+Example (after the chat-template fix in this commit, which closed
+the worst symptom of complete gibberish):
+
+| Prompt | llama_cpp (GGUF Q4_K_M) | native_rust (SafeTensors F16+runtime-quantize) |
+|---|---|---|
+| "What is 13 times 17?" | "13 times 17 is 221." | "17" |
+| "Largest country in S. America?" | "Brazil." | (varies: empty, or correct, or off-topic across runs) |
+| "Haiku about a rusty linker" | Coherent haiku | Off-topic generic responses |
+
+**What's already done.** The chat template is now applied (was the
+single biggest obvious bug — without it the model saw raw text
+without `<start_of_turn>` scaffolding and emitted base-model
+gibberish like "1, 2, 3, 4, 5..."). Hub now downloads
+tokenizer_config.json; loader reads chat_template from it; falls
+back to architecture-derived markers when the file is missing from
+older caches.
+
+**What's still wrong.** Even with the template applied, output
+quality lags. Likely candidates, ordered by suspicion:
+
+1. **Numerical drift in the gemma3 forward pass.** Gemma3 has
+   distinctive features — sliding-window attention, RMSNorm with a
+   specific epsilon scheme, attention logit cap, final-logit
+   softcapping, embedding scale by sqrt(dim). Any one of these
+   computed slightly differently from the reference implementation
+   produces a model that "kind of works" but loses correctness.
+2. **Runtime quantization corrupting weights.** 183 linear layers
+   are quantized at load time by `ConfigQuantizer` for the F16
+   safetensors path. If a specific layer type (e.g., the embedding
+   table or final lm_head) is mis-quantized for gemma3's layout,
+   outputs would degrade silently.
+3. **BOS token handling.** Official template prepends `<bos>`; we
+   skip it because adding it via the `Special` segment fall back
+   to plain-text encoding when the tokenizer doesn't know the
+   token name. Either the tokenizer adapter doesn't expose `<bos>`
+   under that exact name, or it's `<begin_of_text>` or similar.
+   Worth checking what the HF tokenizer actually calls it.
+
+**Investigation plan.**
+
+- [ ] Capture logits from the native forward pass at step 0 for a
+      fixed prompt; compare against logits from llama.cpp on the
+      same prompt + tokens. Differences pinpoint the layer.
+- [ ] Disable runtime quantization (set quantization config to
+      keep all linear layers F16) and retest. If outputs improve,
+      the quantizer is at fault.
+- [ ] Check what `<bos>` translates to via the HF tokenizer's
+      special-token table. Add the right name to the gemma3
+      template branch.
+- [ ] Compare against `transformers` reference: load
+      `google/gemma-3-1b-it` in PyTorch, tokenize the same prompt,
+      capture first-token logits, diff against ours.
+
+**Why this is P9 not P0.** llama.cpp backend is shipping production-
+quality output for the same model. Users who care about gemma3
+correctness can use `backend = "llama_cpp"`. The native backend is
+the testbed for our own kernel work (P7.x / P7.5 K-quant) and for
+GPU plumbing (P6 Vulkan); correctness on a single model family is a
+separate concern from those tracks. Worth fixing when we want
+native gemma3 to be usable end-to-end without llama.cpp as a
+fallback, or when investigating it gives us insight into other
+architectures' correctness.
+
+**Skip if:** llama_cpp backend is the production path for chat
+completions and native_rust is only used for embedding + non-gemma
+models. Per `application.toml` defaults this is the current
+posture.
+
+---
+
 ### P6: GPU acceleration (Vulkan)
 - **Architecture done**: `llmcompute` crate with `ComputeBackend` trait, `CpuBackend` provider (wraps existing ops), `VulkanBackend` stub
 - **Remaining**: Implement Vulkan compute shaders for matmul, softmax, GELU, SiLU. Buffer management, shader compilation pipeline, device selection. Wire `ComputeBackend` into `inference/layers/` to replace CPU tensor ops.

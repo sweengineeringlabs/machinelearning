@@ -186,6 +186,59 @@ pub fn load_safetensors(model_id: &str, profile: OptProfile, quantization_toml: 
 
     let mut config = config;
     config.architecture = model_type.clone();
+
+    // HuggingFace puts chat_template in tokenizer_config.json, not
+    // config.json. Pull it in if present so the generator can apply
+    // the right template at decode time. Without this, instruct-
+    // tuned models receive un-templated prompts and emit garbage
+    // (looks like base-model continuation) — see investigation in
+    // chat completion deploy of gemma-3-1b-it on 2026-04-13.
+    if config.chat_template.is_none() {
+        let tc_path = bundle.tokenizer_config_path();
+        if tc_path.exists() {
+            match std::fs::read_to_string(&tc_path) {
+                Ok(text) => match serde_json::from_str::<serde_json::Value>(&text) {
+                    Ok(tc) => {
+                        if let Some(tmpl) = tc["chat_template"].as_str() {
+                            log::info!(
+                                "  Chat template: {} chars from tokenizer_config.json",
+                                tmpl.len()
+                            );
+                            config.chat_template = Some(tmpl.to_string());
+                        }
+                    }
+                    Err(e) => log::warn!("  tokenizer_config.json parse failed: {}", e),
+                },
+                Err(e) => log::warn!("  tokenizer_config.json read failed: {}", e),
+            }
+        }
+    }
+
+    // Last-resort fallback: derive a marker from the architecture
+    // when no template was discoverable. The generator's
+    // `build_multi_turn_segments` dispatches on substring matches
+    // (e.g. `template.contains("<start_of_turn>")`), so passing the
+    // marker alone is enough to route to the right template branch.
+    // Older HF caches downloaded before tokenizer_config.json was
+    // requested don't include it, so this lets existing cached
+    // models still serve correctly without re-downloading.
+    if config.chat_template.is_none() {
+        let marker = match config.architecture.as_str() {
+            "gemma3" | "gemma3_text" => Some("<start_of_turn>"),
+            "gemma4" | "gemma4_text" => Some("<|turn>"),
+            "qwen2" => Some("<|im_start|>"),
+            "llama" | "mistral" => Some("[INST]"),
+            _ => None,
+        };
+        if let Some(m) = marker {
+            log::info!(
+                "  Chat template: derived marker '{}' for architecture '{}' (no tokenizer_config.json in cache)",
+                m, config.architecture
+            );
+            config.chat_template = Some(m.to_string());
+        }
+    }
+
     let registry = create_registry();
     let mut model = registry.build_model(&config, weights)
         .with_context(|| format!("Failed to build {} model", if model_type.is_empty() { "gpt2" } else { &model_type }))?;

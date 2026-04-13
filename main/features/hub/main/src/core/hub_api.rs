@@ -80,6 +80,11 @@ impl HubApi {
             "vocab.json",
             "merges.txt",
             "tokenizer.json",
+            // tokenizer_config.json holds the chat-template Jinja2
+            // string for instruct-tuned models. Without it, the
+            // generator falls back to plain-text role labels and
+            // models like gemma3-it emit base-model gibberish.
+            "tokenizer_config.json",
         ];
 
         for file in &files {
@@ -175,6 +180,9 @@ impl HubApi {
         let _vocab = repo.get("vocab.json").ok();
         let _merges = repo.get("merges.txt").ok();
         let _tokenizer = repo.get("tokenizer.json").ok();
+        // Chat template for instruct-tuned models — see
+        // tokenizer_config_path doc on `ModelFiles`.
+        let _tokenizer_config = repo.get("tokenizer_config.json").ok();
 
         // Register in the rustml cache so get_cached() and hub list can find it
         self.link_to_cache(model_id, &model_dir);
