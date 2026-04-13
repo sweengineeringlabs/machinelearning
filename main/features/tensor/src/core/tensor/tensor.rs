@@ -13,6 +13,7 @@ use crate::api::device::Device;
 use crate::api::traits::TensorOps;
 use crate::core::shape_mod::shape::Shape;
 use bytemuck;
+use std::borrow::Cow;
 use half::{bf16, f16};
 use rand::Rng;
 use smallvec::SmallVec;
@@ -312,6 +313,18 @@ impl Tensor {
     }
 
     /// Get the underlying f32 data as a slice.
+    ///
+    /// **Warning:** returns the raw underlying storage, which may NOT
+    /// correspond to the tensor's logical row-major layout if the
+    /// tensor is non-contiguous (e.g. produced by a transpose or
+    /// view). Callers that index per-row or assume row-major order
+    /// MUST first check `is_contiguous()` or use the safer
+    /// [`Self::contiguous_slice_f32`] helper which materializes a
+    /// contiguous copy when needed.
+    ///
+    /// This raw-byte behavior is intentional for low-level callers
+    /// (quantization formats, raw memory views) but a footgun for
+    /// numerical kernels.
     pub fn as_slice_f32(&self) -> TensorResult<&[f32]> {
         if self.dtype != DType::F32 {
             return Err(TensorError::DTypeMismatch {
@@ -330,6 +343,30 @@ impl Tensor {
                 "as_slice_f32: data not 4-byte aligned; call to_f32() first".into(),
             )
         })
+    }
+
+    /// Get the f32 data as a slice, materializing a contiguous copy
+    /// if the tensor isn't contiguous. Returns `Cow::Borrowed` when
+    /// the tensor's storage already matches its logical layout (no
+    /// allocation), or `Cow::Owned` when a copy was required to put
+    /// elements in row-major order.
+    ///
+    /// Use this in any numerical kernel that does per-row or per-
+    /// position math (RMSNorm, LayerNorm, element-wise activations,
+    /// element-wise binary ops). It's the safe equivalent of
+    /// [`Self::as_slice_f32`] for code that assumes row-major data.
+    ///
+    /// Cost: zero-overhead when contiguous (just bounds checks). One
+    /// `Vec::with_capacity` + element-wise iteration when not. The
+    /// allocation is the price of correctness — silently reading the
+    /// wrong layout produces plausible-looking but semantically-wrong
+    /// outputs (see P9 / P10 in BACKLOG.md for the discovery).
+    pub fn contiguous_slice_f32(&self) -> TensorResult<Cow<'_, [f32]>> {
+        if self.is_contiguous() {
+            Ok(Cow::Borrowed(self.as_slice_f32()?))
+        } else {
+            Ok(Cow::Owned(self.iter().collect()))
+        }
     }
 
     /// Get mutable access to the underlying f32 data.

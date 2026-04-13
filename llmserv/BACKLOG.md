@@ -1179,34 +1179,39 @@ a real workload.
 
 ---
 
-### P10: Audit `as_slice_f32()` callsites for the same contiguity bug class
+### ~~P10: Audit `as_slice_f32()` callsites~~ — FIXED (commit `<TBD>`)
 
-Same root cause as P9 likely affects other tensor-op call sites.
-Audit run on 2026-04-13 found:
+Same root-cause class as P9. Audit run on 2026-04-13:
 
 | Callsite | Per-row math? | Status |
 |---|---|---|
 | `RMSNorm::forward` | yes | ✅ FIXED in P9 (commit `8430e08`) |
-| `RMSNorm::forward_with_normalized` | yes | ✅ FIXED in commit `<TBD>` |
-| `LayerNorm::forward_with_normalized` (called by `forward`) | yes | ✅ FIXED in commit `<TBD>` |
-| `Activation::Gelu::forward` (gelu/silu/relu/...) | element-wise | ⚠️ Latent bug — applies f to raw bytes then constructs new tensor via `from_vec`, so logical positions of output don't match input's logical layout for non-contiguous inputs. Currently dormant because activations are only called on outputs of Linear (which produce contiguous). Triggered the moment a transpose appears upstream of an activation. |
-| `Tensor::add/sub/mul/div` (element-wise binary ops) | element-wise | ⚠️ Latent bug — same pattern as activations. Currently dormant in our forward pass (residual addition operates on contiguous tensors). |
+| `RMSNorm::forward_with_normalized` | yes | ✅ FIXED in commit `1709e42` |
+| `LayerNorm::forward_with_normalized` (called by `forward`) | yes | ✅ FIXED in commit `1709e42` |
+| `Activation::Gelu::forward` / `Silu::forward` (element-wise) | element-wise | ✅ FIXED in commit `<TBD>` |
+| `Tensor::add/sub/mul/div` (element-wise binary ops) | element-wise | ✅ FIXED in commit `<TBD>` |
 
-The structural fix would be to make `as_slice_f32()` itself error
-on non-contiguous tensors, forcing every callsite to be explicit
-(either `.to_contiguous().as_slice_f32()` or
-`if is_contiguous() { ... } else { ... }`). That's a wider API
-change touching every consumer; deferred until someone has time to
-do it properly.
+**Structural fix shipped:** added
+`Tensor::contiguous_slice_f32() -> Cow<'_, [f32]>`. Returns a
+borrowed slice when the tensor is contiguous (zero-cost) and an
+owned, materialized copy when not. All numerical kernels that need
+row-major data now use this helper. The raw `as_slice_f32()` is
+kept and documented as a low-level escape hatch (used by
+quantization formats and raw-byte callers); its docstring now
+warns that it returns raw storage and points to
+`contiguous_slice_f32` for kernels that assume row-major layout.
 
-For now: the active bugs (RMSNorm, LayerNorm, RMSNorm sibling) are
-fixed. Gemma3 chat completions verified working on native_rust.
+Verified: full root workspace test suite (20 test groups) and
+llmserv workspace test suite all pass. Gemma3 chat completion
+regression test still produces "13 times 17 is 221." on
+native_rust.
+
 Other architectures (gpt2, llama, mistral, falcon, mixtral, qwen,
-phi, bert) likely benefit too since LayerNorm/RMSNorm are shared,
-but content-correctness on each remains untested per the lessons-
-learned doc — the content-correctness CI test from the lessons
-section should be built before claiming any of those work end-to-
-end.
+phi, bert) that share the now-fixed Layer/RMSNorm and the now-
+fixed activations/tensor-math also benefit. **Content
+correctness for each remains untested** per the lessons-learned
+doc. The content-correctness CI test (3 fixed prompts, substring
+asserts) should land before claiming any of them work end-to-end.
 
 ---
 

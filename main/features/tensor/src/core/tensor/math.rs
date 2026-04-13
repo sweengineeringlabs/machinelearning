@@ -149,8 +149,13 @@ impl Tensor {
 
     /// Element-wise addition with broadcasting.
     pub fn add(&self, other: &Tensor) -> TensorResult<Tensor> {
-        let lhs_data = self.as_slice_f32()?;
-        let rhs_data = other.as_slice_f32()?;
+        // Element-wise binary ops require row-major data on both sides.
+        // contiguous_slice_f32 zero-copies for contiguous tensors and
+        // materializes for non-contiguous ones (P10 latent bug class).
+        let lhs_cow = self.contiguous_slice_f32()?;
+        let rhs_cow = other.contiguous_slice_f32()?;
+        let lhs_data: &[f32] = &lhs_cow;
+        let rhs_data: &[f32] = &rhs_cow;
         let lhs_len = lhs_data.len();
         let rhs_len = rhs_data.len();
 
@@ -182,8 +187,13 @@ impl Tensor {
 
     /// Element-wise subtraction.
     pub fn sub(&self, other: &Tensor) -> TensorResult<Tensor> {
-        let lhs_data = self.as_slice_f32()?;
-        let rhs_data = other.as_slice_f32()?;
+        // Element-wise binary ops require row-major data on both sides.
+        // contiguous_slice_f32 zero-copies for contiguous tensors and
+        // materializes for non-contiguous ones (P10 latent bug class).
+        let lhs_cow = self.contiguous_slice_f32()?;
+        let rhs_cow = other.contiguous_slice_f32()?;
+        let lhs_data: &[f32] = &lhs_cow;
+        let rhs_data: &[f32] = &rhs_cow;
         let lhs_len = lhs_data.len();
         let rhs_len = rhs_data.len();
 
@@ -215,8 +225,13 @@ impl Tensor {
 
     /// Element-wise multiplication with broadcasting.
     pub fn mul(&self, other: &Tensor) -> TensorResult<Tensor> {
-        let lhs_data = self.as_slice_f32()?;
-        let rhs_data = other.as_slice_f32()?;
+        // Element-wise binary ops require row-major data on both sides.
+        // contiguous_slice_f32 zero-copies for contiguous tensors and
+        // materializes for non-contiguous ones (P10 latent bug class).
+        let lhs_cow = self.contiguous_slice_f32()?;
+        let rhs_cow = other.contiguous_slice_f32()?;
+        let lhs_data: &[f32] = &lhs_cow;
+        let rhs_data: &[f32] = &rhs_cow;
         let lhs_len = lhs_data.len();
         let rhs_len = rhs_data.len();
 
@@ -248,8 +263,13 @@ impl Tensor {
 
     /// Element-wise division.
     pub fn div(&self, other: &Tensor) -> TensorResult<Tensor> {
-        let lhs_data = self.as_slice_f32()?;
-        let rhs_data = other.as_slice_f32()?;
+        // Element-wise binary ops require row-major data on both sides.
+        // contiguous_slice_f32 zero-copies for contiguous tensors and
+        // materializes for non-contiguous ones (P10 latent bug class).
+        let lhs_cow = self.contiguous_slice_f32()?;
+        let rhs_cow = other.contiguous_slice_f32()?;
+        let lhs_data: &[f32] = &lhs_cow;
+        let rhs_data: &[f32] = &rhs_cow;
         let lhs_len = lhs_data.len();
         let rhs_len = rhs_data.len();
 

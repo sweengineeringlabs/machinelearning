@@ -12,7 +12,13 @@ pub struct Gelu;
 
 impl Activation for Gelu {
     fn forward(&self, input: &Tensor) -> ActivationResult<Tensor> {
-        let data = input.as_slice_f32().map_err(ActivationError::Tensor)?;
+        // contiguous_slice_f32() materializes row-major if input is
+        // non-contiguous. Element-wise activations applied to raw
+        // storage bytes then collected into a contiguous output via
+        // from_vec would put f(value) at the wrong logical position
+        // for non-contiguous inputs (P10 latent bug class).
+        let data_cow = input.contiguous_slice_f32().map_err(ActivationError::Tensor)?;
+        let data: &[f32] = &data_cow;
         let sqrt_2_over_pi: f32 = (2.0_f32 / std::f32::consts::PI).sqrt();
 
         let output_data: Vec<f32> = data
@@ -38,7 +44,9 @@ pub struct Silu;
 
 impl Activation for Silu {
     fn forward(&self, input: &Tensor) -> ActivationResult<Tensor> {
-        let data = input.as_slice_f32().map_err(ActivationError::Tensor)?;
+        // Same contiguity guard as Gelu — see comment there.
+        let data_cow = input.contiguous_slice_f32().map_err(ActivationError::Tensor)?;
+        let data: &[f32] = &data_cow;
 
         let output_data: Vec<f32> = data
             .iter()

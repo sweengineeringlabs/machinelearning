@@ -93,22 +93,11 @@ impl Norm for DefaultRmsNorm {
             )));
         }
 
-        // Critical: as_slice_f32() returns raw storage bytes regardless
-        // of whether the tensor's logical layout is contiguous. If the
-        // input was produced by a non-contiguous op (transpose, slice
-        // view), the raw slice isn't aligned with the shape's natural
-        // row-major layout — RMSNorm's per-row indexing would then
-        // read scrambled data. Materialize a contiguous copy first.
-        // P9 root cause: this was producing wrong outputs for
-        // ffn_norm/post_ffn_norm in gemma3 layer 0 because their
-        // inputs went through non-contiguous attention intermediates.
-        let owned_data: Vec<f32>;
-        let data: &[f32] = if input.is_contiguous() {
-            input.as_slice_f32().map_err(NnLayerError::Tensor)?
-        } else {
-            owned_data = input.iter().collect();
-            &owned_data
-        };
+        // contiguous_slice_f32() materializes a row-major copy if the
+        // input isn't contiguous (zero-cost when it is). Per-row
+        // indexing in compute() requires this — see P9 root cause.
+        let data_cow = input.contiguous_slice_f32().map_err(NnLayerError::Tensor)?;
+        let data: &[f32] = &data_cow;
 
         let effective_weight = if self.offset == 0.0 {
             self.weight.clone()
@@ -141,13 +130,8 @@ impl Norm for DefaultRmsNorm {
         }
 
         // Same contiguity guard as `forward` — see comment there.
-        let owned_data: Vec<f32>;
-        let data: &[f32] = if input.is_contiguous() {
-            input.as_slice_f32().map_err(NnLayerError::Tensor)?
-        } else {
-            owned_data = input.iter().collect();
-            &owned_data
-        };
+        let data_cow = input.contiguous_slice_f32().map_err(NnLayerError::Tensor)?;
+        let data: &[f32] = &data_cow;
 
         let effective_weight = if self.offset == 0.0 {
             self.weight.clone()
