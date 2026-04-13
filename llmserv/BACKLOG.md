@@ -707,7 +707,7 @@ submodule without changing the `LlamaCppBackend` trait surface.
 7. **Benchmark (~0.5 day).**
    - Extend `llmc load` harness to accept `--backend llama_cpp`
    - Report p50/p95/p99 decode latency for the same prompts used in
-     the Ollama comparison; record in `docs/perf/`
+     the Ollama comparison; record in `docs/5-testing/perf/`
 
 8. **CI updates (~0.5–1 day).**
    - Linux runner: `apt install cmake g++` already standard
@@ -1082,7 +1082,7 @@ P7.B's 8–10 day llama.cpp work can start. Total stack: 10–13 days.
 
 ### P7.C: Continuous batching in `LlamaCppBackend` — close the c>1 gap
 
-**Motivation — measured, not hypothetical.** `docs/perf/llama-cpp-vs-native.md`
+**Motivation — measured, not hypothetical.** `docs/5-testing/perf/llama-cpp-vs-native.md`
 documents a multi-client benchmark (gemma3:1b, n=40, same GGUF):
 
 | c | llama_cpp p50 | Ollama p50 | llama_cpp req/s | Ollama req/s |
