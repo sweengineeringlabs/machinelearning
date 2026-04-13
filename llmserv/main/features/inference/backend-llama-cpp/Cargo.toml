@@ -14,7 +14,7 @@ repository.workspace = true
 # build, ~50 MB static lib).
 [features]
 default = []
-llama-cpp = ["dep:llama-cpp-2", "dep:encoding_rs"]
+llama-cpp = ["dep:llama-cpp-2", "dep:encoding_rs", "dep:self_cell"]
 
 [dependencies]
 llmbackend.workspace = true
@@ -28,3 +28,9 @@ log.workspace = true
 llama-cpp-2 = { workspace = true, optional = true }
 # Used by token_to_piece — llama-cpp-2 takes an encoding_rs Decoder.
 encoding_rs = { version = "0.8", optional = true }
+# Pinned self-referential struct for the context pool. Holds the
+# `LlamaModel` (weights) alongside `LlamaContext<'_>`s that borrow
+# from it. `self_cell`'s `Pin` prevents mem::swap / move-based
+# breakage that an unsafe transmute + field-drop-order approach
+# would only catch by convention.
+self_cell = { version = "1", optional = true }

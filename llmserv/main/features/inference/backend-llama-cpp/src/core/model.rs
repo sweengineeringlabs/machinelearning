@@ -1,29 +1,27 @@
 //! `LlamaCppModel` + `LlamaCppTextCompleter`.
 //!
-//! The C/C++ boundary is crossed only through the `llama-cpp-2` safe
-//! wrappers — no `unsafe` in the forward-pass code. There is one
-//! `unsafe impl Send` for the pooled-context wrapper, justified
-//! inline where it appears.
+//! The C/C++ boundary is crossed only through `llama-cpp-2`'s safe
+//! wrappers. The one `unsafe` in this file is the `Send` impl on the
+//! context pool — justified inline and narrow.
 //!
 //! Lifecycle:
 //!
-//! * `LlamaBackend::init()` is called exactly once per process, owned
-//!   by a `OnceLock` with a double-checked lock around init.
-//! * `LlamaModel` (weights) is loaded once at daemon startup and held
-//!   for the daemon's lifetime.
-//! * **Context pool.** `LlamaCppModel` owns a
-//!   `Mutex<VecDeque<OwnedContext>>` sized to the daemon's
-//!   admission-control capacity. Completers acquire a context via
-//!   `with_context`; the context's KV cache is cleared before use
-//!   and the context is returned to the pool on scope exit. This
-//!   replaces the earlier fresh-context-per-call strategy that was
-//!   causing the tail latency spike documented in
+//! * `LlamaBackend::init()` runs exactly once per process, guarded by
+//!   a `OnceLock` with a double-checked lock.
+//! * `LlamaModel` (weights) is loaded once at daemon startup and lives
+//!   in a pinned `self_cell` alongside the context pool. `self_cell`'s
+//!   pinning prevents the self-referential-struct hazards that an
+//!   unsafe transmute would leave to field-drop-order convention.
+//! * **Context pool.** Sized lazily to the daemon's admission-control
+//!   capacity. Requests acquire a context, decode, and return it via
+//!   `clear_kv_cache_seq` + push-back. Replaces the fresh-per-call
+//!   strategy that caused the tail-latency spike documented in
 //!   `docs/perf/llama-cpp-vs-native.md`.
 //!
-//! Sampling is greedy (argmax over logits). This honors `temperature
-//! = 0.0` from `CompletionParams` exactly; temperature > 0 / top-k /
-//! top-p are TODOs that will plug into the existing sampler in
-//! `rustml-generation` so both backends share sampling semantics.
+//! Sampling is greedy (argmax over logits). Honors `CompletionParams
+//! { temperature: 0.0 }` exactly; temp > 0 / top-k / top-p TODOs will
+//! route through `rustml-generation`'s sampler so both backends share
+//! sampling semantics.
 
 use std::collections::VecDeque;
 use std::num::NonZeroU32;
@@ -43,12 +41,11 @@ use rustml_generation::{CompletionParams, GenerationError, GenerationResult, Tex
 use rustml_inference_layers::PoolingStrategy;
 use rustml_model::{ModelError, ModelResult, OptProfile};
 use rustml_tokenizer::{Tokenizer, TokenizerError, TokenizerResult};
+use self_cell::self_cell;
 
-/// Process-wide `llama.cpp` backend handle. `llama_backend_init` may
-/// only succeed once per process; subsequent calls error with
-/// `BackendAlreadyInitialized`. We use double-checked locking so only
-/// the first caller runs `init()`; later callers get the cached
-/// handle.
+/// Process-wide `llama.cpp` backend. Initialized once per process via
+/// double-checked locking — `LlamaBackend::init` returns
+/// `BackendAlreadyInitialized` on the second call.
 static BACKEND: OnceLock<LlamaBackend> = OnceLock::new();
 static BACKEND_INIT_LOCK: Mutex<()> = Mutex::new(());
 
@@ -70,139 +67,142 @@ fn get_backend() -> Result<&'static LlamaBackend> {
 }
 
 /// Default ceiling for the per-pool-member context window size. Each
-/// context in the pool pre-allocates KV cache for this many tokens.
-/// If a request's `prompt_tokens + max_tokens` exceeds this, the
-/// request fails early with a clear error — no re-alloc at request
-/// time (which would defeat the pool's purpose).
-///
-/// 8192 is a sensible default for 1-3B models on CPU: prompt+decode
-/// for typical chat fits, and the ~100 MB KV allocation per context
-/// is acceptable. Larger models should be more conservative; smaller
-/// models could afford more. Making this per-model-configurable is
-/// future work.
+/// pooled context pre-allocates KV cache for this many tokens. A
+/// request with `prompt_tokens + max_tokens` exceeding this fails
+/// fast rather than triggering a re-alloc — re-alloc is the cost the
+/// pool exists to avoid.
 const DEFAULT_POOL_N_CTX: u32 = 8192;
 
-/// Wraps `LlamaContext` with a transmuted `'static` lifetime so it
-/// can live inside `LlamaCppModel` alongside the `LlamaModel` it
-/// borrows from. This is a self-referential struct.
+/// Dependent type for the self-referential `ModelBundle`. Holds the
+/// context pool with its lifetime bound to the `LlamaModel` owner.
 ///
-/// # Safety invariants
+/// `ContextPool` is not `Send` by default (contains `LlamaContext`
+/// which wraps a raw pointer). Adding `unsafe impl Send` is sound
+/// because:
 ///
-/// The `'static` lifetime is a lie — the context's C-level pointers
-/// are stable independent of Rust's borrow checker, but Rust's type
-/// system doesn't know that. We preserve safety via field drop order:
-/// `LlamaCppModel.context_pool` is declared before `LlamaCppModel.model`,
-/// so the pool (and all its `OwnedContext`s) is dropped first when
-/// `LlamaCppModel` drops. No `OwnedContext` is ever accessible after
-/// the `LlamaModel` it points to has been freed.
+/// 1. The `Mutex` serializes every access to the `VecDeque` and the
+///    contexts inside. Two threads cannot mutate the same context
+///    concurrently.
+/// 2. `llama.cpp` contexts are designed for sequential use from any
+///    thread. The supported usage pattern is: thread A locks, uses,
+///    releases; thread B locks, uses, releases. Exactly what Mutex
+///    gives us.
 ///
-/// `Send` is safe because:
-///   1. A given `OwnedContext` is only ever handled through a `Mutex`
-///      (the context pool) or as a local in `run_decode`. Concurrent
-///      mutation from two threads is impossible.
-///   2. llama.cpp's context is designed for serial use from any
-///      thread. Sequential use across threads is the supported
-///      pattern (that's how Ollama does it).
-struct OwnedContext {
-    inner: LlamaContext<'static>,
+/// The corresponding `LlamaCppModel: Send + Sync` impl at the
+/// bottom of this file relies on this assertion being correct.
+pub struct ContextPool<'model> {
+    pool: Mutex<VecDeque<LlamaContext<'model>>>,
 }
 
-// SAFETY: see documentation on `OwnedContext`.
-unsafe impl Send for OwnedContext {}
+// SAFETY: see `ContextPool` docs.
+unsafe impl Send for ContextPool<'_> {}
 
-/// Handle to a context borrowed from the pool. Returns the context
-/// on `Drop`. Kept private to this crate — callers use
-/// `LlamaCppModel::with_context`.
-struct PooledContext<'m> {
-    owner: &'m LlamaCppModel,
-    ctx: Option<OwnedContext>,
-}
-
-impl PooledContext<'_> {
-    /// The returned `&mut LlamaContext<'static>` carries our internal
-    /// lifetime lie (see `OwnedContext` safety docs). The borrow is
-    /// bounded by `&mut self`, which is bounded by `self.owner` — so
-    /// callers can't outlive the underlying `LlamaModel` even though
-    /// the literal lifetime parameter says `'static`.
-    fn ctx(&mut self) -> &mut LlamaContext<'static> {
-        &mut self.ctx.as_mut().expect("ctx present until drop").inner
+self_cell!(
+    /// Pinned pairing of `LlamaModel` + `ContextPool` that borrows
+    /// from it. `self_cell` prevents moves that would invalidate the
+    /// self-reference — unlike a manual unsafe transmute + field
+    /// drop-order, a future contributor cannot accidentally break
+    /// the invariant via `mem::swap` or similar.
+    struct ModelBundle {
+        owner: LlamaModel,
+        // `not_covariant` because `ContextPool` holds `Mutex<...>`
+        // which is invariant in its type parameter. This is fine —
+        // we only access the dependent through the closure API
+        // (`with_dependent`), which doesn't need covariance.
+        #[not_covariant]
+        dependent: ContextPool,
     }
-}
+);
 
-impl Drop for PooledContext<'_> {
-    fn drop(&mut self) {
-        if let Some(mut owned) = self.ctx.take() {
-            // Clear all sequences so the next acquirer sees a blank KV
-            // cache. If clearing fails (shouldn't, but be defensive),
-            // drop the context instead of returning a dirty one to the
-            // pool — next acquire will create a fresh one.
-            match owned.inner.clear_kv_cache_seq(None, None, None) {
-                Ok(_) => {
-                    if let Ok(mut pool) = self.owner.context_pool.lock() {
-                        pool.push_back(owned);
-                    }
-                    // Mutex poisoned — let the context drop here.
-                }
-                Err(e) => {
-                    log::warn!(
-                        "llama_cpp: clear_kv_cache_seq failed ({}); dropping context instead of pooling",
-                        e
-                    );
-                }
-            }
-        }
-    }
-}
-
-/// A loaded llama.cpp model. Holds weights for the daemon's lifetime
-/// and a pool of reusable contexts.
-///
-/// Field order matters for safety — see `OwnedContext` docs. The pool
-/// must drop BEFORE the model so transmuted `'static` lifetimes don't
-/// outlive their real owner.
+/// A loaded llama.cpp model. Single entry point for the daemon.
 pub struct LlamaCppModel {
-    // Dropped first: pool of contexts. Each references `model` below.
-    context_pool: Mutex<VecDeque<OwnedContext>>,
-    pool_n_ctx: u32,
-    // Dropped last: weights. Everything above must go first.
+    /// Pinned bundle holding the `LlamaModel` + its context pool.
+    bundle: ModelBundle,
     backend: &'static LlamaBackend,
-    model: LlamaModel,
     template: Option<LlamaChatTemplate>,
+    pool_n_ctx: u32,
     gguf_path: PathBuf,
     model_id: String,
     #[allow(dead_code)]
     profile: OptProfile,
 }
 
+// SAFETY: `ModelBundle` contains `LlamaModel` (explicitly Send+Sync
+// in llama-cpp-2) and `ContextPool` (Send via our impl, Sync because
+// all access is behind a Mutex). `LlamaCppModel`'s other fields are
+// trivially thread-safe. We need `Sync` so `Arc<dyn Model>` in the
+// daemon's `AppState` works across tokio request futures.
+unsafe impl Sync for LlamaCppModel {}
+
 impl LlamaCppModel {
     pub fn gguf_path(&self) -> &PathBuf {
         &self.gguf_path
     }
 
-    fn build_context(&self) -> Result<OwnedContext, GenerationError> {
-        let params = LlamaContextParams::default()
-            .with_n_ctx(NonZeroU32::new(self.pool_n_ctx));
-        let ctx = self.model.new_context(self.backend, params).map_err(|e| {
-            GenerationError::Generation(format!("llama.cpp new_context failed: {}", e))
-        })?;
-        // SAFETY: see `OwnedContext` docs. The 'static lifetime is
-        // a lie bounded by self.model via field drop order.
-        let static_ctx: LlamaContext<'static> = unsafe { std::mem::transmute(ctx) };
-        Ok(OwnedContext { inner: static_ctx })
-    }
+    /// Lend a context from the pool for the duration of `f`. Lazily
+    /// creates a context on first acquire or when the pool is empty;
+    /// clears the KV cache before `f` runs so every call starts from
+    /// a blank slate; returns the context to the pool after `f`
+    /// regardless of whether `f` succeeded.
+    fn with_context<F, R>(&self, f: F) -> GenerationResult<R>
+    where
+        F: FnOnce(&LlamaModel, &mut LlamaContext<'_>) -> GenerationResult<R>,
+    {
+        let backend = self.backend;
+        let pool_n_ctx = self.pool_n_ctx;
+        self.bundle.with_dependent(|model, pool_wrapper| {
+            // Acquire.
+            let mut ctx = {
+                let mut guard = pool_wrapper.pool.lock().map_err(|_| {
+                    GenerationError::Generation("llama_cpp pool mutex poisoned".into())
+                })?;
+                match guard.pop_front() {
+                    Some(c) => c,
+                    None => {
+                        drop(guard);
+                        let params = LlamaContextParams::default()
+                            .with_n_ctx(NonZeroU32::new(pool_n_ctx));
+                        model.new_context(backend, params).map_err(|e| {
+                            GenerationError::Generation(format!(
+                                "llama.cpp new_context: {}",
+                                e
+                            ))
+                        })?
+                    }
+                }
+            };
 
-    fn acquire_context(&self) -> Result<PooledContext<'_>, GenerationError> {
-        let maybe_pooled = {
-            let mut pool = self.context_pool.lock().map_err(|_| {
-                GenerationError::Generation("llama_cpp context pool mutex poisoned".into())
-            })?;
-            pool.pop_front()
-        };
-        let ctx = match maybe_pooled {
-            Some(c) => c,
-            None => self.build_context()?,
-        };
-        Ok(PooledContext { owner: self, ctx: Some(ctx) })
+            // Run user's closure. The context has either been
+            // freshly allocated (empty KV cache) or was cleared
+            // before being returned to the pool by a prior caller,
+            // so it's ready for a new sequence starting at pos=0.
+            let result = f(model, &mut ctx);
+
+            // Clear the KV cache AFTER use, before returning to
+            // the pool. This keeps the cheap metadata reset off
+            // the request hot path — when the next request
+            // acquires, the context is already clean.
+            match ctx.clear_kv_cache_seq(None, None, None) {
+                Ok(true) => {}
+                Ok(false) => {
+                    log::debug!("clear_kv_cache_seq returned false; doing full wipe");
+                    ctx.clear_kv_cache();
+                }
+                Err(e) => {
+                    log::warn!("clear_kv_cache_seq errored ({}); full wipe", e);
+                    ctx.clear_kv_cache();
+                }
+            }
+
+            // Return to pool. Done unconditionally so an Err from
+            // `f` doesn't leak a context (the pool would lose
+            // capacity permanently if we dropped on error).
+            if let Ok(mut guard) = pool_wrapper.pool.lock() {
+                guard.push_back(ctx);
+            }
+
+            result
+        })
     }
 }
 
@@ -234,25 +234,20 @@ impl Model for LlamaCppModel {
 impl Tokenizer for LlamaCppModel {
     fn encode(&self, text: &str) -> TokenizerResult<Vec<u32>> {
         let tokens = self
-            .model
+            .bundle
+            .borrow_owner()
             .str_to_token(text, AddBos::Always)
             .map_err(|e| TokenizerError::TokenizerError(format!("llama.cpp tokenize: {}", e)))?;
         Ok(tokens.into_iter().map(|t| t.0 as u32).collect())
     }
 
     fn decode(&self, tokens: &[u32]) -> TokenizerResult<String> {
-        // `special = true` so control tokens (BOS, EOS, chat-turn
-        // markers) render as their string form instead of erroring
-        // with `UnknownTokenType`. Callers who want raw text without
-        // special tokens should filter them beforehand — our
-        // generation loop already skips EOG via `is_eog_token` so
-        // streamed output is already clean.
         let mut decoder = encoding_rs::UTF_8.new_decoder();
         let mut out = String::new();
+        let model = self.bundle.borrow_owner();
         for &t in tokens {
-            let piece = self
-                .model
-                .token_to_piece(LlamaToken(t as i32), &mut decoder, true, None)
+            let piece = model
+                .token_to_piece(LlamaToken(t as i32), &mut decoder, /* special = */ true, None)
                 .map_err(|e| {
                     TokenizerError::TokenizerError(format!(
                         "llama.cpp token_to_piece({}): {}",
@@ -265,7 +260,7 @@ impl Tokenizer for LlamaCppModel {
     }
 
     fn vocab_size(&self) -> usize {
-        self.model.n_vocab() as usize
+        self.bundle.borrow_owner().n_vocab() as usize
     }
 
     fn token_to_id(&self, _token: &str) -> Option<u32> {
@@ -273,28 +268,26 @@ impl Tokenizer for LlamaCppModel {
     }
 }
 
-/// Per-request text completer. Borrows the `LlamaCppModel` so it can
-/// pull contexts from its pool.
+/// Per-request text completer. Cheap to construct; all heavy state
+/// lives in `LlamaCppModel`.
 pub struct LlamaCppTextCompleter<'a> {
     model: &'a LlamaCppModel,
     template: Option<&'a LlamaChatTemplate>,
 }
 
 impl LlamaCppTextCompleter<'_> {
-    /// Core decode loop. Acquires a context from the pool (or creates
-    /// one if the pool is empty), tokenizes the prompt, runs the
-    /// forward pass, greedy-samples, invokes the callback per token,
-    /// returns the full generated text (without the prompt). The
-    /// context returns to the pool on scope exit.
     fn run_decode(
         &self,
         prompt: &str,
         params: &CompletionParams,
         mut callback: Option<&mut dyn FnMut(u32) -> bool>,
     ) -> GenerationResult<String> {
-        let prompt_tokens = self.model.model.str_to_token(prompt, AddBos::Always).map_err(|e| {
-            GenerationError::Generation(format!("llama.cpp tokenize failed: {}", e))
-        })?;
+        let prompt_tokens = self
+            .model
+            .bundle
+            .borrow_owner()
+            .str_to_token(prompt, AddBos::Always)
+            .map_err(|e| GenerationError::Generation(format!("llama.cpp tokenize: {}", e)))?;
 
         if prompt_tokens.is_empty() {
             return Err(GenerationError::Generation(
@@ -310,69 +303,63 @@ impl LlamaCppTextCompleter<'_> {
             )));
         }
 
-        let mut pooled = self.model.acquire_context()?;
-        let ctx = pooled.ctx();
-
-        let mut batch = LlamaBatch::new(ctx.n_batch() as usize, 1);
-        let last_prompt_idx = prompt_tokens.len() - 1;
-        for (i, tok) in prompt_tokens.iter().enumerate() {
-            let emit_logits = i == last_prompt_idx;
-            batch
-                .add(*tok, i as i32, &[0], emit_logits)
-                .map_err(|e| {
+        self.model.with_context(|model, ctx| {
+            let mut batch = LlamaBatch::new(ctx.n_batch() as usize, 1);
+            let last_prompt_idx = prompt_tokens.len() - 1;
+            for (i, tok) in prompt_tokens.iter().enumerate() {
+                let emit_logits = i == last_prompt_idx;
+                batch.add(*tok, i as i32, &[0], emit_logits).map_err(|e| {
                     GenerationError::Generation(format!("llama.cpp batch.add(prompt): {}", e))
                 })?;
-        }
-        ctx.decode(&mut batch).map_err(|e| {
-            GenerationError::Generation(format!("llama.cpp decode(prompt): {}", e))
-        })?;
-
-        let mut decoder = encoding_rs::UTF_8.new_decoder();
-        let mut out = String::new();
-        let mut pos = prompt_tokens.len() as i32;
-
-        for _step in 0..params.max_tokens {
-            // Greedy sample: argmax over the last-position logits.
-            let logits = ctx.get_logits_ith(batch.n_tokens() - 1);
-            let next_id = argmax(logits);
-            let next_tok = LlamaToken(next_id);
-
-            if self.model.model.is_eog_token(next_tok) {
-                break;
             }
-
-            let piece = self
-                .model
-                .model
-                .token_to_piece(next_tok, &mut decoder, false, None)
-                .map_err(|e| {
-                    GenerationError::Generation(format!("llama.cpp token_to_piece: {}", e))
-                })?;
-            out.push_str(&piece);
-
-            if let Some(cb) = callback.as_deref_mut() {
-                if !cb(next_id as u32) {
-                    break;
-                }
-            }
-
-            if let Some(deadline) = params.deadline {
-                if std::time::Instant::now() >= deadline {
-                    break;
-                }
-            }
-
-            batch.clear();
-            batch.add(next_tok, pos, &[0], true).map_err(|e| {
-                GenerationError::Generation(format!("llama.cpp batch.add(step): {}", e))
-            })?;
             ctx.decode(&mut batch).map_err(|e| {
-                GenerationError::Generation(format!("llama.cpp decode(step): {}", e))
+                GenerationError::Generation(format!("llama.cpp decode(prompt): {}", e))
             })?;
-            pos += 1;
-        }
 
-        Ok(out)
+            let mut decoder = encoding_rs::UTF_8.new_decoder();
+            let mut out = String::new();
+            let mut pos = prompt_tokens.len() as i32;
+
+            for _step in 0..params.max_tokens {
+                let logits = ctx.get_logits_ith(batch.n_tokens() - 1);
+                let next_id = argmax(logits);
+                let next_tok = LlamaToken(next_id);
+
+                if model.is_eog_token(next_tok) {
+                    break;
+                }
+
+                let piece = model
+                    .token_to_piece(next_tok, &mut decoder, /* special = */ false, None)
+                    .map_err(|e| {
+                        GenerationError::Generation(format!("llama.cpp token_to_piece: {}", e))
+                    })?;
+                out.push_str(&piece);
+
+                if let Some(cb) = callback.as_deref_mut() {
+                    if !cb(next_id as u32) {
+                        break;
+                    }
+                }
+
+                if let Some(deadline) = params.deadline {
+                    if std::time::Instant::now() >= deadline {
+                        break;
+                    }
+                }
+
+                batch.clear();
+                batch.add(next_tok, pos, &[0], true).map_err(|e| {
+                    GenerationError::Generation(format!("llama.cpp batch.add(step): {}", e))
+                })?;
+                ctx.decode(&mut batch).map_err(|e| {
+                    GenerationError::Generation(format!("llama.cpp decode(step): {}", e))
+                })?;
+                pos += 1;
+            }
+
+            Ok(out)
+        })
     }
 }
 
@@ -421,7 +408,8 @@ impl TextCompleter for LlamaCppTextCompleter<'_> {
 
         let prompt = self
             .model
-            .model
+            .bundle
+            .borrow_owner()
             .apply_chat_template(template, &chat, /* add_ass = */ true)
             .map_err(|e| {
                 GenerationError::Generation(format!("llama.cpp apply_chat_template: {}", e))
@@ -444,7 +432,6 @@ fn argmax(logits: &[f32]) -> i32 {
     best_i
 }
 
-/// Construct an `LlamaCppModel` from a parsed `ModelSpec`.
 pub fn load_llama_cpp_model(
     spec: &ModelSpec,
     profile: OptProfile,
@@ -476,15 +463,16 @@ pub fn load_llama_cpp_model(
         .with_context(|| format!("llama.cpp load_from_file: {}", gguf_path.display()))?;
 
     let template = model.chat_template(None).ok();
+    let pool_n_ctx = DEFAULT_POOL_N_CTX.min(model.n_ctx_train());
+
+    let bundle = ModelBundle::new(model, |_model| ContextPool {
+        pool: Mutex::new(VecDeque::new()),
+    });
 
     let model_id = gguf_path
         .file_stem()
         .map(|s| s.to_string_lossy().to_string())
         .unwrap_or_else(|| "llama-cpp-model".into());
-
-    // Cap pool ctx size at what the model was trained for. Some small
-    // models have n_ctx_train < DEFAULT_POOL_N_CTX.
-    let pool_n_ctx = DEFAULT_POOL_N_CTX.min(model.n_ctx_train());
 
     log::info!(
         "llama_cpp backend: loaded '{}' (profile={:?}, path={}, template={}, pool_n_ctx={})",
@@ -496,11 +484,10 @@ pub fn load_llama_cpp_model(
     );
 
     Ok(LlamaCppModel {
-        context_pool: Mutex::new(VecDeque::new()),
-        pool_n_ctx,
+        bundle,
         backend,
-        model,
         template,
+        pool_n_ctx,
         gguf_path,
         model_id,
         profile,

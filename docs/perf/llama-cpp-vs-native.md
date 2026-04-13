@@ -134,6 +134,24 @@ Benchmark each daemon in turn:
   -n 10 -c 1 -t 60
 ```
 
+## A note on the pool implementation
+
+The pool is a self-referential struct: `LlamaCppModel` holds both a
+`LlamaModel` (weights) and a `Mutex<VecDeque<LlamaContext<'_>>>` whose
+contexts borrow from that model. An earlier version used an `unsafe`
+`mem::transmute` to lie about the context lifetime as `'static` and
+relied on field-declaration order for safe drop. That's brittle —
+any future contributor doing `mem::swap` on two `LlamaCppModel`
+values would silently produce use-after-free (each pool pointing at
+the other's model). Production-grade code can't rely on a
+not-documented-in-the-struct-definition invariant.
+
+The shipped version uses the `self_cell` crate, which pins the
+owner and enforces the invariant at the type level — `mem::swap`
+doesn't compile, period. The one `unsafe` that remains is `unsafe
+impl Send for ContextPool` (llama.cpp's `*mut llama_context` is
+`!Send` by default; the `Mutex` serializes access).
+
 ## Context pooling — implementation notes
 
 The fresh-per-call strategy allocated ~44 MB of KV cache per
