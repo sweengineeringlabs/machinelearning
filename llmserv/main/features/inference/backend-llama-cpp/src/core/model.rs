@@ -22,7 +22,7 @@
 //! semantics.
 
 use std::path::PathBuf;
-use std::sync::OnceLock;
+use std::sync::{Mutex, OnceLock};
 
 use anyhow::{Context as _, Result, anyhow, bail};
 use llama_cpp_2::context::params::LlamaContextParams;
@@ -38,19 +38,29 @@ use rustml_model::{ModelError, ModelResult, OptProfile};
 use rustml_tokenizer::{Tokenizer, TokenizerError, TokenizerResult};
 
 /// Process-wide `llama.cpp` backend handle. `llama_backend_init` may only
-/// be called once per process — `OnceLock` enforces that.
+/// succeed once per process; subsequent calls error with
+/// `BackendAlreadyInitialized`. We use double-checked locking so only the
+/// first caller runs `init()`; later callers get the cached handle.
 static BACKEND: OnceLock<LlamaBackend> = OnceLock::new();
+static BACKEND_INIT_LOCK: Mutex<()> = Mutex::new(());
 
 fn get_backend() -> Result<&'static LlamaBackend> {
     if let Some(b) = BACKEND.get() {
         return Ok(b);
     }
-    let new_backend = LlamaBackend::init().context("llama_backend_init failed")?;
-    match BACKEND.set(new_backend) {
-        Ok(()) => Ok(BACKEND.get().expect("just set")),
-        // Race: another thread beat us. Drop our init, use theirs.
-        Err(_) => Ok(BACKEND.get().expect("race: another thread won init")),
+    let _guard = BACKEND_INIT_LOCK
+        .lock()
+        .map_err(|_| anyhow!("backend init mutex poisoned"))?;
+    // Re-check under the lock — another thread may have won the race
+    // between our first check and acquiring the mutex.
+    if let Some(b) = BACKEND.get() {
+        return Ok(b);
     }
+    let new_backend = LlamaBackend::init().context("llama_backend_init failed")?;
+    BACKEND
+        .set(new_backend)
+        .map_err(|_| anyhow!("BACKEND was set between double-check and set"))?;
+    Ok(BACKEND.get().expect("just set"))
 }
 
 /// A loaded llama.cpp model. Holds weights for the daemon's lifetime;
@@ -109,12 +119,18 @@ impl Tokenizer for LlamaCppModel {
     }
 
     fn decode(&self, tokens: &[u32]) -> TokenizerResult<String> {
+        // `special = true` so control tokens (BOS, EOS, chat-turn
+        // markers) render as their string form instead of erroring
+        // with `UnknownTokenType`. Callers who want the raw text
+        // without special tokens should filter them beforehand — our
+        // generation loop already skips EOG via `is_eog_token` so
+        // streamed output is already clean.
         let mut decoder = encoding_rs::UTF_8.new_decoder();
         let mut out = String::new();
         for &t in tokens {
             let piece = self
                 .model
-                .token_to_piece(LlamaToken(t as i32), &mut decoder, false, None)
+                .token_to_piece(LlamaToken(t as i32), &mut decoder, true, None)
                 .map_err(|e| {
                     TokenizerError::TokenizerError(format!(
                         "llama.cpp token_to_piece({}): {}",
