@@ -81,6 +81,25 @@ retained because they justify the pooling change.
 Ollama: p50 −15%, p95 −21%, p99 −17%. Throughput up 66% vs the
 pre-pooling version and 19% vs Ollama.
 
+#### Second run on a less-loaded box
+
+The benches above came from one bench session. A later session
+(machine quieter, fewer background dev processes) reproduced the
+shape and tightened both backends:
+
+| Backend             | min | p50 | p95 | p99 | req/sec |
+|---------------------|----:|----:|----:|----:|--------:|
+| Ollama (11434)      | 525 | 550 | 621 | **2578** | 1.68 |
+| swellmd `llama_cpp` — pooled | **419** | **489** | **560** | **616** | **2.03** |
+
+Shape holds: swellmd pool beats Ollama at every percentile,
+tighter tail (p99−p50 = 127 ms vs Ollama's 2028 ms spike on one
+outlier). Absolute numbers shifted by ~60–100 ms at p50 between
+the two runs, which is what the variance caveat predicts.
+
+If you reproduce these and land between these two rows, you're
+in the expected envelope.
+
 ## Interpretation
 
 ### Native Rust vs llama.cpp
