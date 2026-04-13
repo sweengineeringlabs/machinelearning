@@ -1179,7 +1179,38 @@ a real workload.
 
 ---
 
-### ~~P9: Native-Rust gemma3 forward-pass quality~~ — FIXED (commit `<TBD>`)
+### P10: Audit `as_slice_f32()` callsites for the same contiguity bug class
+
+Same root cause as P9 likely affects other tensor-op call sites.
+Audit run on 2026-04-13 found:
+
+| Callsite | Per-row math? | Status |
+|---|---|---|
+| `RMSNorm::forward` | yes | ✅ FIXED in P9 (commit `8430e08`) |
+| `RMSNorm::forward_with_normalized` | yes | ✅ FIXED in commit `<TBD>` |
+| `LayerNorm::forward_with_normalized` (called by `forward`) | yes | ✅ FIXED in commit `<TBD>` |
+| `Activation::Gelu::forward` (gelu/silu/relu/...) | element-wise | ⚠️ Latent bug — applies f to raw bytes then constructs new tensor via `from_vec`, so logical positions of output don't match input's logical layout for non-contiguous inputs. Currently dormant because activations are only called on outputs of Linear (which produce contiguous). Triggered the moment a transpose appears upstream of an activation. |
+| `Tensor::add/sub/mul/div` (element-wise binary ops) | element-wise | ⚠️ Latent bug — same pattern as activations. Currently dormant in our forward pass (residual addition operates on contiguous tensors). |
+
+The structural fix would be to make `as_slice_f32()` itself error
+on non-contiguous tensors, forcing every callsite to be explicit
+(either `.to_contiguous().as_slice_f32()` or
+`if is_contiguous() { ... } else { ... }`). That's a wider API
+change touching every consumer; deferred until someone has time to
+do it properly.
+
+For now: the active bugs (RMSNorm, LayerNorm, RMSNorm sibling) are
+fixed. Gemma3 chat completions verified working on native_rust.
+Other architectures (gpt2, llama, mistral, falcon, mixtral, qwen,
+phi, bert) likely benefit too since LayerNorm/RMSNorm are shared,
+but content-correctness on each remains untested per the lessons-
+learned doc — the content-correctness CI test from the lessons
+section should be built before claiming any of those work end-to-
+end.
+
+---
+
+### ~~P9: Native-Rust gemma3 forward-pass quality~~ — FIXED (commit `8430e08` + LayerNorm/forward_with_normalized in `<TBD>`)
 
 **Root cause:** `DefaultRmsNorm::forward` called
 `input.as_slice_f32()` directly. That method returns raw storage

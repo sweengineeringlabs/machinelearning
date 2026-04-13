@@ -123,8 +123,21 @@ impl Norm for DefaultLayerNorm {
             )));
         }
 
-        let data = input.as_slice_f32()
-            .map_err(|e| NnLayerError::Tensor(e))?;
+        // Contiguity guard: as_slice_f32() returns raw storage bytes
+        // regardless of whether the tensor's logical shape is
+        // contiguous. Per-row LayerNorm needs row-major data, so
+        // materialize a contiguous copy if the input came from a
+        // non-contiguous op (transpose, slice). Same root cause as
+        // the RMSNorm fix in commit 8430e08 (P9). gamma and beta are
+        // model parameters loaded once and stored contiguously, so
+        // direct slice is fine for them.
+        let owned_data: Vec<f32>;
+        let data: &[f32] = if input.is_contiguous() {
+            input.as_slice_f32().map_err(|e| NnLayerError::Tensor(e))?
+        } else {
+            owned_data = input.iter().collect();
+            &owned_data
+        };
         let gamma = self.gamma.as_slice_f32()
             .map_err(|e| NnLayerError::Tensor(e))?;
         let beta = self.beta.as_slice_f32()

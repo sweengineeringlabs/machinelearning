@@ -140,7 +140,14 @@ impl Norm for DefaultRmsNorm {
             )));
         }
 
-        let data = input.as_slice_f32().map_err(NnLayerError::Tensor)?;
+        // Same contiguity guard as `forward` — see comment there.
+        let owned_data: Vec<f32>;
+        let data: &[f32] = if input.is_contiguous() {
+            input.as_slice_f32().map_err(NnLayerError::Tensor)?
+        } else {
+            owned_data = input.iter().collect();
+            &owned_data
+        };
 
         let effective_weight = if self.offset == 0.0 {
             self.weight.clone()
