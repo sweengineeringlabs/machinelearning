@@ -955,6 +955,7 @@ mod tests {
 
     fn tiny_model() -> LlmModel {
         let config = ModelConfig {
+            architecture: "gpt2".to_string(),
             dim: 64,
             hidden_dim: 256,
             n_layers: 2,
