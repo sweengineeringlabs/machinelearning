@@ -19,6 +19,14 @@ path = "main/src/bin/serve.rs"
 name = "dump-logits-native"
 path = "main/src/bin/dump_logits_native.rs"
 
+# Content-correctness regression tests. Live under main/tests/
+# because the crate uses a nested layout (lib.rs is in main/src/);
+# Cargo's tests/ auto-discovery doesn't reach that dir, so each
+# integration test needs an explicit [[test]] entry.
+[[test]]
+name = "content_correctness"
+path = "main/tests/content_correctness.rs"
+
 [features]
 default = []
 # Enables the llama.cpp-backed model backend. Pulls in the

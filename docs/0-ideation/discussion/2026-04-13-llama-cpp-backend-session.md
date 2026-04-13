@@ -198,3 +198,88 @@ Cache locations (Windows-specific):
 To resume work: read this file, then `git log c5e9bdd..HEAD --oneline`
 for the commit-by-commit history, then `llmserv/BACKLOG.md` P7.C and
 P9 for the open work.
+
+## Late-session update — P9 fixed, P10 found and fixed, content-correctness shipped
+
+After the summary above was written, the session continued on and
+closed out the open quality work:
+
+### P9 root cause
+
+`Tensor::as_slice_f32()` returns the raw underlying storage bytes
+regardless of the tensor's stride/offset metadata. `DefaultRmsNorm`
+called it directly on the input tensor, then indexed rows via
+`i * last_dim` — which silently reads the wrong data whenever the
+input is a non-contiguous view (e.g. after transpose/slice/reshape).
+Gemma3's forward pass feeds non-contiguous tensors into RMSNorm, so
+the normalization statistics were computed over garbage bytes and
+the output drifted off-prompt.
+
+Fix in `main/features/normalization/src/core/rms_norm.rs`
+(`forward` and `forward_with_normalized`): materialize a row-major
+copy via a new helper before indexing. Helper landed in
+`main/features/tensor/src/core/tensor/tensor.rs`:
+
+```rust
+pub fn contiguous_slice_f32(&self) -> TensorResult<Cow<'_, [f32]>> {
+    if self.is_contiguous() {
+        Ok(Cow::Borrowed(self.as_slice_f32()?))
+    } else {
+        Ok(Cow::Owned(self.iter().collect()))
+    }
+}
+```
+
+Zero cost when input is already contiguous (the common case);
+materializes a copy only for the non-contiguous views that the
+old code was silently corrupting.
+
+### P10 — same bug class in 4 more places
+
+Audited every `as_slice_f32()` caller that indexed by logical
+position. Same structural issue in:
+
+- `main/features/normalization/src/core/layer_norm.rs`
+- `main/features/activation/src/core/activations.rs` (Gelu, Silu)
+- `main/features/tensor/src/core/tensor/math.rs` (add/sub/mul/div)
+
+All switched to the helper. Element-wise activations over
+non-contiguous inputs were writing `f(value)` at the wrong logical
+position — latent bug class, not currently triggered in production
+paths but would corrupt any future model that feeds non-contiguous
+tensors through these ops.
+
+`as_slice_f32()` doc-comment now warns callers that it returns raw
+storage bytes regardless of logical layout, and points at
+`contiguous_slice_f32()` as the safe default.
+
+### Content-correctness infrastructure shipped
+
+`llmserv/main/features/daemon/main/tests/content_correctness.rs`:
+three fixed prompts ("capital of France", "13 × 17", "largest
+country in South America"), each with a substring allowlist. Both
+backends tested with `complete_turn_stream` end-to-end through the
+same code path the daemon uses. Gated by `#[ignore]` + env vars
+(`LLMSERV_CC_HF_ID` / `LLMSERV_CC_GGUF`) so the suite runs in CI
+only where a test model is available.
+
+Ran both locally in release mode against real models:
+
+- `native_rust` + `google/gemma-3-1b-it` safetensors: 3/3 pass
+- `llama_cpp` + gemma3-1b GGUF: 3/3 pass
+
+Both backends now produce content-correct chat completions on
+gemma3-1b. The metaprompt's "no fake work" test (*if I delete the
+implementation, does this test still pass?*) fails cleanly — delete
+the forward pass and all three assertions fire.
+
+### Status at pickup
+
+- P9 closed in `BACKLOG.md`
+- P10 closed in `BACKLOG.md`
+- Content-correctness test lives in the daemon crate; needs to be
+  wired into CI with a tiny test model (follow-up — see
+  `BACKLOG.md`)
+- Other architectures (gpt2, llama, mistral, falcon, mixtral, qwen,
+  phi, bert) have never been content-tested. `CASES` is reusable;
+  adding a test per architecture is mostly env-var wiring.
