@@ -1,12 +1,12 @@
+use std::collections::HashMap;
 use std::net::SocketAddr;
-use std::path::PathBuf;
 use std::sync::Arc;
 
-use anyhow::{Result, bail};
+use anyhow::{Result, anyhow, bail};
 
 use swellmd::{
-    AppConfig, AppState, Model, ModelSource, SemaphoreThrottle, Throttle,
-    build_router, load_config, load_gguf, load_safetensors,
+    AppConfig, AppState, Model, ModelBackend, ModelBackendLoader, NativeRustBackendLoader,
+    SemaphoreThrottle, Throttle, build_router, load_config,
 };
 use rustml_model::OptProfile;
 use rustml_thread_config::ThreadConfig;
@@ -36,7 +36,8 @@ async fn main() -> Result<()> {
     let thread_config = rustml_thread_config::AutoThreadConfig::new();
     log::info!("Thread config: {} threads ({})", thread_config.num_threads(), thread_config.describe());
 
-    let model = load_model(&loaded.app, profile, &loaded.merged_toml)?;
+    let registry = build_backend_registry();
+    let model = load_model(&registry, &loaded.app, profile, &loaded.merged_toml)?;
     let model_id = model.model_id().to_string();
 
     let throttle = build_throttle(&loaded.app)?;
@@ -80,21 +81,39 @@ fn apply_logging_filter(cfg: &AppConfig) {
     }
 }
 
-fn load_model(cfg: &AppConfig, profile: OptProfile, merged_toml: &str) -> Result<Box<dyn Model>> {
-    match cfg.model.source {
-        ModelSource::Safetensors => {
-            let id = cfg.model.id.as_deref().ok_or_else(|| {
-                anyhow::anyhow!("[model].source = \"safetensors\" requires [model].id")
-            })?;
-            Ok(Box::new(load_safetensors(id, profile, merged_toml)?))
-        }
-        ModelSource::Gguf => {
-            let path_str = cfg.model.path.as_deref().ok_or_else(|| {
-                anyhow::anyhow!("[model].source = \"gguf\" requires [model].path")
-            })?;
-            Ok(Box::new(load_gguf(&PathBuf::from(path_str), profile)?))
-        }
-    }
+type BackendRegistry = HashMap<ModelBackend, Box<dyn ModelBackendLoader>>;
+
+/// SPI registration point — every supported backend registers a loader here.
+/// The native-Rust loader is always present; `LlamaCpp` is included only
+/// when the daemon is built with `--features backend-llama-cpp`.
+fn build_backend_registry() -> BackendRegistry {
+    let mut reg: BackendRegistry = HashMap::new();
+    reg.insert(ModelBackend::NativeRust, Box::new(NativeRustBackendLoader));
+
+    #[cfg(feature = "backend-llama-cpp")]
+    reg.insert(
+        ModelBackend::LlamaCpp,
+        Box::new(rustml_backend_llama_cpp::LlamaCppBackendLoader),
+    );
+
+    reg
+}
+
+fn load_model(
+    registry: &BackendRegistry,
+    cfg: &AppConfig,
+    profile: OptProfile,
+    merged_toml: &str,
+) -> Result<Box<dyn Model>> {
+    let loader = registry.get(&cfg.model.backend).ok_or_else(|| {
+        anyhow!(
+            "[model].backend = {:?} is not registered — rebuild with the \
+             appropriate feature flag (e.g. --features backend-llama-cpp)",
+            cfg.model.backend
+        )
+    })?;
+    log::info!("Model backend: {}", loader.name());
+    loader.load(&cfg.model, profile, merged_toml)
 }
 
 /// DI point: construct the throttle implementation selected by config.

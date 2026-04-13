@@ -24,6 +24,8 @@ members = [
     "main/features/inference/prefill",
     "main/features/inference/thread-config",
     "main/features/inference/compute",
+    "main/features/inference/backend-api",
+    "main/features/inference/backend-llama-cpp",
     "main/features/inference/architectures/llama",
     "main/features/inference/architectures/gpt2",
     "main/features/inference/architectures/falcon",
@@ -90,6 +92,10 @@ tokenizers = "0.21"
 # Web server deps (daemon, embedding/server)
 axum = "0.7"
 tokio-stream = "0.1"
+# llama.cpp bindings — C++ toolchain + cmake required when actually
+# depended on. Consumers keep it behind a feature flag so pure-Rust
+# builds stay toolchain-free.
+llama-cpp-2 = "0.1.143"
 
 # ──────────────────────────────────────────────────────────────────────
 # Cross-workspace foundations (consumed from the root workspace via path).
@@ -116,6 +122,8 @@ rustml-quantizer        = { path = "main/features/inference/quantizer" }
 rustml-prefill          = { path = "main/features/inference/prefill" }
 rustml-thread-config    = { path = "main/features/inference/thread-config" }
 llmcompute              = { path = "main/features/inference/compute" }
+llmbackend              = { path = "main/features/inference/backend-api" }
+rustml-backend-llama-cpp = { path = "main/features/inference/backend-llama-cpp" }
 rustml-arch-llama       = { path = "main/features/inference/architectures/llama" }
 rustml-arch-gpt2        = { path = "main/features/inference/architectures/gpt2" }
 rustml-arch-falcon      = { path = "main/features/inference/architectures/falcon" }

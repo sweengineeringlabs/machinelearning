@@ -13,6 +13,17 @@ path = "main/src/lib.rs"
 name = "swellmd"
 path = "main/src/bin/serve.rs"
 
+[features]
+default = []
+# Enables the llama.cpp-backed model backend. Pulls in the
+# `rustml-backend-llama-cpp` crate with its own `llama-cpp` feature active,
+# which in turn requires a C++ toolchain (cmake + MSVC/g++/clang) once the
+# `llama-cpp-2` integration lands. Default builds stay pure-Rust.
+backend-llama-cpp = [
+    "dep:rustml-backend-llama-cpp",
+    "rustml-backend-llama-cpp/llama-cpp",
+]
+
 [dependencies]
 axum = { version = "0.8", features = ["json"] }
 tokio.workspace = true
@@ -45,6 +56,8 @@ rustml-generation.workspace = true
 rustml-hub.workspace = true
 rustml-gguf.workspace = true
 rustml-tokenizer.workspace = true
+llmbackend.workspace = true
+rustml-backend-llama-cpp = { workspace = true, optional = true }
 tokio-stream = "0.1"
 futures-util.workspace = true
 toml.workspace = true

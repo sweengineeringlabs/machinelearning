@@ -1639,6 +1639,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "llmbackend"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "rustml-generation",
+ "rustml-inference-layers",
+ "rustml-model",
+ "rustml-tokenizer",
+ "serde",
+ "swe-ml-tensor",
+ "toml",
+]
+
+[[package]]
 name = "llmcompute"
 version = "0.1.0"
 dependencies = [
@@ -2588,6 +2602,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustml-backend-llama-cpp"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "llmbackend",
+ "log",
+ "rustml-generation",
+ "rustml-inference-layers",
+ "rustml-model",
+ "rustml-tokenizer",
+ "swe-ml-tensor",
+]
+
+[[package]]
 name = "rustml-generation"
 version = "0.1.0"
 dependencies = [
@@ -3039,6 +3067,7 @@ dependencies = [
  "dirs",
  "env_logger",
  "futures-util",
+ "llmbackend",
  "log",
  "rayon",
  "reqwest",
@@ -3050,6 +3079,7 @@ dependencies = [
  "rustml-arch-llama",
  "rustml-arch-mixtral",
  "rustml-arch-nomic-bert",
+ "rustml-backend-llama-cpp",
  "rustml-generation",
  "rustml-gguf",
  "rustml-hub",

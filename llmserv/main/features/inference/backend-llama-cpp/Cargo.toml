@@ -1,0 +1,28 @@
+[package]
+name = "rustml-backend-llama-cpp"
+description = "llama.cpp-backed ModelBackendLoader — architectural skeleton; llama-cpp-2 integration is a separate follow-up"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+# When `llama-cpp` is off (default), the crate compiles to an empty
+# shell — workspace builds stay fast and toolchain-free. When on, it
+# exposes `LlamaCppBackendLoader`. The llama-cpp-2 C++ dependency will
+# be added here when the real implementation lands (follow-up subtask);
+# the feature flag stays so the daemon's existing `backend-llama-cpp`
+# feature keeps working.
+[features]
+default = []
+llama-cpp = []
+
+[dependencies]
+llmbackend.workspace = true
+rustml-generation.workspace = true
+rustml-tokenizer.workspace = true
+rustml-inference-layers.workspace = true
+rustml-model.workspace = true
+swe-ml-tensor.workspace = true
+anyhow.workspace = true
+log.workspace = true

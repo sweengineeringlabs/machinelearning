@@ -1,10 +1,10 @@
-use crate::api::model::Model;
 use crate::api::throttle::Throttle;
+use llmbackend::Model;
 use rustml_inference_layers::PoolingStrategy;
 use rustml_model::{LanguageModel, LlmModel, ModelResult, OptProfile};
 use rustml_generation::{Generator, TextCompleter};
 use rustml_tokenizer::Tokenizer;
-use swe_ml_tensor::Tensor;
+use swe_ml_tensor::{DType, Tensor, f32_vec_to_bytes};
 
 /// Default model instance: holds an LLM, tokenizer, and generation config.
 pub struct DefaultModel {
@@ -50,8 +50,16 @@ impl Model for DefaultModel {
         self.tokenizer.as_ref()
     }
 
-    fn embed(&self, input_ids: &Tensor, strategy: PoolingStrategy) -> ModelResult<Tensor> {
-        self.model.embed(input_ids, strategy)
+    fn embed(&self, token_ids: &[u32], strategy: PoolingStrategy) -> ModelResult<Vec<f32>> {
+        // The native-Rust forward pass works on `Tensor` internally.
+        // Construct one here (shape [1, seq_len], F32) so the trait
+        // surface doesn't have to.
+        let seq_len = token_ids.len();
+        let input_data: Vec<f32> = token_ids.iter().map(|&t| t as f32).collect();
+        let input_tensor =
+            Tensor::new(f32_vec_to_bytes(input_data), vec![1, seq_len], DType::F32);
+        let out = self.model.embed(&input_tensor, strategy)?;
+        Ok(out.iter().collect())
     }
 }
 

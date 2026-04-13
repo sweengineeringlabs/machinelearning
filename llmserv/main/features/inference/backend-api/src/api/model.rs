@@ -2,7 +2,6 @@ use rustml_generation::TextCompleter;
 use rustml_inference_layers::PoolingStrategy;
 use rustml_model::ModelResult;
 use rustml_tokenizer::Tokenizer;
-use swe_ml_tensor::Tensor;
 
 /// Interface for a loaded model instance ready for inference.
 ///
@@ -10,9 +9,9 @@ use swe_ml_tensor::Tensor;
 /// backend, a `llama.cpp`-backed backend, a remote-HTTP proxy, or a test
 /// mock can all satisfy this trait — the router code is coupled to the
 /// trait, not to any concrete model type. No `Tensor` or `KVCache` types
-/// appear on the `TextCompleter` returned by `open_text_completer`, so
-/// backends that own their own decode state (like `llama.cpp`) aren't
-/// forced to fake our concrete types.
+/// cross this trait surface, so backends that own their own internal
+/// representations (like `llama.cpp`) aren't forced to fake our
+/// concrete types.
 pub trait Model: Send + Sync {
     /// Model identifier (e.g. HuggingFace model ID or GGUF filename).
     fn model_id(&self) -> &str;
@@ -26,6 +25,15 @@ pub trait Model: Send + Sync {
     /// Access the tokenizer.
     fn tokenizer(&self) -> &dyn Tokenizer;
 
-    /// Compute embeddings for the given input with the specified pooling strategy.
-    fn embed(&self, input_ids: &Tensor, strategy: PoolingStrategy) -> ModelResult<Tensor>;
+    /// Compute a pooled embedding for a single tokenized input.
+    ///
+    /// Returns a flat `Vec<f32>` whose length equals the model's
+    /// embedding dimension — the pooling strategy collapses the sequence
+    /// dimension. Backends that don't serve embeddings should return
+    /// a `ModelError::Model("embeddings not supported by ...")`.
+    ///
+    /// Callers supply token IDs directly rather than a `Tensor` so the
+    /// trait stays free of native-Rust internal types. Backends
+    /// construct whatever internal representation they need themselves.
+    fn embed(&self, token_ids: &[u32], strategy: PoolingStrategy) -> ModelResult<Vec<f32>>;
 }

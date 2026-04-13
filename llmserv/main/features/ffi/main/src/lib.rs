@@ -48,7 +48,6 @@ use std::sync::RwLock;
 
 use rustml_inference_layers::PoolingStrategy;
 use rustml_model::OptProfile;
-use swe_ml_tensor::{DType, Tensor, f32_vec_to_bytes};
 
 use rustml_generation::CompletionParams;
 use swellmd::{Model, ModelSource};
@@ -401,22 +400,12 @@ pub unsafe extern "C" fn llmserv_embed(
             LlmError::Runtime
         })?;
 
-        let seq_len = ids.len();
-        let input_data: Vec<f32> = ids.iter().map(|&t| t as f32).collect();
-        let input_tensor = Tensor::new(
-            f32_vec_to_bytes(input_data),
-            vec![1, seq_len],
-            DType::F32,
-        );
-
-        let embedding = model
-            .embed(&input_tensor, PoolingStrategy::Mean)
+        let vec = model
+            .embed(&ids, PoolingStrategy::Mean)
             .map_err(|e| {
                 log::error!("llmserv_embed: embed failed: {}", e);
                 LlmError::Runtime
             })?;
-
-        let vec: Vec<f32> = embedding.iter().collect();
         let dim = vec.len();
         let mut boxed = vec.into_boxed_slice();
         let p = boxed.as_mut_ptr();

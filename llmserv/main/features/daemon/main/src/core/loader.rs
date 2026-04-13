@@ -1,7 +1,7 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::Instant;
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow};
 
 use rustml_gguf::GGUFFile;
 use rustml_hub::HubApi;
@@ -12,7 +12,41 @@ use rustml_model::{
 use rustml_tokenizer::{BpeTokenizer, GgufTokenizer, HFTokenizer, Tokenizer};
 use rustml_quantizer::Quantizer;
 
+use llmbackend::{Model, ModelBackendLoader, ModelSource, ModelSpec};
+
 use super::state::DefaultModel;
+
+/// Native Rust backend loader. Dispatches on `[model].source` to the
+/// SafeTensors or GGUF path, both of which produce a `DefaultModel`.
+pub struct NativeRustBackendLoader;
+
+impl ModelBackendLoader for NativeRustBackendLoader {
+    fn name(&self) -> &'static str {
+        "native_rust"
+    }
+
+    fn load(
+        &self,
+        spec: &ModelSpec,
+        profile: OptProfile,
+        merged_toml: &str,
+    ) -> Result<Box<dyn Model>> {
+        match spec.source {
+            ModelSource::Safetensors => {
+                let id = spec.id.as_deref().ok_or_else(|| {
+                    anyhow!("[model].source = \"safetensors\" requires [model].id")
+                })?;
+                Ok(Box::new(load_safetensors(id, profile, merged_toml)?))
+            }
+            ModelSource::Gguf => {
+                let path_str = spec.path.as_deref().ok_or_else(|| {
+                    anyhow!("[model].source = \"gguf\" requires [model].path")
+                })?;
+                Ok(Box::new(load_gguf(&PathBuf::from(path_str), profile)?))
+            }
+        }
+    }
+}
 
 /// Create the model registry with all supported architectures.
 fn create_registry() -> ModelBuilderRegistry {

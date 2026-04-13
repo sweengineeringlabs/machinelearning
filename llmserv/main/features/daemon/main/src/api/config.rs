@@ -2,8 +2,11 @@
 //!
 //! The schema mirrors the sections of `llmserv/main/config/application.toml`.
 //! Only sections the daemon consumes are defined here; unknown sections are
-//! tolerated and ignored.
+//! tolerated and ignored. Backend-selection types (`ModelSpec`,
+//! `ModelBackend`, `ModelSource`) live in `llmbackend` so backend crates
+//! can consume them without pulling in the daemon's HTTP stack.
 
+use llmbackend::ModelSpec;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -43,37 +46,6 @@ fn default_host() -> String {
 
 fn default_port() -> u16 {
     8080
-}
-
-/// Which model to load and from where.
-#[derive(Debug, Deserialize)]
-pub struct ModelSpec {
-    #[serde(default)]
-    pub source: ModelSource,
-    /// HuggingFace repo ID (required when source = "safetensors").
-    #[serde(default)]
-    pub id: Option<String>,
-    /// Local GGUF path (required when source = "gguf").
-    #[serde(default)]
-    pub path: Option<String>,
-}
-
-impl Default for ModelSpec {
-    fn default() -> Self {
-        Self {
-            source: ModelSource::default(),
-            id: None,
-            path: None,
-        }
-    }
-}
-
-#[derive(Debug, Deserialize, Default)]
-#[serde(rename_all = "lowercase")]
-pub enum ModelSource {
-    #[default]
-    Safetensors,
-    Gguf,
 }
 
 #[derive(Debug, Deserialize)]

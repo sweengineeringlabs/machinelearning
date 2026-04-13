@@ -35,10 +35,15 @@ gguf_path = ""
 # ──────────────────────────────────────────────────────────────────────
 # [model] — which model to load
 #
+# backend = "native_rust" → native Rust forward pass (default)
+# backend = "llama_cpp"   → llama.cpp-backed; requires building with
+#                           --features backend-llama-cpp (gguf only)
+#
 # source = "safetensors" → loads from HuggingFace Hub (cached), id required
 # source = "gguf"        → loads from local GGUF file,        path required
 # ──────────────────────────────────────────────────────────────────────
 [model]
+backend = "native_rust"
 source = "safetensors"
 id = "google/gemma-3-1b-it"
 # path = "/path/to/model.gguf"  # used when source = "gguf"

@@ -10,7 +10,6 @@ use axum::{Json, Router};
 use futures_util::stream;
 use tokio_stream::StreamExt;
 
-use swe_ml_tensor::{DType, Tensor, f32_vec_to_bytes};
 use swe_ml_embedding::l2_normalize;
 use rustml_generation::CompletionParams;
 use rustml_inference_layers::PoolingStrategy;
@@ -389,16 +388,10 @@ async fn embeddings(
         let mut results: Vec<(usize, Vec<f32>)> = Vec::with_capacity(all_token_ids.len());
 
         for (i, ids) in all_token_ids.iter().enumerate() {
-            let seq_len = ids.len();
-            let input_data: Vec<f32> = ids.iter().map(|&t| t as f32).collect();
-            let input_tensor = Tensor::new(f32_vec_to_bytes(input_data), vec![1, seq_len], DType::F32);
-
-            let embedding = state
+            let mut vec = state
                 .model
-                .embed(&input_tensor, PoolingStrategy::Mean)
+                .embed(ids, PoolingStrategy::Mean)
                 .map_err(|e| DaemonError::GenerationFailed(format!("Embedding failed: {}", e)))?;
-
-            let mut vec: Vec<f32> = embedding.iter().collect();
             l2_normalize(&mut vec);
             results.push((i, vec));
         }
