@@ -453,6 +453,8 @@ impl ModelConfig {
                     causal: true, rope_theta: hf.rope_theta.unwrap_or(1000000.0), head_dim: hf.head_dim,
                     sliding_window_pattern: hf.sliding_window_pattern, query_pre_attn_scalar: hf.query_pre_attn_scalar,
                     rope_local_base_freq: hf.rope_local_base_freq, rope_scaling_factor: scaling_factor,
+                    // P9 experiment: try offset 0.0 — hypothesis is that
+                    // HF safetensors stores effective (1+w) already.
                     embedding_scale: Some((hf.hidden_size as f32).sqrt()), rms_norm_offset: Some(1.0),
                     bos_token_id: Some(2), eos_token_id: Some(1), ..Default::default()
                 })

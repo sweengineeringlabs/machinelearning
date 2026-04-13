@@ -1261,26 +1261,90 @@ quality lags. Investigation narrowed by retest on 2026-04-13:
       Subsequent layers don't fix it; magnitude compounds until
       the final RMSNorm renormalizes for the lm_head.
 
-- [ ] **Bisect WITHIN layer 0.** Add intra-block dumps after each
-      sub-step (norm_1, attn_out, post_attn_norm, residual_1,
-      norm_2, ffn_out, post_ffn_norm, residual_2). The first
-      sub-step where RMS deviates from ~1 is the bug. Most likely
+- [x] **Bisect WITHIN layer 0.** Done via env-var-gated intra-
+      block dump in `TransformerBlock::forward` (sandwich-norm
+      branch). Result on gemma3-1b layer 0:
+
+      ```
+      0_input             rms=  0.99
+      1_pre_attn_norm     rms=  6.47   ← matches predicted ~6.21 (effective weight RMS)
+      2_attn_out          rms=  8.04
+      3_post_attn_norm    rms=  8.01
+      4_residual_1        rms=  8.04
+      5_pre_ffn_norm      rms=  1.15   ← unexpected: predicted ~7.30
+      6_ffn_out           rms=  1.40
+      7_post_ffn_norm     rms= 29.89   ← way too large: predicted ~6
+      8_residual_2_final  rms= 32.85
+      ```
+
+      `attention_norm` produces output RMS that matches what the
+      math predicts from the loaded weight. `ffn_norm` produces
+      output 6× SMALLER than predicted, and `post_ffn_norm`
+      produces output 5× LARGER than predicted. Asymmetric, both
+      in the FFN branch, both anomalies in same layer.
+
+      Verified loader is correct: dumped builder-time weight
+      stats match python's safetensors-direct read byte-for-byte
+      (input_layernorm: stored mean=4.55 in both; ffn_norm: 5.99
+      in both; etc.). So the bug is NOT in load or weight
+      mapping.
+
+      Verified llama.cpp uses identical 4-norm sandwich structure:
+      `cur = build_norm(inpL, attn_norm, RMS); cur = attn(cur);
+      cur = build_norm(cur, attn_post_norm, RMS); sa_out = cur +
+      inpL; cur = build_norm(sa_out, ffn_norm, RMS); cur =
+      ffn(cur); cur = build_norm(cur, ffn_post_norm, RMS); cur =
+      cur + sa_out;` (vendored llama.cpp `models/gemma3.cpp`
+      lines 42-122). Same structure as our
+      `from_weights_rms_4norm` block.
+
+      Verified llama.cpp's `build_norm` does plain `output *
+      weight` with NO +1 offset (vendored
+      `llama-graph.cpp::build_norm`, line 1011). The +1 offset is
+      pre-baked into GGUF weights at conversion time
+      (`convert_hf_to_gguf.py::Gemma3Model::norm_shift`, line
+      6883). For HF safetensors path we add +1 at forward time —
+      mathematically equivalent IF safetensors stores raw weights
+      (which I verified by inspection: weights have negative
+      values, suggesting raw not pre-offset).
+
+      **Open question for next investigation pass:** why does
+      ffn_norm produce 6× smaller output than the weight RMS
+      predicts when attention_norm matches prediction? Both go
+      through the same `RMSNorm::forward` code path. Most likely
       candidates ranked by suspicion:
 
-      1. **Attention output projection (out_proj) weights stored
-         with wrong shape/transpose.** A transposed `[1152,1024]
-         vs [1024,1152]` matmul still runs, just produces wrong
-         numbers with possibly large magnitude.
-      2. **GEGLU activation in FFN** (gemma3 uses GEGLU = SiLU(gate) * up).
-         If the gate/up are swapped or the activation is wrong,
-         output magnitude can balloon.
-      3. **Post-attention-norm or post-ffn-norm weight reading
-         the wrong tensor** (e.g. picking up an unrelated
-         transformer-block weight from the safetensors map).
-      4. **Q/K-norm with offset interaction** — gemma3 has Q-norm
-         and K-norm INSIDE attention before scoring; if the
-         offset (+1.0) is being applied twice or skipped on these,
-         attention scores would scale wrong.
+      1. **Per-row vs per-tensor RMS interaction** — for
+         residual_1 (input to ffn_norm), the 3 sequence positions
+         likely have very different magnitudes (`<bos>` vs real
+         tokens). Per-row normalization in RMSNorm should handle
+         this independently per row, but if our compute somehow
+         mixes rows or normalizes per-tensor instead of per-row,
+         outliers in one row could suppress others. Add per-row
+         dump in RMSNorm to verify each row independently
+         normalizes to RMS ≈ effective_weight RMS.
+      2. **Add weight tensor add_scalar bug** — the offset is
+         applied via `self.weight.add_scalar(self.offset)` to
+         produce effective weight. If `add_scalar` has a bug where
+         it produces a tensor with stale data or wrong values,
+         downstream multiplication produces wrong output.
+         Verify by dumping effective_weight inside RMSNorm::forward
+         immediately before compute().
+      3. **Attention `out_proj` weight shape/transpose** — sub-
+         stat narrowing showed attn_out RMS 8.04 from input RMS 6.47
+         (attn output is ~1.2× larger than its input). This is
+         within reasonable range, so probably NOT the bug — but
+         worth re-verifying with shape inspection.
+      4. **GEGLU activation in FFN** (gemma3 uses GEGLU = SiLU(gate)
+         * up). FFN_OUT was RMS 1.40 from input RMS 1.15. ~1.2×
+         scaling, also within reason.
+
+      The asymmetry is the puzzle: same RMSNorm impl, same offset,
+      different observed behavior between attention_norm (matches
+      math) and ffn_norm/post_ffn_norm (deviates wildly). Most
+      likely: per-row magnitude variation in residual_1 vs
+      embedding_scale output, interacting with how the elements
+      align with weight values element-wise.
 
 - [ ] Compare against `transformers` reference (PyTorch) as a
       tiebreaker if the bisection points somewhere ambiguous:

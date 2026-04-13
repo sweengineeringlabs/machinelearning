@@ -304,18 +304,62 @@ impl TransformerBlock {
             x.add(&moe_out).map_err(Into::into)
         } else {
             // Standard pre-norm (with optional sandwich norms for Gemma 3)
+
+            // Intra-block diagnostic dumps for the first 2 layers
+            // when LLMSERV_DUMP_INTERMEDIATES is set (P9 investigation).
+            // Costs nothing when disabled. Single static counter so
+            // we only see layer 0 + 1, not every layer.
+            let dump = std::env::var("LLMSERV_DUMP_INTERMEDIATES").is_ok();
+            let layer_n = if dump {
+                use std::sync::atomic::{AtomicUsize, Ordering};
+                static COUNTER: AtomicUsize = AtomicUsize::new(0);
+                Some(COUNTER.fetch_add(1, Ordering::Relaxed))
+            } else { None };
+            let stats = |label: &str, t: &Tensor| {
+                if let Some(n) = layer_n {
+                    if n >= 2 { return; }
+                    let v: Vec<f32> = t.iter().collect();
+                    let mut min = f32::INFINITY;
+                    let mut max = f32::NEG_INFINITY;
+                    let mut sumsq = 0.0_f32;
+                    for x in &v {
+                        if x.is_nan() { continue; }
+                        if *x < min { min = *x; }
+                        if *x > max { max = *x; }
+                        sumsq += x * x;
+                    }
+                    let rms = (sumsq / v.len() as f32).sqrt();
+                    eprintln!(
+                        "[block L{} intra] {:24}  rms={:8.4}  min={:10.4}  max={:10.4}",
+                        n, label, rms, min, max
+                    );
+                }
+            };
+
+            stats("0_input", input);
             let norm_1 = self.attention_norm.forward(input)?;
+            stats("1_pre_attn_norm", &norm_1);
             let attn_out = self.attention.forward(&norm_1)?;
+            stats("2_attn_out", &attn_out);
             let attn_out = if let Some(ref pan) = self.post_attention_norm {
-                pan.forward(&attn_out)?
+                let y = pan.forward(&attn_out)?;
+                stats("3_post_attn_norm", &y);
+                y
             } else { attn_out };
             let x = input.add(&attn_out)?;
+            stats("4_residual_1", &x);
             let norm_2 = self.ffn_norm.forward(&x)?;
+            stats("5_pre_ffn_norm", &norm_2);
             let ffn_out = self.feed_forward.forward(&norm_2)?;
+            stats("6_ffn_out", &ffn_out);
             let ffn_out = if let Some(ref pfn) = self.post_ffn_norm {
-                pfn.forward(&ffn_out)?
+                let y = pfn.forward(&ffn_out)?;
+                stats("7_post_ffn_norm", &y);
+                y
             } else { ffn_out };
-            x.add(&ffn_out).map_err(Into::into)
+            let final_out = x.add(&ffn_out)?;
+            stats("8_residual_2_final", &final_out);
+            Ok(final_out)
         }
     }
 

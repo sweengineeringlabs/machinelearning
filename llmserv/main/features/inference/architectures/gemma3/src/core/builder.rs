@@ -78,10 +78,29 @@ impl ModelBuilder for Gemma3Builder {
             let down_proj = Linear::from_weights(get_weight(&format!("layers.{i}.feed_forward.down_proj.weight"))?, None)?;
             let feed_forward = FeedForward::from_weights_geglu(up_proj, gate_proj, down_proj);
 
-            let attention_norm = RMSNorm::from_weight_with_offset(get_tensor(&format!("layers.{i}.attention_norm.weight"))?, eps, offset);
-            let ffn_norm = RMSNorm::from_weight_with_offset(get_tensor(&format!("layers.{i}.ffn_norm.weight"))?, eps, offset);
-            let post_attention_norm = RMSNorm::from_weight_with_offset(get_tensor(&format!("layers.{i}.post_attention_norm.weight"))?, eps, offset);
-            let post_ffn_norm = RMSNorm::from_weight_with_offset(get_tensor(&format!("layers.{i}.post_ffn_norm.weight"))?, eps, offset);
+            let attention_norm_w = get_tensor(&format!("layers.{i}.attention_norm.weight"))?;
+            let ffn_norm_w = get_tensor(&format!("layers.{i}.ffn_norm.weight"))?;
+            let post_attention_norm_w = get_tensor(&format!("layers.{i}.post_attention_norm.weight"))?;
+            let post_ffn_norm_w = get_tensor(&format!("layers.{i}.post_ffn_norm.weight"))?;
+            if i == 0 && std::env::var("LLMSERV_DUMP_INTERMEDIATES").is_ok() {
+                let stat = |name: &str, t: &Tensor| {
+                    let v: Vec<f32> = t.iter().collect();
+                    let mean: f32 = v.iter().sum::<f32>() / v.len() as f32;
+                    let mn = v.iter().cloned().fold(f32::INFINITY, f32::min);
+                    let mx = v.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
+                    let rms = (v.iter().map(|x| x * x).sum::<f32>() / v.len() as f32).sqrt();
+                    eprintln!("[builder L0 weight] {:28}  shape={:?}  mean={:+.4}  rms={:.4}  min={:+.4}  max={:+.4}",
+                        name, t.shape(), mean, rms, mn, mx);
+                };
+                stat("attention_norm.weight", &attention_norm_w);
+                stat("post_attention_norm.weight", &post_attention_norm_w);
+                stat("ffn_norm.weight", &ffn_norm_w);
+                stat("post_ffn_norm.weight", &post_ffn_norm_w);
+            }
+            let attention_norm = RMSNorm::from_weight_with_offset(attention_norm_w, eps, offset);
+            let ffn_norm = RMSNorm::from_weight_with_offset(ffn_norm_w, eps, offset);
+            let post_attention_norm = RMSNorm::from_weight_with_offset(post_attention_norm_w, eps, offset);
+            let post_ffn_norm = RMSNorm::from_weight_with_offset(post_ffn_norm_w, eps, offset);
 
             layers.push(TransformerBlock::from_weights_rms_4norm(attention, feed_forward, attention_norm, post_attention_norm, ffn_norm, post_ffn_norm));
         }
