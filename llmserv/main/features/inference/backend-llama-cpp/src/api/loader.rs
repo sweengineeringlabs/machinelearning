@@ -25,6 +25,6 @@ impl ModelBackendLoader for LlamaCppBackendLoader {
         profile: OptProfile,
         merged_toml: &str,
     ) -> Result<Box<dyn Model>> {
-        load_llama_cpp_model(spec, profile, merged_toml).map(|m| Box::new(m) as Box<dyn Model>)
+        load_llama_cpp_model(spec, profile, merged_toml)
     }
 }

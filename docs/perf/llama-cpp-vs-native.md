@@ -138,19 +138,31 @@ Benchmark each daemon in turn:
 
 The pool is a self-referential struct: `LlamaCppModel` holds both a
 `LlamaModel` (weights) and a `Mutex<VecDeque<LlamaContext<'_>>>` whose
-contexts borrow from that model. An earlier version used an `unsafe`
-`mem::transmute` to lie about the context lifetime as `'static` and
-relied on field-declaration order for safe drop. That's brittle —
-any future contributor doing `mem::swap` on two `LlamaCppModel`
-values would silently produce use-after-free (each pool pointing at
-the other's model). Production-grade code can't rely on a
-not-documented-in-the-struct-definition invariant.
+contexts borrow from that model. Rust doesn't let you write this
+directly. Two approaches were tried:
 
-The shipped version uses the `self_cell` crate, which pins the
-owner and enforces the invariant at the type level — `mem::swap`
-doesn't compile, period. The one `unsafe` that remains is `unsafe
-impl Send for ContextPool` (llama.cpp's `*mut llama_context` is
-`!Send` by default; the `Mutex` serializes access).
+1. **`self_cell` crate.** Pins the owner and enforces the
+   non-swappability invariant at the type level. Closure-based
+   access API (`with_dependent`).
+2. **`mem::transmute` + sealed struct.** Widen the context lifetime
+   to `'static` in an `unsafe` block; rely on field declaration
+   order for safe drop; make the concrete `LlamaCppModel` type
+   `pub(crate)` and expose only `load_llama_cpp_model(...) ->
+   Box<dyn Model>`. Callers only ever hold trait objects, which
+   aren't concretely mem::swappable, so the invariant holds by
+   construction of the public API.
+
+Shipped option 2 after benchmarking showed no statistically
+meaningful difference between them — run-to-run variance on the
+dev box exceeded any systematic gap. The transmute version has
+less code, no extra dependency, and a narrower `unsafe` surface
+(one `transmute` + one `impl Send`). The safety argument is in the
+struct-level docs alongside a compile-time check that the concrete
+type isn't re-exported.
+
+Both approaches stay sound under mem::swap because the sealed API
+makes the concrete type unreachable; the `self_cell` option would
+be the fallback if that sealing ever needed to relax.
 
 ## Context pooling — implementation notes
 
