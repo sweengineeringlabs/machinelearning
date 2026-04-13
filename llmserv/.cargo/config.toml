@@ -1,0 +1,36 @@
+# Cargo aliases for the llmserv workspace.
+#
+# The build target itself is NOT set here. Each host uses whatever its
+# rustup default is — x86_64-unknown-linux-gnu on Linux,
+# {aarch64,x86_64}-apple-darwin on macOS, x86_64-pc-windows-msvc on
+# Windows. To use a non-default target (e.g. swap -msvc for -gnu on
+# Windows), either:
+#
+#   1. Set the env var — cross-shell, per-invocation:
+#        export CARGO_BUILD_TARGET=x86_64-pc-windows-gnu
+#        cargo build-llama
+#
+#   2. Override per-command with --target:
+#        cargo build-llama --target=x86_64-pc-windows-gnu
+#
+#   3. Add the target to your personal `~/.cargo/config.toml`:
+#        [build]
+#        target = "x86_64-pc-windows-gnu"
+#
+# Don't commit a [build] target here — that would freeze every
+# contributor's output to one triple regardless of their platform.
+
+[alias]
+# Backend-llama-cpp convenience. Runs the daemon build / tests with
+# the llama.cpp-backed Model impl active. Requires a C++ toolchain on
+# PATH:
+#   Linux   → apt install cmake build-essential (or equivalent)
+#   macOS   → Xcode CLI tools (clang) + `brew install cmake`
+#   Windows → MSVC Build Tools 2022 + cmake (or MinGW paired with
+#             x86_64-pc-windows-gnu Rust target)
+build-llama        = "build --release -p swellmd --features backend-llama-cpp --locked"
+test-llama         = "test  --release -p swellmd --features backend-llama-cpp --locked"
+
+# Run the backend crate's own tests with its inner feature active.
+# Useful when iterating on rustml-backend-llama-cpp in isolation.
+test-backend-llama = "test  --release -p rustml-backend-llama-cpp --features llama-cpp --locked"
