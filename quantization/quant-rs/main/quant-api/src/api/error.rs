@@ -1,16 +1,4 @@
-//! Error types for crates_quant_api.
-
-/// Generic crate errors. Kept for the existing scaffolding `Service`
-/// trait; new quantization code uses `QuantError`.
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    /// An I/O error occurred.
-    #[error("I/O error: {0}")]
-    Io(#[from] std::io::Error),
-    /// A configuration error occurred.
-    #[error("Configuration error: {message}")]
-    Config { message: String },
-}
+//! Error type for quantization operations.
 
 /// Errors that can occur during quantization or dequantization.
 ///
@@ -40,18 +28,6 @@ impl From<candle_core::Error> for QuantError {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_error_io_display() {
-        let err = Error::Io(std::io::Error::new(std::io::ErrorKind::NotFound, "missing"));
-        assert!(err.to_string().contains("I/O error"));
-    }
-
-    #[test]
-    fn test_error_config_display() {
-        let err = Error::Config { message: "bad".to_string() };
-        assert!(err.to_string().contains("bad"));
-    }
 
     #[test]
     fn test_quant_error_unsupported_includes_format_name() {
