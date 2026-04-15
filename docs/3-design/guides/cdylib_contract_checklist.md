@@ -1,4 +1,4 @@
-# FFI Contract Checklist
+# cdylib Contract Checklist
 
 **Purpose**: a reusable checklist for reviewing or designing any Rust
 `cdylib` (C-ABI shared object) in this repo.
