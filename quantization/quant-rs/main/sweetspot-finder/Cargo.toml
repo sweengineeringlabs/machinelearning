@@ -1,0 +1,35 @@
+[package]
+name = "sweetspot-finder"
+version = "0.1.0"
+edition = "2021"
+description = "WeightScope sweetspot-finder component"
+license = "MIT"
+rust-version = "1.75"
+authors = ["WeightScope Team"]
+repository = "https://github.com/swelabs/quant-rs"
+
+[package.metadata.struct-engine]
+application_type = "binary"
+
+[dependencies]
+# removed
+# removed
+thiserror.workspace = true
+serde.workspace = true
+
+
+
+
+# removed
+clap.workspace = true
+indicatif.workspace = true
+# removed
+serde_json.workspace = true
+# removed
+quant-api.workspace = true
+quant-io.workspace = true
+quant-engine.workspace = true
+quant-eval.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

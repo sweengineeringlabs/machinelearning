@@ -1,0 +1,36 @@
+[package]
+name = "quant-cli"
+version = "0.1.0"
+edition = "2021"
+description = "WeightScope quant-cli component"
+license = "MIT"
+rust-version = "1.75"
+authors = ["WeightScope Team"]
+repository = "https://github.com/swelabs/quant-rs"
+
+[package.metadata.struct-engine]
+application_type = "binary"
+
+[dependencies]
+candle-core.workspace = true
+safetensors.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+
+
+
+candle-transformers.workspace = true
+safetensors.workspace = true
+clap.workspace = true
+indicatif.workspace = true
+anyhow.workspace = true
+bytemuck.workspace = true
+serde_json.workspace = true
+quant-api.workspace = true
+quant-io.workspace = true
+quant-engine.workspace = true
+quant-eval.workspace = true
+
+
+[dev-dependencies]
+tempfile.workspace = true

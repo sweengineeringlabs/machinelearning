@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WeightScope — AI Model Weights Analyzer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg:#0b0e14;--surface:#131720;--surface2:#1a2030;--surface3:#212840;
+    --border:rgba(100,140,255,0.12);--border2:rgba(100,140,255,0.22);
+    --accent:#4f8aff;--accent2:#7c5cff;--accent3:#00e5c0;
+    --text:#e8ecf4;--text2:#8a97b8;--text3:#4a5670;
+    --green:#22c97e;--yellow:#f5c542;--red:#ff4f6a;
+    --mono:'Courier New',monospace;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  html{font-size:14px;}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;}
+
+  .header{padding:13px 26px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:100;}
+  .logo{font-size:17px;font-weight:700;letter-spacing:-0.5px;background:linear-gradient(90deg,var(--accent),var(--accent3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+  .logo span{font-weight:300;-webkit-text-fill-color:rgba(255,255,255,0.35);}
+  .header-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+  .badge{background:rgba(79,138,255,0.15);border:1px solid rgba(79,138,255,0.3);color:var(--accent);font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600;}
+  .badge.green{background:rgba(34,201,126,0.12);border-color:rgba(34,201,126,0.3);color:var(--green);}
+  .badge.red{background:rgba(255,79,106,0.12);border-color:rgba(255,79,106,0.3);color:var(--red);}
+  .badge.yellow{background:rgba(245,197,66,0.1);border-color:rgba(245,197,66,0.3);color:var(--yellow);}
+
+  .nav-tabs{display:flex;gap:2px;background:var(--surface2);border-radius:8px;padding:3px;margin-left:6px;}
+  .nav-tab{padding:5px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text2);transition:all 0.2s;border:none;background:none;}
+  .nav-tab.active{background:var(--surface);color:var(--text);border:1px solid var(--border2);}
+
+  .main{display:grid;grid-template-columns:268px 1fr;min-height:calc(100vh - 51px);}
+
+  .sidebar{background:var(--surface);border-right:1px solid var(--border);padding:16px;display:flex;flex-direction:column;gap:16px;overflow-y:auto;}
+  .sidebar-label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:7px;}
+  .model-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px;cursor:pointer;transition:border-color 0.2s,background 0.2s;}
+  .model-card:hover{border-color:var(--border2);background:var(--surface3);}
+  .model-card.active{border-color:var(--accent);background:rgba(79,138,255,0.08);}
+  .model-card h4{font-size:13px;font-weight:600;margin-bottom:2px;}
+  .model-card p{font-size:11px;color:var(--text2);}
+  .mc-meta{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap;}
+  .pill{font-size:10px;padding:2px 7px;border-radius:12px;font-weight:600;background:rgba(100,140,255,0.12);color:var(--accent);border:1px solid rgba(100,140,255,0.2);}
+  .pill.t{background:rgba(0,229,192,0.1);color:var(--accent3);border-color:rgba(0,229,192,0.2);}
+  .pill.y{background:rgba(245,197,66,0.1);color:var(--yellow);border-color:rgba(245,197,66,0.2);}
+  .pill.r{background:rgba(255,79,106,0.1);color:var(--red);border-color:rgba(255,79,106,0.2);}
+  .upload-box{border:1.5px dashed var(--border2);border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:all 0.2s;color:var(--text2);font-size:12px;line-height:1.6;}
+  .upload-box:hover{border-color:var(--accent);color:var(--accent);background:rgba(79,138,255,0.05);}
+  input[type=file]{display:none;}
+  .quant-select{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:8px;font-size:12px;cursor:pointer;}
+  .quant-select:focus{outline:none;border-color:var(--accent);}
+  .btn{width:100%;padding:9px;border-radius:8px;border:none;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;letter-spacing:0.2px;}
+  .btn-primary{background:var(--accent);color:#fff;}
+  .btn-primary:hover{background:#3a78f0;transform:translateY(-1px);}
+  .btn-quant{background:linear-gradient(135deg,var(--accent2),var(--accent));color:#fff;}
+  .btn-quant:hover{opacity:0.88;transform:translateY(-1px);}
+  .btn-secondary{background:var(--surface2);color:var(--text2);border:1px solid var(--border);}
+  .btn-secondary:hover{border-color:var(--accent3);color:var(--accent3);}
+  input[type=range]{-webkit-appearance:none;width:100%;height:4px;background:var(--surface3);border-radius:2px;outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--accent);cursor:pointer;}
+
+  .content{padding:20px 24px;display:flex;flex-direction:column;gap:18px;overflow-y:auto;}
+  .page{display:none;flex-direction:column;gap:18px;}
+  .page.active{display:flex;}
+
+  .stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
+  .sc-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:4px;}
+  .sc-value{font-size:20px;font-weight:700;line-height:1;}
+  .sc-sub{font-size:11px;color:var(--text2);margin-top:3px;}
+  .stat-card.accent{border-color:rgba(79,138,255,0.3);}
+  .stat-card.green{border-color:rgba(34,201,126,0.3);}.stat-card.green .sc-value{color:var(--green);}
+  .stat-card.yellow{border-color:rgba(245,197,66,0.3);}.stat-card.yellow .sc-value{color:var(--yellow);}
+  .stat-card.red{border-color:rgba(255,79,106,0.3);}.stat-card.red .sc-value{color:var(--red);}
+  .stat-card.teal{border-color:rgba(0,229,192,0.3);}.stat-card.teal .sc-value{color:var(--accent3);}
+
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+  .panel-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+  .panel-title{font-size:13px;font-weight:600;}
+  .panel-body{padding:15px;}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+
+  .weight-table,.quant-table{width:100%;border-collapse:collapse;font-size:12px;}
+  .weight-table th,.quant-table th{padding:7px 11px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);border-bottom:1px solid var(--border);}
+  .weight-table td{padding:7px 11px;border-bottom:1px solid rgba(100,140,255,0.06);color:var(--text2);font-family:var(--mono);}
+  .quant-table td{padding:7px 11px;border-bottom:1px solid rgba(100,140,255,0.06);}
+  .weight-table tr:last-child td,.quant-table tr:last-child td{border-bottom:none;}
+  .weight-table tr:hover td,.quant-table tr:hover td{background:rgba(79,138,255,0.04);}
+  .weight-table td.name{color:var(--text);font-weight:500;}
+  .weight-table td.size{color:var(--accent);}
+  .quant-table td.qname{font-weight:600;color:var(--text);font-size:13px;}
+  .mini-bar-wrap{width:65px;height:5px;background:var(--surface3);border-radius:3px;display:inline-block;vertical-align:middle;margin-left:5px;}
+  .mini-bar-fill{height:100%;border-radius:3px;}
+  .quality-bar{height:6px;border-radius:3px;background:var(--surface3);width:100%;margin-top:3px;}
+  .quality-fill{height:100%;border-radius:3px;}
+  .scrolltable{max-height:240px;overflow-y:auto;}
+  .scrolltable::-webkit-scrollbar{width:3px;}
+  .scrolltable::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:2px;}
+
+  .hm-cell{border-radius:3px;cursor:pointer;transition:transform 0.1s;}
+  .hm-cell:hover{transform:scale(1.35);z-index:10;position:relative;}
+
+  .anomaly-item{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid rgba(100,140,255,0.06);}
+  .anomaly-item:last-child{border-bottom:none;}
+  .anomaly-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .anomaly-text{flex:1;}
+  .anomaly-text strong{display:block;font-size:12px;color:var(--text);}
+  .anomaly-text span{font-size:11px;color:var(--text2);}
+  .anomaly-val{font-size:11px;font-family:var(--mono);color:var(--text2);}
+
+  .download-bar{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 15px;display:flex;align-items:center;gap:10px;}
+  .dl-info{flex:1;}
+  .dl-info strong{font-size:13px;}
+  .dl-info span{font-size:11px;color:var(--text2);display:block;margin-top:2px;}
+  .dl-btn{padding:7px 14px;background:var(--accent);color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;transition:background 0.2s;white-space:nowrap;}
+  .dl-btn:hover{background:#3a78f0;}
+  .dl-btn.outline{background:transparent;border:1px solid var(--border2);color:var(--text2);}
+  .dl-btn.outline:hover{border-color:var(--accent3);color:var(--accent3);}
+
+  .tooltip{position:fixed;background:var(--surface3);border:1px solid var(--border2);border-radius:8px;padding:7px 11px;font-size:11px;pointer-events:none;z-index:999;opacity:0;transition:opacity 0.15s;line-height:1.8;}
+  .tooltip.show{opacity:1;}
+
+  .tabs{display:flex;gap:2px;background:var(--surface2);border-radius:8px;padding:3px;}
+  .tab{padding:4px 11px;border-radius:5px;font-size:11px;font-weight:500;cursor:pointer;color:var(--text2);transition:all 0.2s;border:none;background:none;}
+  .tab.active{background:var(--surface);color:var(--text);border:1px solid var(--border);}
+
+  .chart-wrap{position:relative;}
+
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+  .loading{animation:pulse 1.4s ease-in-out infinite;}
+
+  /* ====== QUANTIZATION ENGINE ====== */
+  .quant-pipeline{display:flex;align-items:center;gap:0;overflow-x:auto;padding-bottom:4px;}
+  .qp-step{display:flex;align-items:center;gap:0;flex-shrink:0;}
+  .qp-node{background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:9px 13px;text-align:center;min-width:96px;cursor:default;transition:all 0.3s;}
+  .qp-node.done{border-color:var(--green);background:rgba(34,201,126,0.07);}
+  .qp-node.running{border-color:var(--yellow);background:rgba(245,197,66,0.07);}
+  .qp-node .step-num{font-size:9px;font-weight:700;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px;}
+  .qp-node .step-name{font-size:11px;font-weight:600;color:var(--text);}
+  .qp-node .step-status{font-size:10px;color:var(--text3);margin-top:2px;}
+  .qp-node.done .step-status{color:var(--green);}
+  .qp-node.running .step-status{color:var(--yellow);}
+  .qp-arrow{width:22px;height:2px;background:var(--border2);flex-shrink:0;position:relative;}
+  .qp-arrow::after{content:'';position:absolute;right:-4px;top:-4px;border:5px solid transparent;border-left:7px solid var(--border2);}
+
+  @keyframes progress-stripe{0%{background-position:0 0}100%{background-position:40px 0}}
+  .prog-bar-wrap{background:var(--surface3);border-radius:6px;height:10px;overflow:hidden;}
+  .prog-bar-fill{height:100%;border-radius:6px;transition:width 0.35s ease;background:linear-gradient(90deg,var(--accent),var(--accent3));}
+  .prog-bar-fill.running{background-size:40px 40px;background-image:repeating-linear-gradient(45deg,rgba(255,255,255,0.1) 0,rgba(255,255,255,0.1) 10px,transparent 10px,transparent 20px);animation:progress-stripe 0.7s linear infinite;}
+
+  .layer-quant-row{display:grid;grid-template-columns:130px 1fr 80px 65px 60px;gap:9px;align-items:center;padding:7px 11px;border-bottom:1px solid rgba(100,140,255,0.06);transition:background 0.15s;}
+  .layer-quant-row:hover{background:rgba(79,138,255,0.04);}
+  .layer-quant-row:last-child{border-bottom:none;}
+  .lqr-name{font-size:12px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .lqr-select{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 6px;border-radius:6px;font-size:11px;cursor:pointer;}
+  .lqr-select:focus{outline:none;border-color:var(--accent);}
+  .lqr-val,.lqr-err{font-size:11px;font-family:var(--mono);text-align:right;}
+
+  .log-console{background:#080b11;border:1px solid var(--border);border-radius:8px;padding:11px;font-family:var(--mono);font-size:11px;line-height:1.9;max-height:170px;overflow-y:auto;color:var(--text2);}
+  .log-console::-webkit-scrollbar{width:3px;}
+  .log-console::-webkit-scrollbar-thumb{background:var(--surface3);}
+  .log-line.info{color:#4f8aff;}
+  .log-line.ok{color:#22c97e;}
+  .log-line.warn{color:#f5c542;}
+  .log-line.err{color:#ff4f6a;}
+  .log-line.dim{color:#3a4560;}
+
+  .ba-row{display:grid;grid-template-columns:1fr 20px 1fr;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid rgba(100,140,255,0.05);}
+  .ba-row:last-child{border-bottom:none;}
+  .ba-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.7px;color:var(--text3);}
+  .ba-val{font-size:12px;font-family:var(--mono);color:var(--text);}
+  .ba-after.better{color:var(--green);}
+  .ba-after.worse{color:var(--red);}
+  .ba-after.same{color:var(--text2);}
+  .ba-arrow{text-align:center;font-size:10px;color:var(--text3);}
+
+  .result-hero{text-align:center;padding:20px 12px 12px;}
+  .result-hero .rh-icon{font-size:36px;margin-bottom:10px;}
+  .result-hero h2{font-size:18px;font-weight:700;margin-bottom:5px;}
+  .result-hero p{font-size:12px;color:var(--text2);}
+  .result-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px;}
+  .rm-card{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:11px;text-align:center;}
+  .rm-card .rm-val{font-size:18px;font-weight:700;margin-bottom:2px;}
+  .rm-card .rm-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:0.7px;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">Weight<span>Scope</span></div>
+  <div class="badge">v2.5.0</div>
+  <div class="badge green">● Live</div>
+  <nav class="nav-tabs">
+    <button class="nav-tab active" onclick="switchPage('analysis',this)">Analysis</button>
+    <button class="nav-tab" onclick="switchPage('quantize',this)">Quantize Engine</button>
+  </nav>
+  <div class="header-right">
+    <span style="font-size:11px;color:var(--text2);">Session: demo_042</span>
+    <div class="badge">PyTorch · GGUF · SafeTensors</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="sidebar">
+    <div>
+      <div class="sidebar-label">Active Model</div>
+      <div class="model-card active" onclick="selectModel(this,'GPT-2 Small')">
+        <h4>GPT-2 Small</h4><p>117M params · Transformer</p>
+        <div class="mc-meta"><span class="pill">FP32</span><span class="pill t">Loaded</span><span class="pill">12 layers</span></div>
+      </div>
+    </div>
+    <div>
+      <div class="sidebar-label">Sample Models</div>
+      <div style="display:flex;flex-direction:column;gap:7px;">
+        <div class="model-card" onclick="selectModel(this,'BERT Base')"><h4>BERT Base</h4><p>110M params · Encoder</p><div class="mc-meta"><span class="pill">FP32</span><span class="pill y">12 heads</span></div></div>
+        <div class="model-card" onclick="selectModel(this,'LLaMA-7B (sim)')"><h4>LLaMA-7B <span style="color:var(--text3)">(sim)</span></h4><p>7B params · Decoder</p><div class="mc-meta"><span class="pill">BF16</span><span class="pill r">32 layers</span></div></div>
+        <div class="model-card" onclick="selectModel(this,'ViT-Base')"><h4>ViT-Base</h4><p>86M params · Vision</p><div class="mc-meta"><span class="pill">FP32</span><span class="pill">12 heads</span></div></div>
+      </div>
+    </div>
+    <div>
+      <div class="sidebar-label">Upload Model</div>
+      <label class="upload-box"><input type="file" id="modelFile" accept=".bin,.pt,.pth,.gguf,.safetensors" onchange="handleUpload(this)"><span style="font-size:22px;display:block;margin-bottom:5px;">⬆</span><strong style="font-size:12px;color:var(--text)">Drop or Browse</strong><br>.pt · .safetensors · .gguf · .bin</label>
+    </div>
+    <div>
+      <div class="sidebar-label">Quantization Target</div>
+      <select class="quant-select" id="quantTarget" onchange="updateQuant()">
+        <option value="fp32">FP32 — Full precision</option>
+        <option value="fp16">FP16 — Half precision</option>
+        <option value="bf16">BF16 — Brain float</option>
+        <option value="int8" selected>INT8 — 8-bit integer</option>
+        <option value="int4">INT4 — 4-bit integer</option>
+        <option value="nf4">NF4 — Normal float 4</option>
+        <option value="gptq4">GPTQ 4-bit</option>
+        <option value="awq4">AWQ 4-bit</option>
+        <option value="bnb4">BnB 4-bit</option>
+      </select>
+    </div>
+    <div>
+      <div class="sidebar-label">PPL Threshold</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:5px;"><span style="font-size:11px;color:var(--text2)">Max delta</span><span style="font-size:13px;font-weight:600;margin-left:auto" id="pplLabel">+5.0</span></div>
+      <input type="range" min="1" max="20" value="5" step="0.5" oninput="document.getElementById('pplLabel').textContent='+'+parseFloat(this.value).toFixed(1)">
+    </div>
+    <div style="margin-top:auto;display:flex;flex-direction:column;gap:7px;">
+      <button class="btn btn-primary" onclick="runAnalysis()">▶ Run Full Analysis</button>
+      <button class="btn btn-quant" onclick="jumpToQuantize()">⚡ Launch Quantizer</button>
+      <button class="btn btn-secondary" onclick="exportJSON()">⬇ Export Report</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ANALYSIS PAGE -->
+    <div class="page active" id="page-analysis">
+      <div class="stats-row">
+        <div class="stat-card accent"><div class="sc-label">Parameters</div><div class="sc-value" id="statParams">117M</div><div class="sc-sub">trainable weights</div></div>
+        <div class="stat-card yellow"><div class="sc-label">Model Size</div><div class="sc-value" id="statSize">448 MB</div><div class="sc-sub" id="statSizeSub">FP32 on disk</div></div>
+        <div class="stat-card green"><div class="sc-label">Quantized Size</div><div class="sc-value" id="statQSize">112 MB</div><div class="sc-sub" id="statQSizeSub">INT8 target</div></div>
+        <div class="stat-card teal"><div class="sc-label">Compression</div><div class="sc-value" id="statComp">4.0×</div><div class="sc-sub">size reduction</div></div>
+        <div class="stat-card red"><div class="sc-label">Est. PPL Delta</div><div class="sc-value" id="statPPL">+1.8</div><div class="sc-sub">quality loss</div></div>
+      </div>
+      <div class="two-col">
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Weight Distribution</span><div class="tabs" id="distTabs"><button class="tab active" onclick="switchDistTab('hist',this)">Histogram</button><button class="tab" onclick="switchDistTab('scatter',this)">Scatter</button></div></div>
+          <div class="panel-body">
+            <div class="chart-wrap" style="height:185px;"><canvas id="distChart" role="img" aria-label="Weight distribution"></canvas></div>
+            <div style="display:flex;gap:14px;margin-top:9px;font-size:11px;color:var(--text2);">
+              <div>Mean:<strong id="wMean" style="color:var(--text);font-family:var(--mono);margin-left:4px;">0.0012</strong></div>
+              <div>Std:<strong id="wStd" style="color:var(--text);font-family:var(--mono);margin-left:4px;">0.0218</strong></div>
+              <div>Kurtosis:<strong id="wKurt" style="color:var(--text);font-family:var(--mono);margin-left:4px;">3.42</strong></div>
+              <div>Sparsity:<strong id="wSpars" style="color:var(--accent3);font-family:var(--mono);margin-left:4px;">12.4%</strong></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Layer Weight Heatmap</span><span style="font-size:11px;color:var(--text3)" id="heatmapLabel">Hover for details</span></div>
+          <div class="panel-body">
+            <div id="heatmapGrid" style="margin-bottom:5px;"></div>
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:5px;">
+              <span>Low magnitude</span>
+              <div style="display:flex;gap:2px;align-items:center;">
+                <div style="width:7px;height:7px;border-radius:2px;background:#1a2030;"></div><div style="width:7px;height:7px;border-radius:2px;background:#2a3a60;"></div><div style="width:7px;height:7px;border-radius:2px;background:#3a5090;"></div><div style="width:7px;height:7px;border-radius:2px;background:#4f8aff;"></div><div style="width:7px;height:7px;border-radius:2px;background:#7cc4ff;"></div><div style="width:7px;height:7px;border-radius:2px;background:#00e5c0;"></div>
+              </div>
+              <span>High magnitude</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Layer Weight Analysis</span><span class="badge" id="layerBadge">12 layers</span></div>
+          <div class="scrolltable"><table class="weight-table"><thead><tr><th>Layer</th><th>Params</th><th>Magnitude</th><th>Sparsity</th><th>Sensitivity</th></tr></thead><tbody id="layerTableBody"></tbody></table></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Anomaly Detection</span><span class="badge red" id="anomalyCount">3 issues</span></div>
+          <div class="panel-body" id="anomalyList"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">Quantization Format Comparison</span><span style="font-size:11px;color:var(--text3)">vs FP32 baseline</span></div>
+        <div class="panel-body">
+          <table class="quant-table" style="margin-bottom:13px;"><thead><tr><th>Format</th><th>Bits</th><th>Size</th><th>Compression</th><th>Est. PPL Δ</th><th>Quality</th><th>Recommended Use</th></tr></thead><tbody id="quantTableBody"></tbody></table>
+          <div class="chart-wrap" style="height:155px;"><canvas id="quantChart" role="img" aria-label="Quantization comparison chart"></canvas></div>
+        </div>
+      </div>
+      <div class="download-bar">
+        <span style="font-size:17px;">📦</span>
+        <div class="dl-info"><strong id="dlName">GPT-2 Small — INT8 Quantized</strong><span id="dlMeta">112 MB · INT8 · PyTorch checkpoint</span></div>
+        <button class="dl-btn outline" onclick="exportJSON()">⬇ JSON Report</button>
+        <button class="dl-btn outline" onclick="exportCSV()">⬇ Layer CSV</button>
+        <button class="dl-btn" onclick="simulateDownload()">⬇ Download Quantized</button>
+      </div>
+    </div>
+
+    <!-- QUANTIZE ENGINE PAGE -->
+    <div class="page" id="page-quantize">
+
+      <!-- Pipeline -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Quantization Pipeline</span>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span id="pipelineStatus" class="badge">Ready</span>
+            <button class="dl-btn" id="runQuantBtn" onclick="startQuantization()" style="padding:6px 14px;font-size:11px;">⚡ Run Quantization</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="quant-pipeline" id="quantPipeline"></div>
+          <div style="margin-top:10px;">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:5px;"><span id="pipelineLabel">Configure layers and click Run</span><span id="pipelinePct">0%</span></div>
+            <div class="prog-bar-wrap"><div class="prog-bar-fill" id="pipelineBar" style="width:0%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Config + Log -->
+      <div class="two-col">
+        <div class="panel" style="display:flex;flex-direction:column;">
+          <div class="panel-header">
+            <span class="panel-title">Per-Layer Quantization Config</span>
+            <div style="display:flex;gap:5px;">
+              <button class="dl-btn outline" onclick="setAllLayers('global')" style="font-size:10px;padding:3px 9px;">All Global</button>
+              <button class="dl-btn outline" onclick="setAllLayers('protect')" style="font-size:10px;padding:3px 9px;">Protect Sensitive</button>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:130px 1fr 80px 65px 60px;gap:9px;padding:5px 11px;border-bottom:1px solid var(--border);">
+            <span style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:0.8px;">Layer</span>
+            <span style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:0.8px;">Format</span>
+            <span style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:0.8px;text-align:right;">Saved</span>
+            <span style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:0.8px;text-align:right;">Error</span>
+            <span style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:0.8px;text-align:right;">Status</span>
+          </div>
+          <div class="scrolltable" id="layerQuantConfig" style="max-height:270px;"></div>
+        </div>
+
+        <div class="panel" style="display:flex;flex-direction:column;">
+          <div class="panel-header"><span class="panel-title">Engine Log</span><button class="dl-btn outline" onclick="clearLog()" style="font-size:10px;padding:3px 9px;">Clear</button></div>
+          <div class="panel-body" style="flex:1;display:flex;flex-direction:column;gap:10px;">
+            <div class="log-console" id="logConsole">
+              <div class="log-line dim">// WeightScope Quantization Engine v2.5.0</div>
+              <div class="log-line dim">// Awaiting configuration...</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <div><div class="sidebar-label" style="margin-bottom:5px;">Calibration Dataset</div>
+                <select class="quant-select" id="calibDataset"><option>C4 (1024 samples)</option><option>WikiText-2 (512 samples)</option><option>Penn Treebank (256 samples)</option><option>Custom (upload)</option></select>
+              </div>
+              <div><div class="sidebar-label" style="margin-bottom:5px;">Group Size</div>
+                <select class="quant-select" id="groupSize"><option>32</option><option selected>64</option><option>128</option><option>-1 (per-tensor)</option></select>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <div><div class="sidebar-label" style="margin-bottom:5px;">Block Size</div>
+                <select class="quant-select" id="blockSize"><option>128</option><option selected>256</option><option>512</option><option>1024</option></select>
+              </div>
+              <div><div class="sidebar-label" style="margin-bottom:5px;">Zero-point</div>
+                <select class="quant-select" id="zpMode"><option selected>Symmetric</option><option>Asymmetric</option></select>
+              </div>
+            </div>
+            <div style="display:flex;gap:14px;flex-wrap:wrap;">
+              <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;"><input type="checkbox" id="mergeLinear" checked style="accent-color:var(--accent);"> Merge linear dequant</label>
+              <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;"><input type="checkbox" id="packWeights" checked style="accent-color:var(--accent);"> Pack weights</label>
+              <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;"><input type="checkbox" id="saveAct" style="accent-color:var(--accent);"> Save activations</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Calibration + Sensitivity -->
+      <div class="two-col">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">Activation Calibration</span>
+            <div class="tabs" id="calibTabs">
+              <button class="tab active" onclick="switchCalibTab('minmax',this)">Min-Max</button>
+              <button class="tab" onclick="switchCalibTab('percentile',this)">Percentile</button>
+              <button class="tab" onclick="switchCalibTab('mse',this)">MSE</button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="chart-wrap" style="height:175px;"><canvas id="calibChart" role="img" aria-label="Activation calibration range per layer"></canvas></div>
+            <div style="display:flex;gap:14px;margin-top:9px;font-size:11px;color:var(--text2);">
+              <div>Scale:<strong id="calibScale" style="color:var(--accent);font-family:var(--mono);margin-left:4px;">0.00124</strong></div>
+              <div>Zero-pt:<strong id="calibZero" style="color:var(--accent3);font-family:var(--mono);margin-left:4px;">0</strong></div>
+              <div>Clip ratio:<strong id="calibClip" style="color:var(--yellow);font-family:var(--mono);margin-left:4px;">0.8%</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Layer Sensitivity Map</span><span style="font-size:11px;color:var(--text3)">Quantization error estimate</span></div>
+          <div class="panel-body">
+            <div id="sensitivityGrid" style="display:flex;flex-direction:column;gap:4px;"></div>
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:9px;">
+              <span style="display:flex;align-items:center;gap:3px;"><span style="width:7px;height:7px;border-radius:2px;background:#22c97e;display:inline-block;"></span>Low</span>
+              <span style="display:flex;align-items:center;gap:3px;"><span style="width:7px;height:7px;border-radius:2px;background:#f5c542;display:inline-block;"></span>Medium</span>
+              <span style="display:flex;align-items:center;gap:3px;"><span style="width:7px;height:7px;border-radius:2px;background:#ff4f6a;display:inline-block;"></span>High — keep FP16</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Before/After + Result -->
+      <div class="two-col">
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Before / After Comparison</span><span id="baStatus" style="font-size:11px;color:var(--text3)">Pending run</span></div>
+          <div class="panel-body">
+            <div style="display:grid;grid-template-columns:1fr 20px 1fr;gap:7px;margin-bottom:7px;">
+              <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text3);">Original</span>
+              <span></span>
+              <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text3);" id="baAfterLabel">Target</span>
+            </div>
+            <div id="baRows"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Quantization Result</span><span id="resultStatus" style="font-size:11px;color:var(--text3)">—</span></div>
+          <div class="panel-body" id="quantResult">
+            <div style="text-align:center;padding:28px 0;color:var(--text3);">
+              <div style="font-size:30px;margin-bottom:9px;">⚡</div>
+              <p style="font-size:13px;">Run quantization to see results</p>
+              <p style="font-size:11px;margin-top:4px;color:var(--text3);">Configure layers above, then click Run</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /page-quantize -->
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+const MODELS = {
+  'GPT-2 Small':    { params:117,  layers:12, dtype:'FP32', size:448,   type:'Decoder' },
+  'BERT Base':      { params:110,  layers:12, dtype:'FP32', size:420,   type:'Encoder' },
+  'LLaMA-7B (sim)': { params:7000, layers:32, dtype:'BF16', size:13440, type:'Decoder' },
+  'ViT-Base':       { params:86,   layers:12, dtype:'FP32', size:328,   type:'Vision'  },
+};
+const QUANT_FORMATS = [
+  { name:'FP32',   bits:32, comprA:1.0, pplDelta:0.0, quality:100,  use:'Training / reference' },
+  { name:'BF16',   bits:16, comprA:2.0, pplDelta:0.1, quality:99.5, use:'Training, A100/H100' },
+  { name:'FP16',   bits:16, comprA:2.0, pplDelta:0.2, quality:99.2, use:'Inference, CUDA' },
+  { name:'INT8',   bits:8,  comprA:4.0, pplDelta:1.8, quality:95.0, use:'Production inference' },
+  { name:'NF4',    bits:4,  comprA:8.0, pplDelta:3.2, quality:89.0, use:'Fine-tuning (QLoRA)' },
+  { name:'INT4',   bits:4,  comprA:8.0, pplDelta:4.5, quality:85.0, use:'Edge / constrained' },
+  { name:'GPTQ-4', bits:4,  comprA:7.8, pplDelta:2.8, quality:91.0, use:'Fast GPU inference' },
+  { name:'AWQ-4',  bits:4,  comprA:7.9, pplDelta:2.4, quality:92.5, use:'Activation-aware' },
+  { name:'BnB-4',  bits:4,  comprA:7.5, pplDelta:3.5, quality:88.0, use:'Bitsandbytes / QLoRA' },
+];
+const QUANT_MAP = {fp32:'FP32',fp16:'FP16',bf16:'BF16',int8:'INT8',int4:'INT4',nf4:'NF4',gptq4:'GPTQ-4',awq4:'AWQ-4',bnb4:'BnB-4'};
+const PIPELINE_STEPS = [
+  {id:'load',   name:'Load',        desc:'Parse weights'},
+  {id:'calib',  name:'Calibrate',   desc:'Activation stats'},
+  {id:'sens',   name:'Sensitivity', desc:'Layer analysis'},
+  {id:'quant',  name:'Quantize',    desc:'Apply scheme'},
+  {id:'verify', name:'Verify',      desc:'Error check'},
+  {id:'export', name:'Export',      desc:'Pack & save'},
+];
+
+let currentModel='GPT-2 Small', currentQuant='INT8', distMode='hist', calibMode='minmax';
+let distChartRef=null, quantChartRef=null, calibChartRef=null;
+let quantRunning=false, quantDone=false;
+let layerOverrides={};
+let logLines=[];
+
+function fmtSize(mb){return mb>=1024?(mb/1024).toFixed(1)+' GB':Math.round(mb)+' MB';}
+function sr(seed){let x=Math.sin(seed+1)*10000;return x-Math.floor(x);}
+
+function switchPage(page,btn){
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  if(page==='quantize'){initQuantizePage();}
+}
+function jumpToQuantize(){
+  document.querySelectorAll('.nav-tab').forEach((t,i)=>{t.classList.toggle('active',i===1);});
+  document.querySelectorAll('.page').forEach((p,i)=>{p.classList.toggle('active',i===1);});
+  initQuantizePage();
+}
+function initQuantizePage(){
+  buildPipeline(); buildLayerQuantConfig(); buildSensitivityGrid(); buildBARows();
+  setTimeout(()=>buildCalibChart(),80);
+}
+
+function generateLayerData(name){
+  const m=MODELS[name];
+  const names=['Embedding',...Array.from({length:m.layers},(_,i)=>`Transformer.${i}`),'LM Head'];
+  return names.map((n,i)=>{
+    const r=sr(i*3.7+n.length),r2=sr(i*1.3+7),r3=sr(i*5.1+13);
+    return {name:n,params:i===0?Math.round(m.params*0.15):Math.round(m.params*0.07*(1+r*0.3)),magnitude:(0.01+r*0.08).toFixed(4),sparsity:(r2*25).toFixed(1),sensitivity:r3>0.7?'High':r3>0.35?'Med':'Low',sensVal:r3};
+  });
+}
+
+function buildHeatmap(name){
+  const m=MODELS[name],cols=20,grid=document.getElementById('heatmapGrid');
+  grid.style.cssText=`display:grid;grid-template-columns:repeat(${cols},1fr);gap:2px;`;grid.innerHTML='';
+  for(let r=0;r<m.layers;r++)for(let c=0;c<cols;c++){
+    const v=Math.pow(sr(r*100+c),0.5);
+    const cell=document.createElement('div');cell.className='hm-cell';
+    cell.style.cssText=`background:${hcol(v)};height:12px;`;
+    cell.dataset.layer=r;cell.dataset.col=c;cell.dataset.val=v.toFixed(3);
+    cell.addEventListener('mousemove',e=>{
+      const tip=document.getElementById('tooltip');
+      tip.innerHTML=`Layer ${e.currentTarget.dataset.layer}·Col ${e.currentTarget.dataset.col}<br>Magnitude:<strong>${e.currentTarget.dataset.val}</strong>`;
+      tip.classList.add('show');tip.style.left=(e.clientX+12)+'px';tip.style.top=(e.clientY-20)+'px';
+      document.getElementById('heatmapLabel').textContent=`L${e.currentTarget.dataset.layer}/C${e.currentTarget.dataset.col}:${e.currentTarget.dataset.val}`;
+    });
+    cell.addEventListener('mouseleave',()=>document.getElementById('tooltip').classList.remove('show'));
+    grid.appendChild(cell);
+  }
+}
+function hcol(v){const c=['#1a2030','#1e2a4a','#2a3a60','#3a5090','#4f8aff','#7cc4ff','#00e5c0'];return c[Math.min(Math.floor(v*(c.length-1)),c.length-1)];}
+
+function buildLayerTable(name){
+  const layers=generateLayerData(name),tbody=document.getElementById('layerTableBody');
+  tbody.innerHTML='';document.getElementById('layerBadge').textContent=layers.length+' layers';
+  const maxP=Math.max(...layers.map(x=>x.params));
+  layers.forEach(l=>{
+    const sc=l.sensVal>0.7?'var(--red)':l.sensVal>0.35?'var(--yellow)':'var(--green)';
+    tbody.innerHTML+=`<tr><td class="name">${l.name}</td><td class="size">${l.params}M</td>
+    <td><span style="font-size:11px;">${l.magnitude}</span><span class="mini-bar-wrap"><span class="mini-bar-fill" style="width:${(l.params/maxP*100).toFixed(0)}%;background:var(--accent);"></span></span></td>
+    <td style="color:${parseFloat(l.sparsity)>20?'var(--accent3)':'var(--text2)'};font-size:11px;">${l.sparsity}%</td>
+    <td><span style="color:${sc};font-size:11px;font-weight:600;">${l.sensitivity}</span></td></tr>`;
+  });
+}
+
+function buildAnomalies(name){
+  const m=MODELS[name];
+  const items=[
+    {col:'var(--red)',title:'Gradient Explosion Risk',layer:'Transformer.11',val:'|w|=2.847',desc:'Weight magnitude exceeds 2σ'},
+    {col:'var(--yellow)',title:'High Sparsity Detected',layer:'Transformer.4',val:'28.3% sparse',desc:'Consider pruning before quant'},
+    {col:'var(--yellow)',title:'Non-normal Distribution',layer:'Embedding',val:'Kurt=6.12',desc:'Fat tails may cause INT8 clipping'},
+  ];
+  if(m.params>500)items.push({col:'var(--red)',title:'Memory Pressure',layer:'All layers',val:fmtSize(m.size),desc:'Recommend INT4 for <16GB VRAM'});
+  const list=document.getElementById('anomalyList');list.innerHTML='';
+  items.forEach(it=>{list.innerHTML+=`<div class="anomaly-item"><div class="anomaly-dot" style="background:${it.col};"></div><div class="anomaly-text"><strong>${it.title}</strong><span>${it.layer} — ${it.desc}</span></div><div class="anomaly-val">${it.val}</div></div>`;});
+  document.getElementById('anomalyCount').textContent=items.length+' issues';
+}
+
+function buildQuantTable(){
+  const m=MODELS[currentModel],tbody=document.getElementById('quantTableBody');tbody.innerHTML='';
+  QUANT_FORMATS.forEach(f=>{
+    const isT=f.name===currentQuant,qC=f.quality>95?'var(--green)':f.quality>88?'var(--yellow)':'var(--red)',pC=f.pplDelta===0?'var(--text2)':f.pplDelta<2?'var(--yellow)':'var(--red)';
+    tbody.innerHTML+=`<tr style="${isT?'background:rgba(79,138,255,0.06);':''}">
+      <td class="qname" style="${isT?'color:var(--accent);':''}">${f.name}${isT?' ★':''}</td>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--text2);">${f.bits}</td>
+      <td style="font-family:var(--mono);font-size:11px;">${fmtSize(m.params*(f.bits/8))}</td>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--accent3);">${f.comprA.toFixed(1)}×</td>
+      <td style="font-family:var(--mono);font-size:11px;color:${pC};">${f.pplDelta===0?'—':'+'+f.pplDelta.toFixed(1)}</td>
+      <td><div style="display:flex;align-items:center;gap:6px;"><div class="quality-bar" style="width:65px;"><div class="quality-fill" style="width:${f.quality}%;background:${qC};"></div></div><span style="font-size:11px;font-family:var(--mono);color:${qC};">${f.quality}%</span></div></td>
+      <td style="font-size:11px;color:var(--text2);">${f.use}</td></tr>`;
+  });
+}
+
+function buildDistChart(){
+  if(distChartRef){distChartRef.destroy();distChartRef=null;}
+  const ctx=document.getElementById('distChart').getContext('2d');
+  if(distMode==='hist'){
+    const data=Array.from({length:50},(_,i)=>Math.round(Math.exp(-Math.pow((i-25)/6.25,2)/2)*1000+sr(i*7)*80));
+    distChartRef=new Chart(ctx,{type:'bar',data:{labels:data.map((_,i)=>((i-25)/8).toFixed(2)),datasets:[{data,backgroundColor:'rgba(79,138,255,0.6)',borderWidth:0,borderRadius:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(100,140,255,0.06)'},ticks:{color:'#4a5670',autoSkip:true,maxTicksLimit:10}},y:{grid:{color:'rgba(100,140,255,0.06)'},ticks:{color:'#4a5670'}}}}});
+  } else {
+    distChartRef=new Chart(ctx,{type:'scatter',data:{datasets:[{data:Array.from({length:80},(_,i)=>({x:(sr(i*3.1)-0.5)*0.2,y:(sr(i*7.3)-0.5)*0.2})),backgroundColor:'rgba(0,229,192,0.5)',pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(100,140,255,0.06)'},ticks:{color:'#4a5670'}},y:{grid:{color:'rgba(100,140,255,0.06)'},ticks:{color:'#4a5670'}}}}});
+  }
+}
+
+function buildQuantChart(){
+  if(quantChartRef){quantChartRef.destroy();quantChartRef=null;}
+  const ctx=document.getElementById('quantChart').getContext('2d');
+  quantChartRef=new Chart(ctx,{type:'bar',data:{labels:QUANT_FORMATS.map(f=>f.name),datasets:[{label:'Quality%',data:QUANT_FORMATS.map(f=>f.quality),backgroundColor:'rgba(0,229,192,0.6)',borderRadius:3,borderWidth:0},{label:'Compr×10',data:QUANT_FORMATS.map(f=>f.comprA*10),backgroundColor:'rgba(79,138,255,0.4)',borderRadius:3,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(100,140,255,0.06)'},ticks:{color:'#4a5670'}},y:{grid:{color:'rgba(100,140,255,0.06)'},ticks:{color:'#4a5670'},max:110}}}});
+}
+
+/* ─── QUANTIZE ENGINE ─── */
+function buildPipeline(){
+  const el=document.getElementById('quantPipeline');el.innerHTML='';
+  PIPELINE_STEPS.forEach((s,i)=>{
+    const wrap=document.createElement('div');wrap.className='qp-step';
+    wrap.innerHTML=`<div class="qp-node" id="pnode-${s.id}"><div class="step-num">Step ${i+1}</div><div class="step-name">${s.name}</div><div class="step-status">${s.desc}</div></div>${i<PIPELINE_STEPS.length-1?'<div class="qp-arrow"></div>':''}`;
+    el.appendChild(wrap);
+  });
+}
+
+function buildLayerQuantConfig(){
+  layerOverrides={};
+  const layers=generateLayerData(currentModel),el=document.getElementById('layerQuantConfig');el.innerHTML='';
+  layers.forEach((l,i)=>{
+    const isSens=l.sensVal>0.7,defaultFmt=isSens?'FP16':currentQuant;
+    layerOverrides[l.name]=defaultFmt;
+    const fmt=QUANT_FORMATS.find(f=>f.name===defaultFmt);
+    const saved=defaultFmt==='FP32'||defaultFmt==='FP16'||defaultFmt==='BF16'?'—':`-${(100*(1-fmt.bits/32)).toFixed(0)}%`;
+    const err=isSens?'0.0000':(l.sensVal*sr(i*2.3)*0.08+0.001).toFixed(4);
+    const stColor=isSens?'var(--yellow)':'var(--green)',stText=isSens?'Protected':'Queued';
+    el.innerHTML+=`<div class="layer-quant-row">
+      <div class="lqr-name" title="${l.name}">${l.name.length>16?l.name.slice(0,15)+'…':l.name}</div>
+      <select class="lqr-select" id="lqr-${i}" onchange="onLayerChange(${i},'${l.name}',this)">
+        ${QUANT_FORMATS.map(f=>`<option value="${f.name}"${f.name===defaultFmt?' selected':''}>${f.name}</option>`).join('')}
+        <option value="SKIP">SKIP</option>
+      </select>
+      <div class="lqr-val" id="lqr-saved-${i}">${saved}</div>
+      <div class="lqr-err" id="lqr-err-${i}" style="color:${isSens?'var(--text3)':'var(--accent3)'};">${err}</div>
+      <div id="lqr-st-${i}" style="font-size:10px;font-weight:700;text-align:right;color:${stColor};">${stText}</div>
+    </div>`;
+  });
+}
+
+function onLayerChange(i,name,sel){
+  layerOverrides[name]=sel.value;
+  const fmt=QUANT_FORMATS.find(f=>f.name===sel.value);
+  const saved=!fmt||sel.value==='FP32'?'—':`-${(100*(1-fmt.bits/32)).toFixed(0)}%`;
+  const err=sel.value==='SKIP'||sel.value==='FP32'?'0.0000':(sr(i*3.1+7)*0.09+0.001).toFixed(4);
+  document.getElementById(`lqr-saved-${i}`).textContent=saved;
+  document.getElementById(`lqr-err-${i}`).textContent=err;
+  document.getElementById(`lqr-err-${i}`).style.color=!fmt||sel.value==='FP32'||sel.value==='FP16'?'var(--text3)':'var(--accent3)';
+  const st=document.getElementById(`lqr-st-${i}`);
+  if(sel.value==='SKIP'){st.textContent='Skipped';st.style.color='var(--red)';}
+  else if(['FP32','FP16','BF16'].includes(sel.value)){st.textContent='Protected';st.style.color='var(--yellow)';}
+  else{st.textContent='Queued';st.style.color='var(--green)';}
+}
+
+function setAllLayers(mode){
+  const layers=generateLayerData(currentModel);
+  layers.forEach((l,i)=>{
+    const sel=document.getElementById(`lqr-${i}`);if(!sel)return;
+    sel.value=mode==='protect'&&l.sensVal>0.7?'FP16':currentQuant;
+    onLayerChange(i,l.name,sel);
+  });
+}
+
+function buildSensitivityGrid(){
+  const layers=generateLayerData(currentModel),el=document.getElementById('sensitivityGrid');el.innerHTML='';
+  layers.forEach(l=>{
+    const color=l.sensVal>0.7?'#ff4f6a':l.sensVal>0.35?'#f5c542':'#22c97e';
+    el.innerHTML+=`<div style="display:flex;align-items:center;gap:7px;">
+      <span style="font-size:10px;color:var(--text2);width:105px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.name}</span>
+      <div style="flex:1;height:13px;background:var(--surface3);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${Math.round(l.sensVal*100)}%;background:${color};border-radius:3px;"></div></div>
+      <span style="font-size:10px;font-family:var(--mono);color:${color};width:36px;text-align:right;">${l.sensVal.toFixed(3)}</span>
+    </div>`;
+  });
+}
+
+function buildCalibChart(){
+  if(calibChartRef){calibChartRef.destroy();calibChartRef=null;}
+  const el=document.getElementById('calibChart');if(!el)return;
+  const ctx=el.getContext('2d');
+  const layers=generateLayerData(currentModel);
+  const names=layers.map(l=>l.name.replace('Transformer.','T.'));
+  const scale={minmax:1.0,percentile:0.8,mse:0.67}[calibMode]||1;
+  calibChartRef=new Chart(ctx,{type:'bar',data:{labels:names,datasets:[
+    {label:'Min',data:layers.map((_,i)=>-(sr(i*2.3+1)*0.15+0.02)*scale),backgroundColor:'rgba(255,79,106,0.5)',borderRadius:2,borderWidth:0},
+    {label:'Max',data:layers.map((_,i)=>(sr(i*3.7+2)*0.15+0.02)*scale),backgroundColor:'rgba(0,229,192,0.5)',borderRadius:2,borderWidth:0},
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(100,140,255,0.06)'},ticks:{color:'#4a5670',autoSkip:true,maxTicksLimit:8,maxRotation:30}},y:{grid:{color:'rgba(100,140,255,0.06)'},ticks:{color:'#4a5670',callback:v=>v.toFixed(2)}}}}});
+}
+
+function switchCalibTab(mode,btn){
+  calibMode=mode;
+  document.querySelectorAll('#calibTabs .tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');
+  buildCalibChart();
+  const s={minmax:{scale:'0.00124',zero:'0',clip:'0.8%'},percentile:{scale:'0.00118',zero:'0',clip:'0.3%'},mse:{scale:'0.00109',zero:'0',clip:'0.1%'}}[mode];
+  document.getElementById('calibScale').textContent=s.scale;document.getElementById('calibZero').textContent=s.zero;document.getElementById('calibClip').textContent=s.clip;
+}
+
+function buildBARows(){
+  const m=MODELS[currentModel],q=QUANT_FORMATS.find(f=>f.name===currentQuant)||QUANT_FORMATS[3];
+  const bMB=m.params*4,qMB=m.params*(q.bits/8);
+  const rows=[
+    {label:'Format',before:m.dtype,after:q.name,dir:'neu'},
+    {label:'Disk Size',before:fmtSize(bMB),after:fmtSize(qMB),dir:'better'},
+    {label:'Precision',before:'32-bit float',after:`${q.bits}-bit`,dir:'neu'},
+    {label:'VRAM (est.)',before:fmtSize(bMB*1.2),after:fmtSize(qMB*1.2),dir:'better'},
+    {label:'Throughput',before:'1.0×',after:`${(32/q.bits*0.88).toFixed(1)}×`,dir:'better'},
+    {label:'PPL Delta',before:'—',after:q.pplDelta===0?'±0':'+'+q.pplDelta.toFixed(1),dir:q.pplDelta>0?'worse':'same'},
+    {label:'Quality',before:'100%',after:`${q.quality}%`,dir:q.quality<100?'worse':'same'},
+  ];
+  const el=document.getElementById('baRows');el.innerHTML='';
+  rows.forEach(r=>{
+    const ac=r.dir==='better'?'var(--green)':r.dir==='worse'?'var(--red)':'var(--text2)';
+    el.innerHTML+=`<div class="ba-row">
+      <div><div class="ba-label">${r.label}</div><div class="ba-val">${r.before}</div></div>
+      <div class="ba-arrow">→</div>
+      <div><div class="ba-label" style="color:var(--text3);">${quantDone?'Result':'Target'}</div><div class="ba-val ba-after ${r.dir}" style="color:${ac}">${r.after}</div></div>
+    </div>`;
+  });
+  document.getElementById('baStatus').textContent=quantDone?'Complete':'Pending run';
+  if(document.getElementById('baAfterLabel'))document.getElementById('baAfterLabel').textContent=quantDone?'Result':'Target';
+}
+
+/* ─── LOG ─── */
+function addLog(text,type='dim'){
+  const el=document.getElementById('logConsole');
+  const ts=new Date().toLocaleTimeString('en',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  logLines.push({ts,text,type});
+  el.innerHTML=logLines.map(l=>`<div class="log-line ${l.type}">[${l.ts}] ${l.text}</div>`).join('');
+  el.scrollTop=el.scrollHeight;
+}
+function clearLog(){logLines=[];document.getElementById('logConsole').innerHTML='<div class="log-line dim">// Log cleared</div>';}
+
+/* ─── QUANTIZATION SIMULATION ─── */
+function startQuantization(){
+  if(quantRunning)return;
+  quantRunning=true;quantDone=false;
+  const btn=document.getElementById('runQuantBtn');btn.textContent='⟳ Running…';btn.disabled=true;
+  document.getElementById('pipelineStatus').textContent='Running';document.getElementById('pipelineStatus').className='badge yellow';
+  PIPELINE_STEPS.forEach(s=>{const n=document.getElementById('pnode-'+s.id);if(n){n.className='qp-node';n.querySelector('.step-status').textContent=s.desc;}});
+  document.getElementById('pipelineBar').classList.add('running');
+
+  const logs=[
+    ['info',`Starting ${currentQuant} quantization of ${currentModel} (${MODELS[currentModel].params>=1000?(MODELS[currentModel].params/1000).toFixed(1)+'B':MODELS[currentModel].params+'M'} params)`],
+    ['info',`Loading checkpoint (${fmtSize(MODELS[currentModel].params*4)})...`],
+    ['ok','Model weights loaded successfully'],
+    ['info',`Building calibration dataset from ${document.getElementById('calibDataset').value||'C4'}...`],
+    ['info','Computing per-layer activation statistics...'],
+    ['ok','Calibration complete — scales & zero-points computed'],
+    ['info','Analyzing layer sensitivity to quantization error...'],
+    ['warn','Transformer.11: HIGH sensitivity — auto-upgrading to FP16'],
+    ['warn','Embedding: above-normal kurtosis (6.12) — monitoring'],
+    ['ok','Sensitivity map ready — '+generateLayerData(currentModel).length+' layers analyzed'],
+    ['info',`Applying ${currentQuant} format (group_size=${document.getElementById('groupSize').value||'64'}, block=${document.getElementById('blockSize').value||'256'})...`],
+    ['info','Quantizing Embedding layer...'],
+    ['info','Quantizing Transformer blocks 0–'+((MODELS[currentModel].layers||12)-1)+'...'],
+    ['info','Quantizing LM Head...'],
+    ['ok','All layers quantized successfully'],
+    ['info','Running perplexity verification pass...'],
+    ['ok',`PPL delta: +${(QUANT_FORMATS.find(f=>f.name===currentQuant)||{pplDelta:1.8}).pplDelta.toFixed(2)} ✓ within threshold`],
+    ['info','Packing quantized weights (merge_linear='+document.getElementById('mergeLinear').checked+')...'],
+    ['ok',`Export ready: ${currentModel.replace(/\s/g,'_')}_${currentQuant}_quantized.bin`],
+  ];
+
+  const totalDur=4400,stepDur=totalDur/PIPELINE_STEPS.length;
+  let si=0;
+  function runStep(){
+    if(si>=PIPELINE_STEPS.length){finishQuantization();return;}
+    const s=PIPELINE_STEPS[si];
+    const node=document.getElementById('pnode-'+s.id);
+    if(node){node.className='qp-node running';node.querySelector('.step-status').textContent='Running…';}
+    document.getElementById('pipelineLabel').textContent=`Step ${si+1}/${PIPELINE_STEPS.length}: ${s.name}`;
+    const logsSlice=logs.slice(Math.floor(si*logs.length/PIPELINE_STEPS.length),Math.floor((si+1)*logs.length/PIPELINE_STEPS.length));
+    let li=0;
+    const li_int=setInterval(()=>{if(li<logsSlice.length){addLog(logsSlice[li][1],logsSlice[li][0]);li++;}else clearInterval(li_int);},stepDur/Math.max(logsSlice.length,1));
+    const t0=Date.now(),sp=(si/PIPELINE_STEPS.length)*100,ep=((si+1)/PIPELINE_STEPS.length)*100;
+    const tick=setInterval(()=>{
+      const p=Math.min(sp+(ep-sp)*((Date.now()-t0)/stepDur),ep);
+      document.getElementById('pipelineBar').style.width=p.toFixed(1)+'%';
+      document.getElementById('pipelinePct').textContent=Math.round(p)+'%';
+      if(Date.now()-t0>=stepDur){clearInterval(tick);if(node){node.className='qp-node done';node.querySelector('.step-status').textContent='Done';}si++;setTimeout(runStep,80);}
+    },30);
+  }
+  runStep();
+}
+
+function finishQuantization(){
+  quantRunning=false;quantDone=true;
+  const btn=document.getElementById('runQuantBtn');btn.textContent='⚡ Run Again';btn.disabled=false;
+  document.getElementById('pipelineStatus').textContent='Complete';document.getElementById('pipelineStatus').className='badge green';
+  document.getElementById('pipelineBar').classList.remove('running');
+  document.getElementById('pipelineLabel').textContent='Quantization complete ✓';
+  document.getElementById('pipelinePct').textContent='100%';
+  const layers=generateLayerData(currentModel);
+  layers.forEach((_,i)=>{const st=document.getElementById(`lqr-st-${i}`);if(st&&!['Skipped','Protected'].includes(st.textContent)){st.textContent='Done';st.style.color='var(--green)';}});
+  buildBARows();showQuantResult();
+  document.getElementById('resultStatus').textContent='Success';
+}
+
+function showQuantResult(){
+  const m=MODELS[currentModel],q=QUANT_FORMATS.find(f=>f.name===currentQuant)||QUANT_FORMATS[3];
+  const origMB=m.params*4,quantMB=m.params*(q.bits/8);
+  document.getElementById('quantResult').innerHTML=`
+    <div class="result-hero">
+      <div class="rh-icon">✅</div>
+      <h2>${currentModel} → ${q.name}</h2>
+      <p>Quantization complete · ${fmtSize(origMB)} → ${fmtSize(quantMB)}</p>
+    </div>
+    <div class="result-metrics">
+      <div class="rm-card"><div class="rm-val" style="color:var(--accent3);">${(origMB/quantMB).toFixed(1)}×</div><div class="rm-label">Compression</div></div>
+      <div class="rm-card"><div class="rm-val" style="color:var(--green);">${fmtSize(quantMB)}</div><div class="rm-label">Final Size</div></div>
+      <div class="rm-card"><div class="rm-val" style="color:${q.pplDelta<2?'var(--yellow)':'var(--red)'};">+${q.pplDelta.toFixed(1)}</div><div class="rm-label">PPL Delta</div></div>
+      <div class="rm-card"><div class="rm-val" style="color:var(--accent);">${q.quality}%</div><div class="rm-label">Quality Score</div></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="dl-btn" onclick="simulateDownload()" style="flex:1;">⬇ Download Quantized Model</button>
+      <button class="dl-btn outline" onclick="exportJSON()" style="flex:1;">⬇ Export Report</button>
+    </div>`;
+}
+
+/* ─── State ─── */
+function updateStats(){
+  const m=MODELS[currentModel],q=QUANT_FORMATS.find(f=>f.name===currentQuant)||QUANT_FORMATS[3];
+  const bMB=m.params*4,qMB=m.params*(q.bits/8);
+  document.getElementById('statParams').textContent=m.params>=1000?(m.params/1000).toFixed(1)+'B':m.params+'M';
+  document.getElementById('statSize').textContent=fmtSize(m.size);
+  document.getElementById('statSizeSub').textContent=m.dtype+' on disk';
+  document.getElementById('statQSize').textContent=fmtSize(qMB);
+  document.getElementById('statQSizeSub').textContent=q.name+' target';
+  document.getElementById('statComp').textContent=(bMB/qMB).toFixed(1)+'×';
+  document.getElementById('statPPL').textContent=q.pplDelta===0?'±0':'+'+q.pplDelta.toFixed(1);
+  document.getElementById('dlName').textContent=`${currentModel} — ${q.name} Quantized`;
+  document.getElementById('dlMeta').textContent=`${fmtSize(qMB)} · ${q.name} · PyTorch checkpoint`;
+}
+function updateQuant(){currentQuant=QUANT_MAP[document.getElementById('quantTarget').value]||'INT8';updateStats();buildQuantTable();buildBARows();}
+function selectModel(el,name){document.querySelectorAll('.model-card').forEach(c=>c.classList.remove('active'));el.classList.add('active');currentModel=name;quantDone=false;updateStats();buildLayerTable(name);buildHeatmap(name);buildAnomalies(name);buildQuantTable();}
+function switchDistTab(mode,btn){distMode=mode;document.querySelectorAll('#distTabs .tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');buildDistChart();}
+function runAnalysis(){const btn=document.querySelector('.btn-primary');btn.textContent='⟳ Analyzing…';btn.style.opacity='0.7';setTimeout(()=>{buildLayerTable(currentModel);buildHeatmap(currentModel);buildAnomalies(currentModel);buildDistChart();buildQuantTable();btn.textContent='▶ Run Full Analysis';btn.style.opacity='1';},1100);}
+
+/* ─── Exports ─── */
+function exportJSON(){
+  const m=MODELS[currentModel],q=QUANT_FORMATS.find(f=>f.name===currentQuant)||QUANT_FORMATS[3];
+  const r={tool:'WeightScope v2.5.0',timestamp:new Date().toISOString(),model:{name:currentModel,...m},result:{quantTarget:q.name,quantDone,compressionRatio:parseFloat((m.params*4/(m.params*(q.bits/8))).toFixed(2)),estimatedPPLDelta:q.pplDelta,qualityScore:q.quality},quantFormats:QUANT_FORMATS};
+  const url=URL.createObjectURL(new Blob([JSON.stringify(r,null,2)],{type:'application/json'}));
+  const a=document.createElement('a');a.href=url;a.download=`weightscope_${currentModel.replace(/\s/g,'_')}_report.json`;a.click();URL.revokeObjectURL(url);
+}
+function exportCSV(){
+  let csv='Layer,Params(M),Magnitude,Sparsity(%),Sensitivity\n';
+  generateLayerData(currentModel).forEach(l=>{csv+=`${l.name},${l.params},${l.magnitude},${l.sparsity},${l.sensitivity}\n`;});
+  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  const a=document.createElement('a');a.href=url;a.download=`${currentModel.replace(/\s/g,'_')}_layers.csv`;a.click();URL.revokeObjectURL(url);
+}
+function simulateDownload(){
+  const m=MODELS[currentModel],q=QUANT_FORMATS.find(f=>f.name===currentQuant)||QUANT_FORMATS[3];
+  const txt=`# WeightScope v2.5.0 Export\n# Model: ${currentModel}\n# Quantization: ${q.name}\n# Size: ${fmtSize(m.params*(q.bits/8))}\n# Quantization done: ${quantDone}\n# Generated: ${new Date().toISOString()}\n\nSimulation export. Connect real checkpoint to download actual weights.\n`;
+  const url=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));
+  const a=document.createElement('a');a.href=url;a.download=`${currentModel.replace(/\s/g,'_')}_${q.name}_quantized.txt`;a.click();URL.revokeObjectURL(url);
+}
+function handleUpload(input){const f=input.files[0];if(!f)return;addLog(`Received: ${f.name} (${(f.size/1024/1024).toFixed(1)} MB)`,'info');}
+
+/* ─── INIT ─── */
+updateStats();buildLayerTable(currentModel);buildHeatmap(currentModel);buildAnomalies(currentModel);buildBARows();
+setTimeout(()=>{buildDistChart();buildQuantChart();},100);
+</script>
+</body>
+</html>

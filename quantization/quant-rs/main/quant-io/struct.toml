@@ -1,0 +1,13 @@
+# SEA feature crate configuration (L2)
+#
+# application_type is also declared in Cargo.toml [package.metadata.struct-engine].
+# This file provides whitelist overrides and is the preferred config location
+# when Cargo.toml metadata is not available.
+
+[package.metadata.struct-engine]
+application_type = "lib"
+
+
+[whitelist]
+allow = ["scripts"]
+

@@ -1,0 +1,26 @@
+[package]
+name = "quant-packer"
+version = "0.1.0"
+edition = "2021"
+description = "WeightScope quant-packer component"
+license = "MIT"
+rust-version = "1.75"
+authors = ["WeightScope Team"]
+repository = "https://github.com/swelabs/quant-rs"
+
+[package.metadata.struct-engine]
+application_type = "lib"
+
+[dependencies]
+candle-core.workspace = true
+safetensors.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+
+
+
+
+
+
+[dev-dependencies]
+tempfile.workspace = true
