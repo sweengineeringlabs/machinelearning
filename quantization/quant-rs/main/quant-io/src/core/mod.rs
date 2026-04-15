@@ -4,5 +4,6 @@
 //! Implement traits from api/ here.
 
 
+pub(crate) mod io;
 pub(crate) mod service;
 

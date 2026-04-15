@@ -19,6 +19,7 @@ serde.workspace = true
 
 quant-api.workspace = true
 quant-packer.workspace = true
+bytemuck.workspace = true
 
 
 

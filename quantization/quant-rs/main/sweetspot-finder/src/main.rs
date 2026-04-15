@@ -21,7 +21,7 @@ struct Cli {
 struct SweepResult {
     block_size: usize,
     avg_snr_db: f32,
-    avg_kl: f32,
+    avg_cosine: f32,
     overhead_pct: f32,
 }
 
@@ -52,27 +52,43 @@ fn main() -> anyhow::Result<()> {
         pb.set_style(ProgressStyle::default_bar().template("{spinner:.green} [BS {msg}] [{bar:40.cyan/blue}] {pos}/{len}").unwrap());
         pb.set_message(bs.to_string());
 
-        let service = DefaultQuantService::new(QuantFormat::Nf4, bs);
+        // Phase-1 MVP: only Int8 is implemented end-to-end. Other formats
+        // will be added once their quantizer impls land with passing
+        // round-trip tests; sweeping a block size is meaningful for any
+        // block-based encoding so the sweep loop itself is unchanged.
+        let service = DefaultQuantService::new(QuantFormat::Int8, bs);
         let eval = EvalService::new();
 
-        let mut total_snr = 0.0;
-        let mut total_kl = 0.0;
+        let mut total_snr = 0.0_f32;
+        let mut total_cosine = 0.0_f32;
+        let mut snr_count = 0_usize;
         let mut current_metrics = Vec::new();
 
         for (name, weight) in &tensors {
             let quantized = service.quantize(weight)?;
             let dequantized = service.dequantize(&quantized)?;
             let m = eval.calculate_metrics(weight, &dequantized)?;
-            total_snr += m.snr_db;
-            total_kl += m.kl_divergence;
+            // Skip +inf SNR (identical tensors) so it doesn't poison the average.
+            if m.snr_db.is_finite() {
+                total_snr += m.snr_db;
+                snr_count += 1;
+            }
+            total_cosine += m.cosine;
             current_metrics.push((name.clone(), m.snr_db));
             pb.inc(1);
         }
 
+        let n = tensors.len() as f32;
+        let avg_snr_db = if snr_count > 0 {
+            total_snr / snr_count as f32
+        } else {
+            f32::NAN
+        };
+
         sweep_results.push(SweepResult {
             block_size: bs,
-            avg_snr_db: total_snr / tensors.len() as f32,
-            avg_kl: total_kl / tensors.len() as f32,
+            avg_snr_db,
+            avg_cosine: total_cosine / n,
             overhead_pct: (4.0 / bs as f32) * 100.0,
         });
         last_metrics = current_metrics;

@@ -1,31 +1,7 @@
-// @covers: Service
-// Substantive SAF Facade for quant-engine
-// This implementation provides the public entry points.
+//! SAF (single application facade) re-exports for `quant-engine`.
+//!
+//! Downstream crates depend on `quant_engine::DefaultQuantService` — that
+//! name is routed here from `core::quantizer::default`. Everything else is
+//! crate-internal.
 
-/// Initializes the quant-engine service with default configuration.
-pub fn init() {
-    println!("Initializing quant-engine facade layer...");
-}
-
-/// Executes the core quant-engine logic.
-pub fn execute() {
-    println!("Executing quant-engine facade logic...");
-}
-
-/// Runs the full quant-engine process.
-pub fn run() {
-    init();
-    execute();
-}
-
-/// Starts the quant-engine worker.
-pub fn start() {}
-
-/// Stops the quant-engine worker.
-pub fn stop() {}
-
-/// Shuts down the quant-engine service.
-pub fn shutdown() {}
-
-pub fn quantize() {}
-pub fn dequantize() {}
+pub use crate::core::quantizer::default::DefaultQuantService;

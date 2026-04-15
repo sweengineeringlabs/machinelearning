@@ -16,11 +16,7 @@ candle-core.workspace = true
 safetensors.workspace = true
 thiserror.workspace = true
 serde.workspace = true
-
-
-
 candle-transformers.workspace = true
-safetensors.workspace = true
 clap.workspace = true
 indicatif.workspace = true
 anyhow.workspace = true
@@ -34,3 +30,5 @@ quant-eval.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
+bytemuck.workspace = true
+safetensors.workspace = true

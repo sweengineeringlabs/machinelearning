@@ -12,20 +12,12 @@ repository = "https://github.com/swelabs/quant-rs"
 application_type = "binary"
 
 [dependencies]
-# removed
-# removed
 thiserror.workspace = true
 serde.workspace = true
-
-
-
-
-# removed
 clap.workspace = true
 indicatif.workspace = true
-# removed
 serde_json.workspace = true
-# removed
+anyhow.workspace = true
 quant-api.workspace = true
 quant-io.workspace = true
 quant-engine.workspace = true

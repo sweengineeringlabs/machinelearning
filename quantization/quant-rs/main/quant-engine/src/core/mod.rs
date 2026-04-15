@@ -5,4 +5,5 @@
 
 
 pub(crate) mod service;
+pub(crate) mod quantizer;
 

@@ -1,31 +1,6 @@
-// @covers: Service
-// Substantive SAF Facade for quant-eval
-// This implementation provides the public entry points.
+//! SAF (single application facade) re-exports for `quant-eval`.
+//!
+//! The public surface is intentionally narrow: callers depend on the
+//! evaluator and its metric bundle, nothing else.
 
-/// Initializes the quant-eval service with default configuration.
-pub fn init() {
-    println!("Initializing quant-eval facade layer...");
-}
-
-/// Executes the core quant-eval logic.
-pub fn execute() {
-    println!("Executing quant-eval facade logic...");
-}
-
-/// Runs the full quant-eval process.
-pub fn run() {
-    init();
-    execute();
-}
-
-/// Starts the quant-eval worker.
-pub fn start() {}
-
-/// Stops the quant-eval worker.
-pub fn stop() {}
-
-/// Shuts down the quant-eval service.
-pub fn shutdown() {}
-
-pub fn quantize() {}
-pub fn dequantize() {}
+pub use crate::core::eval::service::{EvalService, Metrics};
