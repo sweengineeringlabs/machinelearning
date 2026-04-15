@@ -1,6 +1,6 @@
 use std::convert::Infallible;
 use std::sync::Arc;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use axum::extract::State;
 use axum::response::sse::{Event, KeepAlive, Sse};
@@ -17,6 +17,35 @@ use rustml_inference_layers::PoolingStrategy;
 use crate::api::error::DaemonError;
 use crate::api::types::*;
 use crate::core::state::AppState;
+
+/// Build the per-request deadline from the daemon's configured timeout.
+/// `None` preserves prior unbounded behavior; `Some(t)` ensures a stuck
+/// forward pass cannot hold its throttle permit past `t`.
+fn build_deadline(timeout: Option<Duration>) -> Option<Instant> {
+    timeout.map(|d| Instant::now() + d)
+}
+
+/// Real tokenizer-backed length count. Replaces the prior
+/// `split_whitespace().count()` estimate that systematically lied to
+/// clients about token usage. Falls back to `0` on tokenizer error
+/// rather than failing the request — the response itself is valid.
+fn count_tokens(state: &AppState, text: &str) -> usize {
+    state
+        .model
+        .tokenizer()
+        .encode(text)
+        .map(|ids| ids.len())
+        .unwrap_or(0)
+}
+
+/// One item flowing from the blocking generator thread to the SSE
+/// stream. `Done` carries the final usage so the SSE layer can emit a
+/// terminal chunk before `[DONE]`, instead of the prior behavior of
+/// silently omitting usage on streaming responses.
+enum StreamItem {
+    Token(String),
+    Done(Usage),
+}
 
 /// Build the axum router with all endpoints.
 pub fn build_router(state: Arc<AppState>) -> Router {
@@ -125,10 +154,20 @@ async fn handle_blocking(
     let top_p = req.top_p;
     let repetition_penalty = req.repetition_penalty;
     let model_id = state.model.model_id().to_string();
+    let deadline = build_deadline(state.request_timeout);
+
+    // Tokenize prompt content on the async thread (cheap, no model forward
+    // pass involved) so the count comes from the same tokenizer the model
+    // will see — not a whitespace estimate. Excludes chat-template special
+    // tokens, matching the convention of OpenAI-compatible servers.
+    let prompt_tokens: usize = owned_messages
+        .iter()
+        .map(|(_, content)| count_tokens(&state, content))
+        .sum();
 
     // Run inference on a blocking thread to avoid starving the tokio runtime.
     // `permit` moves into the closure; dropped when inference completes.
-    let (output, prompt_tokens, completion_tokens) = tokio::task::spawn_blocking(move || {
+    let (output, completion_tokens) = tokio::task::spawn_blocking(move || {
         let _permit = permit;
         let mut completer = state.model.open_text_completer();
         let params = CompletionParams {
@@ -137,7 +176,7 @@ async fn handle_blocking(
             top_k,
             top_p,
             repetition_penalty,
-            deadline: None,
+            deadline,
         };
 
         let messages: Vec<(&str, &str)> = owned_messages
@@ -151,11 +190,7 @@ async fn handle_blocking(
             .map_err(|e| DaemonError::GenerationFailed(e.to_string()))?;
         let elapsed = start.elapsed();
 
-        let prompt_tokens = owned_messages
-            .iter()
-            .map(|(_, c)| c.split_whitespace().count())
-            .sum::<usize>();
-        let completion_tokens = output.split_whitespace().count();
+        let completion_tokens = count_tokens(&state, &output);
 
         log::info!(
             "Generated {} tokens in {:.2}s ({:.1} tok/s)",
@@ -164,7 +199,7 @@ async fn handle_blocking(
             completion_tokens as f64 / elapsed.as_secs_f64().max(1e-9)
         );
 
-        Ok::<_, DaemonError>((output, prompt_tokens, completion_tokens))
+        Ok::<_, DaemonError>((output, completion_tokens))
     })
     .await
     .map_err(|e| DaemonError::Internal(format!("Task join error: {}", e)))??;
@@ -210,8 +245,17 @@ async fn handle_streaming(
     let top_k = req.top_k;
     let top_p = req.top_p;
     let repetition_penalty = req.repetition_penalty;
+    let deadline = build_deadline(state.request_timeout);
 
-    let (tx, rx) = tokio::sync::mpsc::channel::<String>(64);
+    // Compute prompt tokens up-front using the real tokenizer so the value
+    // is available for the terminal `Done` chunk regardless of how the
+    // generation loop exits (early stop, deadline, client disconnect).
+    let prompt_tokens: usize = owned_messages
+        .iter()
+        .map(|(_, content)| count_tokens(&state, content))
+        .sum();
+
+    let (tx, rx) = tokio::sync::mpsc::channel::<StreamItem>(64);
 
     let stream_state = Arc::clone(&state);
     tokio::task::spawn_blocking(move || {
@@ -223,7 +267,7 @@ async fn handle_streaming(
             top_k,
             top_p,
             repetition_penalty,
-            deadline: None,
+            deadline,
         };
 
         let messages: Vec<(&str, &str)> = owned_messages
@@ -231,30 +275,64 @@ async fn handle_streaming(
             .map(|(r, c)| (r.as_str(), c.as_str()))
             .collect();
 
+        // Counted in the callback so the value reflects what the model
+        // actually emitted, including partial runs ended by deadline or
+        // client disconnect.
+        let mut completion_tokens: usize = 0;
         let tokenizer = stream_state.model.tokenizer();
         let _ = completer.complete_turn_stream(&messages, &params, &mut |token_id| {
+            completion_tokens += 1;
             match tokenizer.decode(&[token_id]) {
-                Ok(piece) => tx.blocking_send(piece).is_ok(),
+                Ok(piece) => tx.blocking_send(StreamItem::Token(piece)).is_ok(),
                 Err(_) => true,
             }
         });
+
+        let usage = Usage {
+            prompt_tokens,
+            completion_tokens,
+            total_tokens: prompt_tokens + completion_tokens,
+        };
+        // Best-effort: if the receiver is gone (client disconnect), this
+        // returns Err and we drop on the floor — nothing to do.
+        let _ = tx.blocking_send(StreamItem::Done(usage));
     });
 
+    let stream_id = completion_id.clone();
+    let stream_model = model_id.clone();
     let token_stream =
-        tokio_stream::wrappers::ReceiverStream::new(rx).map(move |piece| {
-            let chunk = ChatCompletionChunk {
-                id: completion_id.clone(),
-                object: "chat.completion.chunk",
-                created,
-                model: model_id.clone(),
-                choices: vec![ChatChunkChoice {
-                    index: 0,
-                    delta: ChatDelta {
-                        role: None,
-                        content: Some(piece),
-                    },
-                    finish_reason: None,
-                }],
+        tokio_stream::wrappers::ReceiverStream::new(rx).map(move |item| {
+            let chunk = match item {
+                StreamItem::Token(piece) => ChatCompletionChunk {
+                    id: stream_id.clone(),
+                    object: "chat.completion.chunk",
+                    created,
+                    model: stream_model.clone(),
+                    choices: vec![ChatChunkChoice {
+                        index: 0,
+                        delta: ChatDelta {
+                            role: None,
+                            content: Some(piece),
+                        },
+                        finish_reason: None,
+                    }],
+                    usage: None,
+                },
+                StreamItem::Done(usage) => ChatCompletionChunk {
+                    id: stream_id.clone(),
+                    object: "chat.completion.chunk",
+                    created,
+                    model: stream_model.clone(),
+                    choices: vec![ChatChunkChoice {
+                        index: 0,
+                        delta: ChatDelta {
+                            role: None,
+                            content: None,
+                        },
+                        finish_reason: Some("stop".into()),
+                    }],
+                    usage: Some(usage),
+                },
             };
             let json = serde_json::to_string(&chunk).unwrap_or_default();
             Ok::<_, Infallible>(Event::default().data(json))
@@ -298,8 +376,13 @@ async fn completions(
     let top_p = req.top_p;
     let repetition_penalty = req.repetition_penalty;
     let model_id = state.model.model_id().to_string();
+    let deadline = build_deadline(state.request_timeout);
 
-    let (text, prompt_tokens, completion_tokens) = tokio::task::spawn_blocking(move || {
+    // Legacy /v1/completions takes a raw prompt — no chat template is
+    // applied, so this token count is exact (matches what the model sees).
+    let prompt_tokens = count_tokens(&state, &prompt);
+
+    let (text, completion_tokens) = tokio::task::spawn_blocking(move || {
         let _permit = permit;
         let mut completer = state.model.open_text_completer();
         let params = CompletionParams {
@@ -308,7 +391,7 @@ async fn completions(
             top_k,
             top_p,
             repetition_penalty,
-            deadline: None,
+            deadline,
         };
 
         let start = Instant::now();
@@ -317,9 +400,7 @@ async fn completions(
             .map_err(|e| DaemonError::GenerationFailed(e.to_string()))?;
         let elapsed = start.elapsed();
 
-        // Rough word-count approximation, consistent with chat_completions.
-        let prompt_tokens = prompt.split_whitespace().count();
-        let completion_tokens = text.split_whitespace().count();
+        let completion_tokens = count_tokens(&state, &text);
 
         log::info!(
             "Generated (raw) {} tokens in {:.2}s ({:.1} tok/s)",
@@ -328,7 +409,7 @@ async fn completions(
             completion_tokens as f64 / elapsed.as_secs_f64().max(1e-9)
         );
 
-        Ok::<_, DaemonError>((text, prompt_tokens, completion_tokens))
+        Ok::<_, DaemonError>((text, completion_tokens))
     })
     .await
     .map_err(|e| DaemonError::Internal(format!("Task join error: {}", e)))??;

@@ -140,7 +140,7 @@ Request/response DTOs live in `api/types.rs` and mirror OpenAI's field names so 
 4. `rayon` thread pool size is logged (from `rustml-thread-config::AutoThreadConfig`).
 5. The model is loaded via `load_gguf` (when `[model].source = "gguf"`) or `load_safetensors` (when `[model].source = "safetensors"`). The merged TOML is passed through so the runtime quantizer can read its `[quantization]` section without re-reading files.
 6. `build_throttle(cfg)` dispatches on `[throttle].provider` to construct the admission-control backend. Today only `"semaphore"` is implemented; new providers slot in as one `match` arm plus a config sub-table.
-7. `AppState { model, throttle }` is wrapped in `Arc` and handed to `build_router`.
+7. `AppState { model, throttle, request_timeout }` is wrapped in `Arc` and handed to `build_router`. `request_timeout` is derived from `[generation].request_timeout_secs` (`0` → `None` to preserve unbounded behavior).
 8. axum binds to `[server].host:[server].port` and serves until SIGINT/SIGTERM.
 
 No CLI flags. No reload. No graceful shutdown drain — the process is the unit of deployment. To run with different settings, set `XDG_CONFIG_HOME=/path/to/dir` where the overlay lives at `$XDG_CONFIG_HOME/llmserv/application.toml`.

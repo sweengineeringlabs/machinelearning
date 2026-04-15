@@ -20,7 +20,28 @@ pub struct AppConfig {
     #[serde(default)]
     pub throttle: ThrottleSpec,
     #[serde(default)]
+    pub generation: GenerationSpec,
+    #[serde(default)]
     pub logging: LoggingSpec,
+}
+
+/// Per-request generation limits applied uniformly by the daemon.
+#[derive(Debug, Deserialize)]
+pub struct GenerationSpec {
+    /// Wall-clock cap on a single completion. `0` disables the deadline,
+    /// preserving prior unbounded behavior. Any positive value is wired
+    /// into `CompletionParams.deadline` so a stuck forward pass cannot
+    /// hold a throttle permit indefinitely.
+    #[serde(default)]
+    pub request_timeout_secs: u64,
+}
+
+impl Default for GenerationSpec {
+    fn default() -> Self {
+        Self {
+            request_timeout_secs: 0,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]

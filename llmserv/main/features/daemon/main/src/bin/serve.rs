@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::time::Duration;
 
 use anyhow::{Result, anyhow, bail};
 
@@ -47,7 +48,22 @@ async fn main() -> Result<()> {
         throttle.capacity()
     );
 
-    let state = Arc::new(AppState { model, throttle });
+    let request_timeout = match loaded.app.generation.request_timeout_secs {
+        0 => None,
+        secs => Some(Duration::from_secs(secs)),
+    };
+    log::info!(
+        "Generation timeout: {}",
+        request_timeout
+            .map(|d| format!("{}s", d.as_secs()))
+            .unwrap_or_else(|| "disabled".into())
+    );
+
+    let state = Arc::new(AppState {
+        model,
+        throttle,
+        request_timeout,
+    });
     let app = build_router(state);
 
     let addr: SocketAddr = format!("{}:{}", loaded.app.server.host, loaded.app.server.port).parse()?;

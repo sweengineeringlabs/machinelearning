@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::api::throttle::Throttle;
 use llmbackend::Model;
 use rustml_inference_layers::PoolingStrategy;
@@ -67,4 +69,7 @@ impl Model for DefaultModel {
 pub struct AppState {
     pub model: Box<dyn Model>,
     pub throttle: Box<dyn Throttle>,
+    /// Per-request wall-clock cap. `None` means no deadline (preserves
+    /// the prior unbounded behavior for callers that opt out via config).
+    pub request_timeout: Option<Duration>,
 }

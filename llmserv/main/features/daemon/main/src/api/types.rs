@@ -65,6 +65,11 @@ pub struct ChatCompletionChunk {
     pub created: i64,
     pub model: String,
     pub choices: Vec<ChatChunkChoice>,
+    /// Populated only on the final chunk (matching OpenAI's
+    /// `stream_options.include_usage` convention). Omitted on token
+    /// chunks via `skip_serializing_if` so existing clients are unaffected.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub usage: Option<Usage>,
 }
 
 #[derive(Debug, Serialize)]

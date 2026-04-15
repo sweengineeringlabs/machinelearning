@@ -73,6 +73,17 @@ provider = "semaphore"
 max_concurrent = 2
 
 # ──────────────────────────────────────────────────────────────────────
+# [generation] — per-request generation limits
+#
+# request_timeout_secs: hard wall-clock cap per completion (0 = none).
+#   When > 0, the value becomes CompletionParams.deadline. Required to
+#   prevent a stuck forward pass from holding a throttle permit until
+#   process restart.
+# ──────────────────────────────────────────────────────────────────────
+[generation]
+request_timeout_secs = 0
+
+# ──────────────────────────────────────────────────────────────────────
 # [quantization] — runtime weight quantization (rustml-quantizer)
 #
 # Per-layer-type targets. Valid values: f32, f16, bf16, q8_0, q4_0, q4_1
