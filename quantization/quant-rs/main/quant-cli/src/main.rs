@@ -23,10 +23,15 @@ struct Cli {
     #[arg(long, default_value_t = true)]
     eval: bool,
     /// Per-tensor round-trip check: quantize → dequantize → assert
-    /// cosine similarity exceeds the format's documented threshold.
-    /// Aborts on the first failure with the offending tensor name.
+    /// cosine similarity meets `--verify-threshold`. Aborts with the
+    /// offending tensor names on any failure.
     #[arg(long, default_value_t = false)]
     verify: bool,
+    /// Cosine threshold for `--verify`. Defaults to the format's
+    /// documented round-trip tolerance. Set to a value a format cannot
+    /// satisfy (e.g. 1.01) to validate the abort path in CI.
+    #[arg(long, default_value_t = VERIFY_COSINE_DEFAULT)]
+    verify_threshold: f32,
     #[arg(long)]
     reference: Option<String>,
     #[arg(long)]
@@ -51,10 +56,11 @@ impl From<QuantFormatCli> for QuantFormat {
     }
 }
 
-/// Cosine threshold below which `--verify` rejects a quantized tensor.
-/// Matches the round-trip contract documented on `quant_api::Quantizer`
-/// and exercised by `quant-engine`'s sin-wave regression test.
-const VERIFY_COSINE_THRESHOLD: f32 = 0.99;
+/// Default cosine threshold for `--verify`. Matches the round-trip
+/// contract documented on `quant_api::Quantizer` and exercised by
+/// `quant-engine`'s sin-wave regression test. Override with
+/// `--verify-threshold`.
+const VERIFY_COSINE_DEFAULT: f32 = 0.99;
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
@@ -138,7 +144,7 @@ fn run_quantization(cli: &Cli) -> anyhow::Result<()> {
                 snr_count += 1;
             }
 
-            if cli.verify && metrics.cosine < VERIFY_COSINE_THRESHOLD {
+            if cli.verify && metrics.cosine < cli.verify_threshold {
                 verify_failures.push((name.clone(), metrics.cosine));
             }
         }
@@ -174,8 +180,8 @@ fn run_quantization(cli: &Cli) -> anyhow::Result<()> {
     if cli.verify {
         if verify_failures.is_empty() {
             println!(
-                "✅ --verify: all quantized tensors meet cosine ≥ {:.2}",
-                VERIFY_COSINE_THRESHOLD
+                "✅ --verify: all quantized tensors meet cosine ≥ {:.4}",
+                cli.verify_threshold
             );
         } else {
             for (name, cos) in &verify_failures {
@@ -184,7 +190,7 @@ fn run_quantization(cli: &Cli) -> anyhow::Result<()> {
             anyhow::bail!(
                 "--verify failed: {} tensor(s) below cosine threshold {}",
                 verify_failures.len(),
-                VERIFY_COSINE_THRESHOLD
+                cli.verify_threshold
             );
         }
     }
