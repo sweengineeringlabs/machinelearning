@@ -17,30 +17,35 @@ This review was verified by reading every cited file and running `cargo build` f
 | 2 | `DefaultQuantService` referenced but never defined | **Fixed** — real Int8 block-symmetric impl with 5 round-trip tests | `main/quant-engine/src/core/quantizer/default.rs` |
 | 3 | `EvalService`, `ModelIO`, `Quantizer`, `QuantFormat` referenced but never defined | **Fixed** — real impls with 6 metrics tests + 7 IO tests | `main/quant-{eval,io}/src/core/...`, `main/quant-api/src/api/{format,tensor,quantizer,error}.rs` |
 | 4 | All five SAF facades export empty `quantize()` / `dequantize()` | **Fixed** — facades now re-export the real public types | `main/quant-{api,engine,eval,io}/src/saf/facade.rs` |
-| 5 | `DefaultService` cannot-fail tests | **Not yet removed** — pre-existing scaffolding still compiles, generates dead-code warnings; left for a follow-up cleanup | `main/*/src/core/service/default_service.rs` |
+| 5 | `DefaultService` cannot-fail tests | **Fixed** — all seven crates' legacy `Service`/`DefaultService`/`Config`/legacy `Error` and `gateway/` scaffolding removed. Zero build warnings from the workspace now. | `main/*/src/{api,core,gateway}/*` |
 | 6 | No round-trip verification of any quant format | **Fixed for Int8** — sin-wave fixture asserts cosine ≥ 0.99; CLI exposes `--verify` mode with the same threshold; e2e smoke test at `quant-cli/tests/cli_verify_e2e.rs` | `quant-engine` + `quant-cli` |
 | 7 | Generic naming: `DefaultService::execute()` | **Acknowledged, not changed** — `DefaultQuantService` was preserved because the CLI imports it under that name; renaming would touch many sites without changing behavior. New types use descriptive names (`Quantizer` trait, `QuantizedTensor`, `Metrics`) | (n/a) |
 
-### Test counts (verified via `cargo test --workspace --lib`)
+### Test counts (verified via `cargo test --workspace --lib --tests --bins`)
+
+After legacy-scaffolding removal (2026-04-15), every remaining test
+exercises real functionality — no `assert!(true)` placeholders, no
+tests on println-stub impls. Count dropped from 79 → 24 because ~55
+of the original tests were fake scaffolding tests that could not fail.
 
 ```
-quant-api   : 12 passed, 0 failed
-quant-cli   :  8 passed, 0 failed
-quant-engine: 13 passed, 0 failed   (+5 new round-trip tests)
-quant-eval  : 14 passed, 0 failed   (+6 new metric tests)
-quant-io    : 15 passed, 0 failed   (+7 new IO tests)
-quant-packer:  8 passed, 0 failed   (untouched)
-sweetspot-finder: 8 passed, 0 failed
-quant-cli e2e: 1 passed, 0 failed   (CLI --verify on sin-wave fixture, avg SNR 49.49 dB)
+quant-api         :  4 passed, 0 failed   (QuantFormat + QuantError)
+quant-engine      :  5 passed, 0 failed   (Int8 round-trip contract)
+quant-eval        :  6 passed, 0 failed   (metric formulas)
+quant-io          :  7 passed, 0 failed   (safetensors + GGUF IO)
+quant-cli e2e     :  2 passed, 0 failed   (positive + negative --verify paths)
+quant-packer      :  0 passed              (placeholder crate — future 4-bit)
+sweetspot-finder  :  0 lib tests           (binary crate)
 ```
 
 ### Remaining honest limitations
 
-- **Only Int8 is implemented.** `QuantFormat` has a single variant. NF4, Int4, Q4_0, Fp16 are removed from the CLI to stop the false claim. Each new format lands behind its own passing round-trip test.
-- **Saved Int8 safetensors files are write-only** by this CLI today: the `.scales` companion tensor exists but the original shape and format are not persisted, so a reverse loader would have to be written. Out of scope for Phase 1.
-- **GGUF support is minimal:** single-tensor lookup only, no multi-tensor enumeration.
-- **Dead-code warnings (~7 per crate)** from the generic `Service`/`DefaultService` scaffolding will be cleaned up when the SEA template is reconciled with the real types.
-- **No automated regression yet asserts the CLI's `--verify` exit code is non-zero on a deliberately broken quantizer.** The smoke test only covers the success path; a negative variant would close the loop.
+Tracked individually in [backlog.md](backlog.md):
+
+- **Only Int8 is implemented.** `QuantFormat` has a single variant. NF4, Q4_0, Int4, Fp16 are backlog items, each gated on a passing round-trip test before landing.
+- **Saved Int8 safetensors files are write-only** today: the `.scales` companion tensor is persisted but format and original shape are not, so there is no reverse loader. Design call deferred — see backlog "Reverse loader for Int8 quantized safetensors".
+- **GGUF support is minimal:** single-tensor lookup only. Multi-tensor enumeration is a backlog item.
+- **Negative-path `--verify` test is trivial.** It exercises `--verify-threshold 1.01` (mathematically unsatisfiable), which proves the abort branch exists but does not catch subtler regressions. A mock-quantizer DI point would let us inject a genuinely broken quantizer; tracked as backlog.
 
 ---
 

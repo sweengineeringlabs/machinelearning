@@ -14,7 +14,7 @@ for the audit history that surfaced earlier overstated claims.
 | :----------------- | :---------------- | :-------------------------------------------------------------------------------------------------------------- |
 | `quant-api`        | Foundation        | ✅ `Quantizer` trait, `QuantFormat::Int8`, `QuantizedTensor`, `QuantError`                                       |
 | `quant-io`         | Load / save       | ✅ `ModelIO::{load_safetensors, save_safetensors, load_gguf_tensor}`                                             |
-| `quant-packer`     | Bit-packing       | ⚠️ Scaffolding only — needed once 4-bit formats land                                                            |
+| `quant-packer`     | Bit-packing       | ⚠️ Empty placeholder crate — reserved for 4-bit bit-packing when NF4/Q4_0/Int4 land                            |
 | `quant-engine`     | Quantization math | ✅ `DefaultQuantService` — Int8 block-symmetric (per-block f32 scale)                                            |
 | `quant-eval`       | Quality metrics   | ✅ `EvalService` returns `Metrics { snr_db, cosine, mse, max_abs_error }`                                        |
 | `quant-cli`        | CLI               | ✅ `--format int8`, `--block-size`, `--verify`, `--protect-report`                                              |
