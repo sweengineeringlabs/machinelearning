@@ -31,7 +31,7 @@ run_tokenizer_tests() {
 
 run_gguf_tests() {
   echo "==> Testing gguf..."
-  cargo test -p rustml-gguf
+  (cd llmmodel && cargo test -p swe-llmmodel-gguf)
 }
 
 run_quant_tests() {

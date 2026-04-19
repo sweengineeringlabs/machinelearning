@@ -2,7 +2,7 @@ use std::path::Path;
 
 use anyhow::{Context, Result};
 
-use rustml_gguf::GGUFFile;
+use swe_llmmodel_gguf::GGUFFile;
 use rustml_model::{
     ModelBuilderRegistry, gguf_config_to_model_config,
 };

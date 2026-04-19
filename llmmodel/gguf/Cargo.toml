@@ -1,5 +1,5 @@
 [package]
-name = "rustml-gguf"
+name = "swe-llmmodel-gguf"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -10,7 +10,7 @@ description = "GGUF format parser for RustML - loads quantized models from the l
 path = "main/src/lib.rs"
 
 [[bin]]
-name = "rustml-gguf-inspect"
+name = "swe-llmmodel-gguf-inspect"
 path = "main/src/bin/gguf_inspect.rs"
 
 [dependencies]

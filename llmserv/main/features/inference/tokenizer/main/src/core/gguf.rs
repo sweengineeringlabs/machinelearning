@@ -23,7 +23,7 @@ pub struct GgufTokenizer {
 
 impl GgufTokenizer {
     /// Build from GGUF metadata: tokens, scores, and config.
-    pub fn from_gguf(gguf: &rustml_gguf::GGUFFile) -> TokenizerResult<Self> {
+    pub fn from_gguf(gguf: &swe_llmmodel_gguf::GGUFFile) -> TokenizerResult<Self> {
         let tokens_val = gguf
             .metadata
             .get("tokenizer.ggml.tokens")
@@ -32,7 +32,7 @@ impl GgufTokenizer {
             })?;
 
         let tokens_arr = match tokens_val {
-            rustml_gguf::GGUFValue::Array(arr) => arr,
+            swe_llmmodel_gguf::GGUFValue::Array(arr) => arr,
             _ => {
                 return Err(TokenizerError::TokenizerError(
                     "tokenizer.ggml.tokens is not an array".to_string(),
@@ -45,7 +45,7 @@ impl GgufTokenizer {
 
         for (i, val) in tokens_arr.iter().enumerate() {
             let s = match val {
-                rustml_gguf::GGUFValue::String(s) => s.clone(),
+                swe_llmmodel_gguf::GGUFValue::String(s) => s.clone(),
                 _ => format!("<unk_{}>", i),
             };
             token_to_id.entry(s.clone()).or_insert(i as u32);
@@ -54,13 +54,13 @@ impl GgufTokenizer {
 
         // Load BPE merge scores
         let mut scores = vec![f32::NEG_INFINITY; id_to_token.len()];
-        if let Some(rustml_gguf::GGUFValue::Array(scores_arr)) =
+        if let Some(swe_llmmodel_gguf::GGUFValue::Array(scores_arr)) =
             gguf.metadata.get("tokenizer.ggml.scores")
         {
             for (i, val) in scores_arr.iter().enumerate() {
                 if i < scores.len() {
                     scores[i] = match val {
-                        rustml_gguf::GGUFValue::F32(f) => *f,
+                        swe_llmmodel_gguf::GGUFValue::F32(f) => *f,
                         _ => f32::NEG_INFINITY,
                     };
                 }
@@ -69,13 +69,13 @@ impl GgufTokenizer {
 
         // Load token types and collect USER_DEFINED tokens
         let mut user_defined = Vec::new();
-        if let Some(rustml_gguf::GGUFValue::Array(types_arr)) =
+        if let Some(swe_llmmodel_gguf::GGUFValue::Array(types_arr)) =
             gguf.metadata.get("tokenizer.ggml.token_type")
         {
             for (i, val) in types_arr.iter().enumerate() {
                 let ttype = match val {
-                    rustml_gguf::GGUFValue::I32(v) => *v,
-                    rustml_gguf::GGUFValue::U32(v) => *v as i32,
+                    swe_llmmodel_gguf::GGUFValue::I32(v) => *v,
+                    swe_llmmodel_gguf::GGUFValue::U32(v) => *v as i32,
                     _ => 0,
                 };
                 if (ttype == TOKEN_TYPE_USER_DEFINED || ttype == TOKEN_TYPE_CONTROL) && i < id_to_token.len() {
@@ -96,7 +96,7 @@ impl GgufTokenizer {
             .metadata
             .get("tokenizer.ggml.add_space_prefix")
             .and_then(|v| match v {
-                rustml_gguf::GGUFValue::Bool(b) => Some(*b),
+                swe_llmmodel_gguf::GGUFValue::Bool(b) => Some(*b),
                 _ => None,
             })
             .unwrap_or(true);

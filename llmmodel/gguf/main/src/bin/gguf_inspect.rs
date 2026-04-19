@@ -4,11 +4,11 @@ use std::process;
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 
-use rustml_gguf::{GGUFFile, GGUFValue, TensorStats};
+use swe_llmmodel_gguf::{GGUFFile, GGUFValue, TensorStats};
 
 /// RustML GGUF Inspector — inspect GGUF model files.
 #[derive(Parser)]
-#[command(name = "rustml-gguf-inspect", version, about)]
+#[command(name = "swe-llmmodel-gguf-inspect", version, about)]
 struct Cli {
     #[command(subcommand)]
     command: Command,
@@ -109,7 +109,7 @@ fn run_verify(path: &PathBuf) -> Result<()> {
         .map(|t| t.name.as_str())
         .collect();
 
-    let find_tensor = |name: &str| -> Option<&rustml_gguf::GGUFTensorInfo> {
+    let find_tensor = |name: &str| -> Option<&swe_llmmodel_gguf::GGUFTensorInfo> {
         gguf.tensor_infos.iter().find(|t| t.name == name)
     };
 

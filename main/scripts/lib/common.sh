@@ -72,7 +72,7 @@ crate_package() {
     nn)        echo "rustml-nn" ;;
     nlp)       echo "rustml-nlp" ;;
     tokenizer) echo "rustml-tokenizer" ;;
-    gguf)      echo "rustml-gguf" ;;
+    gguf)      echo "swe-llmmodel-gguf" ;;
     quant)     echo "rustml-quant" ;;
     llmmodel)  echo "swe-llmmodel-download swe-llmmodel-io swe-llmmodel-weights swe-llmmodel-cli" ;;
     *)         echo "$1" ;;

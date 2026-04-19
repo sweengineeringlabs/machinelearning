@@ -17,7 +17,6 @@ members = [
     "main/features/inference/model",
     "main/features/inference/generation",
     "main/features/inference/tokenizer",
-    "main/features/inference/gguf",
     "main/features/inference/quantizer",
     "main/features/inference/prefill",
     "main/features/inference/thread-config",
@@ -112,6 +111,7 @@ swe-llmmodel-io       = { path = "../llmmodel/io" }
 swe-llmmodel-weights  = { path = "../llmmodel/weights" }
 swe-llmmodel-kernel   = { path = "../llmmodel/kernel" }
 swe-llmmodel-layers   = { path = "../llmmodel/layers" }
+swe-llmmodel-gguf     = { path = "../llmmodel/gguf" }
 
 # ──────────────────────────────────────────────────────────────────────
 # Inference library (internal to this workspace).
@@ -119,7 +119,6 @@ swe-llmmodel-layers   = { path = "../llmmodel/layers" }
 rustml-model            = { path = "main/features/inference/model" }
 rustml-generation       = { path = "main/features/inference/generation" }
 rustml-tokenizer        = { path = "main/features/inference/tokenizer" }
-rustml-gguf             = { path = "main/features/inference/gguf" }
 rustml-quantizer        = { path = "main/features/inference/quantizer" }
 rustml-prefill          = { path = "main/features/inference/prefill" }
 rustml-thread-config    = { path = "main/features/inference/thread-config" }

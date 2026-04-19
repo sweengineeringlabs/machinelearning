@@ -14,7 +14,7 @@ name = "rustml-tokenizer"
 path = "main/src/bin/tokenizer_cli.rs"
 
 [dependencies]
-rustml-gguf.workspace = true
+swe-llmmodel-gguf.workspace = true
 thiserror.workspace = true
 regex.workspace = true
 serde_json.workspace = true

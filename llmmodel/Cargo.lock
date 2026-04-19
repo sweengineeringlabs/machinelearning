@@ -2207,6 +2207,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "swe-llmmodel-gguf"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "approx",
+ "bytemuck",
+ "clap",
+ "crc32fast",
+ "half",
+ "hf-hub",
+ "memmap2",
+ "swe-llmmodel-kernel",
+ "swe-ml-tensor",
+ "thiserror 2.0.18",
+]
+
+[[package]]
 name = "swe-llmmodel-io"
 version = "0.1.0"
 dependencies = [

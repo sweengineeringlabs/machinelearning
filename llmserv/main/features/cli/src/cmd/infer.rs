@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 use anyhow::{Context, Result, bail};
 use clap::Args;
 
-use rustml_gguf::GGUFFile;
+use swe_llmmodel_gguf::GGUFFile;
 use swe_llmmodel_download::{Download, HuggingFaceDownload};
 use swe_llmmodel_io::{LoadTensors, SafeTensorsStore};
 use rustml_model::{

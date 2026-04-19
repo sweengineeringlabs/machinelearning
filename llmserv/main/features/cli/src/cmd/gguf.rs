@@ -4,7 +4,7 @@ use std::process;
 use anyhow::{Context, Result};
 use clap::Subcommand;
 
-use rustml_gguf::{GGUFFile, GGUFValue, TensorStats};
+use swe_llmmodel_gguf::{GGUFFile, GGUFValue, TensorStats};
 
 #[derive(Subcommand)]
 pub enum GgufCommand {
@@ -99,7 +99,7 @@ fn run_verify(path: &PathBuf) -> Result<()> {
         .map(|t| t.name.as_str())
         .collect();
 
-    let find_tensor = |name: &str| -> Option<&rustml_gguf::GGUFTensorInfo> {
+    let find_tensor = |name: &str| -> Option<&swe_llmmodel_gguf::GGUFTensorInfo> {
         gguf.tensor_infos.iter().find(|t| t.name == name)
     };
 

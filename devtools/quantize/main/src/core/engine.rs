@@ -1,4 +1,4 @@
-use rustml_gguf::{GGMLType, GGUFValue};
+use swe_llmmodel_gguf::{GGMLType, GGUFValue};
 use swe_llmmodel_download::{Download, HuggingFaceDownload};
 use swe_llmmodel_io::{LoadTensors, SafeTensorsStore};
 
@@ -97,7 +97,7 @@ fn run_quantize(config: &QuantizeConfig) -> QuantizeResult<QuantizeReport> {
     log::info!("Loaded {} tensors", tensors.len());
 
     // Step 5: Quantize each tensor
-    let mut writer = rustml_gguf::writer::GGUFWriter::new();
+    let mut writer = swe_llmmodel_gguf::writer::GGUFWriter::new();
 
     for (key, value) in &metadata {
         writer.add_metadata(key.clone(), value.clone());

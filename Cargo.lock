@@ -1991,22 +1991,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustml-gguf"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bytemuck",
- "clap",
- "crc32fast",
- "half",
- "hf-hub",
- "memmap2",
- "swe-llmmodel-kernel",
- "swe-ml-tensor",
- "thiserror 2.0.17",
-]
-
-[[package]]
 name = "rustml-quantize"
 version = "0.1.0"
 dependencies = [
@@ -2015,10 +1999,10 @@ dependencies = [
  "env_logger",
  "half",
  "log",
- "rustml-gguf",
  "serde",
  "serde_json",
  "swe-llmmodel-download",
+ "swe-llmmodel-gguf",
  "swe-llmmodel-io",
  "swe-llmmodel-kernel",
  "swe-ml-tensor",
@@ -2257,6 +2241,22 @@ dependencies = [
  "reqwest",
  "thiserror 2.0.17",
  "tokio",
+]
+
+[[package]]
+name = "swe-llmmodel-gguf"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bytemuck",
+ "clap",
+ "crc32fast",
+ "half",
+ "hf-hub",
+ "memmap2",
+ "swe-llmmodel-kernel",
+ "swe-ml-tensor",
+ "thiserror 2.0.17",
 ]
 
 [[package]]

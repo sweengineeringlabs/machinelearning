@@ -1,4 +1,4 @@
-//! Bridge between rustml-gguf types and rustml-core/nlp types.
+//! Bridge between swe-llmmodel-gguf types and rustml-core/nlp types.
 //!
 //! Provides conversions from `LoadedTensor` → `Tensor` and
 //! `GgufModelConfig` → `ModelConfig` for loading GGUF models.
@@ -6,7 +6,7 @@
 use crate::api::error::ModelResult;
 use crate::api::types::{ModelConfig, RopeParameters};
 use swe_ml_tensor::{DType, Tensor};
-use rustml_gguf::{GgufModelConfig, LoadedDType, LoadedTensor};
+use swe_llmmodel_gguf::{GgufModelConfig, LoadedDType, LoadedTensor};
 use swe_llmmodel_layers::PositionEncoding;
 use std::collections::HashMap;
 

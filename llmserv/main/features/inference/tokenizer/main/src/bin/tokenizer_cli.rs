@@ -77,7 +77,7 @@ enum Command {
 fn load_backend(backend: &Backend) -> Result<Box<dyn Tokenizer>> {
     if let Some(path) = &backend.gguf {
         eprintln!("Loading GGUF tokenizer from {}", path.display());
-        let gguf_file = rustml_gguf::GGUFFile::parse_header(path)
+        let gguf_file = swe_llmmodel_gguf::GGUFFile::parse_header(path)
             .with_context(|| format!("Failed to parse GGUF file: {}", path.display()))?;
         let tok = GgufTokenizer::from_gguf(&gguf_file)
             .with_context(|| "Failed to build GGUF tokenizer")?;

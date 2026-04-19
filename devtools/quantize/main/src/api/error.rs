@@ -38,8 +38,8 @@ impl From<swe_llmmodel_kernel::QuantError> for QuantizeError {
     }
 }
 
-impl From<rustml_gguf::GgufError> for QuantizeError {
-    fn from(e: rustml_gguf::GgufError) -> Self {
+impl From<swe_llmmodel_gguf::GgufError> for QuantizeError {
+    fn from(e: swe_llmmodel_gguf::GgufError) -> Self {
         QuantizeError::GgufWrite(e.to_string())
     }
 }

@@ -1,4 +1,4 @@
-use rustml_gguf::GGUFValue;
+use swe_llmmodel_gguf::GGUFValue;
 use serde_json::Value;
 use crate::api::error::QuantizeResult;
 

@@ -69,7 +69,7 @@ rustml-arch-nomic-bert.workspace = true
 rustml-generation.workspace = true
 swe-llmmodel-download.workspace = true
 swe-llmmodel-io.workspace = true
-rustml-gguf.workspace = true
+swe-llmmodel-gguf.workspace = true
 rustml-tokenizer.workspace = true
 llmbackend.workspace = true
 rustml-backend-llama-cpp = { workspace = true, optional = true }

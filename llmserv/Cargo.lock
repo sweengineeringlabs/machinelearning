@@ -1770,7 +1770,6 @@ dependencies = [
  "rustml-arch-mixtral",
  "rustml-arch-nomic-bert",
  "rustml-generation",
- "rustml-gguf",
  "rustml-model",
  "rustml-quantizer",
  "rustml-thread-config",
@@ -1778,6 +1777,7 @@ dependencies = [
  "serde",
  "serde_json",
  "swe-llmmodel-download",
+ "swe-llmmodel-gguf",
  "swe-llmmodel-io",
  "tokio",
 ]
@@ -2771,31 +2771,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustml-gguf"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "approx",
- "bytemuck",
- "clap",
- "crc32fast",
- "half",
- "hf-hub",
- "memmap2",
- "swe-llmmodel-kernel",
- "swe-ml-tensor",
- "thiserror 2.0.18",
-]
-
-[[package]]
 name = "rustml-model"
 version = "0.1.0"
 dependencies = [
  "log",
  "rayon",
- "rustml-gguf",
  "serde",
  "serde_json",
+ "swe-llmmodel-gguf",
  "swe-llmmodel-layers",
  "swe-llmmodel-weights",
  "swe-ml-tensor",
@@ -2839,8 +2822,8 @@ dependencies = [
  "anyhow",
  "clap",
  "regex",
- "rustml-gguf",
  "serde_json",
+ "swe-llmmodel-gguf",
  "thiserror 2.0.18",
  "tokenizers",
 ]
@@ -3115,6 +3098,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "swe-llmmodel-gguf"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bytemuck",
+ "clap",
+ "crc32fast",
+ "half",
+ "hf-hub",
+ "memmap2",
+ "swe-llmmodel-kernel",
+ "swe-ml-tensor",
+ "thiserror 2.0.18",
+]
+
+[[package]]
 name = "swe-llmmodel-io"
 version = "0.1.0"
 dependencies = [
@@ -3169,11 +3168,11 @@ dependencies = [
  "env_logger",
  "log",
  "rustml-arch-nomic-bert",
- "rustml-gguf",
  "rustml-model",
  "rustml-tokenizer",
  "serde",
  "serde_json",
+ "swe-llmmodel-gguf",
  "swe-llmmodel-layers",
  "swe-ml-embedding",
  "swe-ml-tensor",
@@ -3241,7 +3240,6 @@ dependencies = [
  "rustml-arch-nomic-bert",
  "rustml-backend-llama-cpp",
  "rustml-generation",
- "rustml-gguf",
  "rustml-model",
  "rustml-prefill",
  "rustml-quantizer",
@@ -3250,6 +3248,7 @@ dependencies = [
  "serde",
  "serde_json",
  "swe-llmmodel-download",
+ "swe-llmmodel-gguf",
  "swe-llmmodel-io",
  "swe-llmmodel-layers",
  "swe-ml-embedding",

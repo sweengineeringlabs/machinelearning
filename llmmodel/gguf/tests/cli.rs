@@ -1,7 +1,7 @@
 use std::process::Command;
 
 fn bin() -> Command {
-    Command::new(env!("CARGO_BIN_EXE_rustml-gguf-inspect"))
+    Command::new(env!("CARGO_BIN_EXE_swe-llmmodel-gguf-inspect"))
 }
 
 // ── GGUF byte builder ──────────────────────────────────────────────
@@ -184,7 +184,7 @@ static COUNTER: AtomicU64 = AtomicU64::new(0);
 fn tempdir() -> std::path::PathBuf {
     let id = COUNTER.fetch_add(1, Ordering::Relaxed);
     let dir = std::env::temp_dir().join(format!(
-        "rustml-gguf-test-{}-{}",
+        "swe-llmmodel-gguf-test-{}-{}",
         std::process::id(),
         id
     ));
@@ -206,7 +206,7 @@ fn help_flag() {
     let out = bin().arg("--help").output().unwrap();
     assert!(out.status.success());
     let stdout = String::from_utf8_lossy(&out.stdout);
-    assert!(stdout.contains("rustml-gguf-inspect"));
+    assert!(stdout.contains("swe-llmmodel-gguf-inspect"));
     assert!(stdout.contains("info"));
     assert!(stdout.contains("meta"));
     assert!(stdout.contains("tensors"));

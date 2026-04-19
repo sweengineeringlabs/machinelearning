@@ -17,7 +17,7 @@ path = "main/src/main.rs"
 [dependencies]
 swe-ml-tensor.workspace = true
 swe-llmmodel-kernel.workspace = true
-rustml-gguf.workspace = true
+swe-llmmodel-gguf.workspace = true
 swe-llmmodel-download.workspace = true
 swe-llmmodel-io.workspace = true
 thiserror.workspace = true
