@@ -1,5 +1,5 @@
 use crate::api::traits::Quantizer;
-use rustml_model::LlmModel;
+use swe_llmmodel_model::LlmModel;
 use swe_ml_tensor::QuantConfig;
 
 /// Config-driven quantizer — delegates to LlmModel::quantize_with_strategy.

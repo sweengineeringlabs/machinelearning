@@ -8,7 +8,7 @@ authors.workspace = true
 repository.workspace = true
 
 [dependencies]
-rustml-model.workspace = true
+swe-llmmodel-model.workspace = true
 swe-ml-tensor.workspace = true
 swe-llmmodel-layers.workspace = true
 log.workspace = true

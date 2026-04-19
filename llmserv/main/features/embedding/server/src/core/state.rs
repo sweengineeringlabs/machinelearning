@@ -1,4 +1,4 @@
-use rustml_model::LlmModel;
+use swe_llmmodel_model::LlmModel;
 use rustml_tokenizer::Tokenizer;
 
 /// Loaded embedding model state.

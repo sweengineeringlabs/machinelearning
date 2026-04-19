@@ -14,7 +14,7 @@ path = "src/bin/embed_serve.rs"
 [dependencies]
 swe-ml-embedding.workspace = true
 swe-ml-tensor.workspace = true
-rustml-model.workspace = true
+swe-llmmodel-model.workspace = true
 rustml-arch-nomic-bert.workspace = true
 swe-llmmodel-gguf.workspace = true
 rustml-tokenizer.workspace = true

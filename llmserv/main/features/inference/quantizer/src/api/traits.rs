@@ -1,4 +1,4 @@
-use rustml_model::LlmModel;
+use swe_llmmodel_model::LlmModel;
 
 /// Contract for model weight quantization strategies.
 ///

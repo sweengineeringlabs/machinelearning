@@ -1,6 +1,6 @@
 [package]
 name = "rustml-arch-gemma3"
-description = "gemma3 architecture builder for rustml-model"
+description = "gemma3 architecture builder for swe-llmmodel-model"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,6 +8,6 @@ authors.workspace = true
 repository.workspace = true
 
 [dependencies]
-rustml-model.workspace = true
+swe-llmmodel-model.workspace = true
 swe-llmmodel-layers.workspace = true
 swe-ml-tensor.workspace = true

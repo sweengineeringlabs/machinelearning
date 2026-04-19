@@ -3,7 +3,7 @@ use std::time::Duration;
 use crate::api::throttle::Throttle;
 use llmbackend::Model;
 use swe_llmmodel_layers::PoolingStrategy;
-use rustml_model::{LanguageModel, LlmModel, ModelResult, OptProfile};
+use swe_llmmodel_model::{LanguageModel, LlmModel, ModelResult, OptProfile};
 use rustml_generation::{Generator, TextCompleter};
 use rustml_tokenizer::Tokenizer;
 use swe_ml_tensor::{DType, Tensor, f32_vec_to_bytes};

@@ -6,7 +6,7 @@ use anyhow::{Context, Result, anyhow};
 use swe_llmmodel_gguf::GGUFFile;
 use swe_llmmodel_download::{Download, HuggingFaceDownload};
 use swe_llmmodel_io::{LoadTensors, SafeTensorsStore};
-use rustml_model::{
+use swe_llmmodel_model::{
     LlmModel, ModelConfig, ModelBuilderRegistry, OptProfile, convert_tensors,
     gguf_config_to_model_config,
 };

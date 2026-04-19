@@ -1,5 +1,5 @@
 use crate::api::traits::Fuser;
-use rustml_model::LlmModel;
+use swe_llmmodel_model::LlmModel;
 
 /// Fuses separate Q, K, V projection weights into a single tensor.
 ///

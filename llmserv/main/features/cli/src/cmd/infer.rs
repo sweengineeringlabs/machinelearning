@@ -9,7 +9,7 @@ use clap::Args;
 use swe_llmmodel_gguf::GGUFFile;
 use swe_llmmodel_download::{Download, HuggingFaceDownload};
 use swe_llmmodel_io::{LoadTensors, SafeTensorsStore};
-use rustml_model::{
+use swe_llmmodel_model::{
     LanguageModel, LlmModel, ModelBuilderRegistry, OptProfile, convert_tensors,
     gguf_config_to_model_config,
 };
@@ -470,7 +470,7 @@ fn run_safetensors(
     )
     .with_context(|| "Failed to parse config.json")?;
     let model_type = json_config["model_type"].as_str().unwrap_or("").to_string();
-    let config = rustml_model::ModelConfig::from_json_value(&json_config)
+    let config = swe_llmmodel_model::ModelConfig::from_json_value(&json_config)
         .with_context(|| "Failed to parse model config")?;
     eprintln!(
         "  Config: arch={}, dim={}, layers={}, heads={}, vocab={}",

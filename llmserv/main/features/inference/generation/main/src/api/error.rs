@@ -5,7 +5,7 @@ pub type GenerationResult<T> = Result<T, GenerationError>;
 #[derive(Error, Debug)]
 pub enum GenerationError {
     #[error("Model error: {0}")]
-    ModelError(#[from] rustml_model::ModelError),
+    ModelError(#[from] swe_llmmodel_model::ModelError),
 
     #[error("Tensor error: {0}")]
     TensorError(#[from] swe_ml_tensor::TensorError),

@@ -6,7 +6,7 @@
 use std::time::{Duration, Instant};
 
 use crate::api::error::GenerationResult;
-use rustml_model::LanguageModel;
+use swe_llmmodel_model::LanguageModel;
 use crate::core::sampling;
 use rustml_tokenizer::Tokenizer;
 use rayon::prelude::*;
@@ -937,8 +937,8 @@ impl<'a> TextCompleter for Generator<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rustml_model::ModelConfig;
-    use rustml_model::LlmModel;
+    use swe_llmmodel_model::ModelConfig;
+    use swe_llmmodel_model::LlmModel;
     use swe_llmmodel_layers::PositionEncoding;
 
     /// A trivial tokenizer for testing: maps bytes to token IDs.

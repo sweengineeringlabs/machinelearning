@@ -9,7 +9,7 @@ use swellmd::{
     AppConfig, AppState, Model, ModelBackend, ModelBackendLoader, NativeRustBackendLoader,
     SemaphoreThrottle, Throttle, build_router, load_config,
 };
-use rustml_model::OptProfile;
+use swe_llmmodel_model::OptProfile;
 use rustml_thread_config::ThreadConfig;
 
 /// swellmd — HTTP daemon for RustML LLM inference.

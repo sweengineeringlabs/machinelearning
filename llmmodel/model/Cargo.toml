@@ -1,5 +1,5 @@
 [package]
-name = "rustml-model"
+name = "swe-llmmodel-model"
 description = "LLM model definitions, weight loading, and forward pass"
 version.workspace = true
 edition.workspace = true

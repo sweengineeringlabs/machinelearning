@@ -9,7 +9,7 @@
 //! types. See `crate::api::model::Model`.
 
 use anyhow::Result;
-use rustml_model::OptProfile;
+use swe_llmmodel_model::OptProfile;
 
 use crate::api::config::ModelSpec;
 use crate::api::model::Model;

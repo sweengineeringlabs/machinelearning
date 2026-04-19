@@ -3,7 +3,7 @@
 
 use anyhow::Result;
 use llmbackend::{Model, ModelBackendLoader, ModelSpec};
-use rustml_model::OptProfile;
+use swe_llmmodel_model::OptProfile;
 
 use crate::core::model::load_llama_cpp_model;
 

@@ -3,7 +3,7 @@ use std::path::Path;
 use anyhow::{Context, Result};
 
 use swe_llmmodel_gguf::GGUFFile;
-use rustml_model::{
+use swe_llmmodel_model::{
     ModelBuilderRegistry, gguf_config_to_model_config,
 };
 use rustml_tokenizer::{GgufTokenizer, Tokenizer};

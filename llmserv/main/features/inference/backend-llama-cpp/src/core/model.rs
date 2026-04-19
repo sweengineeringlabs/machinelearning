@@ -59,7 +59,7 @@ use llama_cpp_2::token::LlamaToken;
 use llmbackend::{Model, ModelSource, ModelSpec};
 use rustml_generation::{CompletionParams, GenerationError, GenerationResult, TextCompleter};
 use swe_llmmodel_layers::PoolingStrategy;
-use rustml_model::{ModelError, ModelResult, OptProfile};
+use swe_llmmodel_model::{ModelError, ModelResult, OptProfile};
 use rustml_tokenizer::{Tokenizer, TokenizerError, TokenizerResult};
 
 /// Process-wide `llama.cpp` backend. Initialized once per process via

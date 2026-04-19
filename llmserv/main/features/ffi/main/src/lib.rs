@@ -47,7 +47,7 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::RwLock;
 
 use swe_llmmodel_layers::PoolingStrategy;
-use rustml_model::OptProfile;
+use swe_llmmodel_model::OptProfile;
 
 use rustml_generation::CompletionParams;
 use swellmd::{Model, ModelSource};

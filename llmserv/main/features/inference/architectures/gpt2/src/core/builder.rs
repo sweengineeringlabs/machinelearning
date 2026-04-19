@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use rustml_model::{
+use swe_llmmodel_model::{
     LlmModel, ModelBuilder, ModelConfig, ModelError, ModelResult,
     TokenEmbedding, split_qkv, split_qkv_bias, map_gpt2_weights,
 };

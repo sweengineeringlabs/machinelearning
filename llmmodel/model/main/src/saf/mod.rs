@@ -1,4 +1,4 @@
-//! Facade re-exports for rustml-model
+//! Facade re-exports for swe-llmmodel-model
 
 pub use crate::api::error::*;
 pub use crate::api::traits::ModelBuilder;

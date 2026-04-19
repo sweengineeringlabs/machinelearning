@@ -39,7 +39,7 @@ use std::path::PathBuf;
 use llmbackend::{Model, ModelBackend, ModelSource, ModelSpec};
 use rustml_backend_llama_cpp::load_llama_cpp_model;
 use rustml_generation::CompletionParams;
-use rustml_model::OptProfile;
+use swe_llmmodel_model::OptProfile;
 
 const PARITY_PROMPTS: &[&str] = &[
     "The capital of France is",

@@ -52,7 +52,7 @@
 //! the cost — the alternative is shipping silent bugs.
 
 use rustml_generation::CompletionParams;
-use rustml_model::OptProfile;
+use swe_llmmodel_model::OptProfile;
 use swellmd::Model;
 
 /// Prompts and the substrings we accept as proof of a correct

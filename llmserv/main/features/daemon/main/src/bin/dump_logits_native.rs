@@ -15,7 +15,7 @@
 use std::path::PathBuf;
 
 use anyhow::{Result, bail};
-use rustml_model::{LanguageModel, OptProfile};
+use swe_llmmodel_model::{LanguageModel, OptProfile};
 use swe_ml_tensor::{DType, Tensor};
 use swellmd::{ModelSource, load_config, load_gguf, load_safetensors};
 

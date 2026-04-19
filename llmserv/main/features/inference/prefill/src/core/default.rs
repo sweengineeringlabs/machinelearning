@@ -1,5 +1,5 @@
 use crate::api::traits::Prefill;
-use rustml_model::{LlmModel, ModelResult, KVCache};
+use swe_llmmodel_model::{LlmModel, ModelResult, KVCache};
 use swe_ml_tensor::Tensor;
 
 /// Batch prefill — processes the entire prompt in one forward pass.

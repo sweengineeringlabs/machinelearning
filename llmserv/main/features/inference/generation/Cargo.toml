@@ -11,7 +11,7 @@ repository.workspace = true
 path = "main/src/lib.rs"
 
 [dependencies]
-rustml-model.workspace = true
+swe-llmmodel-model.workspace = true
 swe-llmmodel-layers.workspace = true
 rustml-tokenizer.workspace = true
 swe-ml-tensor.workspace = true

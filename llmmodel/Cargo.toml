@@ -8,6 +8,7 @@ members = [
     "kernel",
     "layers",
     "gguf",
+    "model",
 ]
 
 [workspace.package]
@@ -57,3 +58,4 @@ swe-llmmodel-weights  = { path = "weights" }
 swe-llmmodel-kernel   = { path = "kernel" }
 swe-llmmodel-layers   = { path = "layers" }
 swe-llmmodel-gguf     = { path = "gguf" }
+swe-llmmodel-model    = { path = "model" }

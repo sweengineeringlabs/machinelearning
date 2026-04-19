@@ -1,4 +1,4 @@
-use rustml_model::{LlmModel, ModelResult};
+use swe_llmmodel_model::{LlmModel, ModelResult};
 use swe_ml_tensor::Tensor;
 
 /// Contract for prompt prefill strategies.
@@ -17,7 +17,7 @@ pub trait Prefill: Send + Sync {
         &self,
         model: &LlmModel,
         input_ids: &Tensor,
-        cache: &mut rustml_model::KVCache,
+        cache: &mut swe_llmmodel_model::KVCache,
     ) -> ModelResult<Tensor>;
 
     /// Returns a human-readable description of the strategy.
