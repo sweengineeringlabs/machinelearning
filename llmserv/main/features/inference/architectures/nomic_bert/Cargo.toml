@@ -9,5 +9,5 @@ repository.workspace = true
 
 [dependencies]
 rustml-model.workspace = true
-rustml-inference-layers.workspace = true
+swe-llmmodel-layers.workspace = true
 swe-ml-tensor.workspace = true

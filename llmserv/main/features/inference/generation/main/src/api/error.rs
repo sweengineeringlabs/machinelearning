@@ -11,7 +11,7 @@ pub enum GenerationError {
     TensorError(#[from] swe_ml_tensor::TensorError),
 
     #[error("Neural network error: {0}")]
-    NnError(#[from] rustml_inference_layers::NnError),
+    NnError(#[from] swe_llmmodel_layers::NnError),
 
     #[error("Tokenizer error: {0}")]
     TokenizerError(#[from] rustml_tokenizer::TokenizerError),

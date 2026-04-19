@@ -46,7 +46,7 @@ use std::os::raw::{c_char, c_int, c_void};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::RwLock;
 
-use rustml_inference_layers::PoolingStrategy;
+use swe_llmmodel_layers::PoolingStrategy;
 use rustml_model::OptProfile;
 
 use rustml_generation::CompletionParams;

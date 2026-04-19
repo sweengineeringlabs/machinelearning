@@ -11,7 +11,7 @@
 //! ## Example
 //!
 //! ```rust,ignore
-//! use rustml_inference_layers::{Linear, LayerNorm, CausalSelfAttention};
+//! use swe_llmmodel_layers::{Linear, LayerNorm, CausalSelfAttention};
 //! use swe_ml_tensor::Tensor;
 //!
 //! let linear = Linear::new(768, 768);

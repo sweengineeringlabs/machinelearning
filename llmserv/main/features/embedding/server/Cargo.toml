@@ -18,7 +18,7 @@ rustml-model.workspace = true
 rustml-arch-nomic-bert.workspace = true
 rustml-gguf.workspace = true
 rustml-tokenizer.workspace = true
-rustml-inference-layers.workspace = true
+swe-llmmodel-layers.workspace = true
 axum = { version = "0.8", features = ["json"] }
 tokio.workspace = true
 clap.workspace = true

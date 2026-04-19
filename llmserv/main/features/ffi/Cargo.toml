@@ -17,7 +17,7 @@ swe-ml-tensor.workspace = true
 rustml-generation.workspace = true
 rustml-model.workspace = true
 rustml-tokenizer.workspace = true
-rustml-inference-layers.workspace = true
+swe-llmmodel-layers.workspace = true
 log.workspace = true
 
 [build-dependencies]

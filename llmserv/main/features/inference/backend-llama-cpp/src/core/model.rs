@@ -58,7 +58,7 @@ use llama_cpp_2::model::{AddBos, LlamaChatMessage, LlamaChatTemplate, LlamaModel
 use llama_cpp_2::token::LlamaToken;
 use llmbackend::{Model, ModelSource, ModelSpec};
 use rustml_generation::{CompletionParams, GenerationError, GenerationResult, TextCompleter};
-use rustml_inference_layers::PoolingStrategy;
+use swe_llmmodel_layers::PoolingStrategy;
 use rustml_model::{ModelError, ModelResult, OptProfile};
 use rustml_tokenizer::{Tokenizer, TokenizerError, TokenizerResult};
 

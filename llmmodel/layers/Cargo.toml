@@ -1,5 +1,5 @@
 [package]
-name = "rustml-inference-layers"
+name = "swe-llmmodel-layers"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

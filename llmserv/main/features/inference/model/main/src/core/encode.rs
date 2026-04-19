@@ -2,7 +2,7 @@
 
 use crate::api::error::{ModelError, ModelResult};
 use crate::core::model::LlmModel;
-use rustml_inference_layers::PoolingStrategy;
+use swe_llmmodel_layers::PoolingStrategy;
 use swe_ml_tensor::{DType, Tensor, f32_vec_to_bytes};
 
 impl LlmModel {

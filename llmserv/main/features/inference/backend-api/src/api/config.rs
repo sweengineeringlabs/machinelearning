@@ -45,7 +45,7 @@ pub enum ModelSource {
 #[derive(Debug, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum ModelBackend {
-    /// Native Rust forward pass (rustml-model + rustml-inference-layers).
+    /// Native Rust forward pass (rustml-model + swe-llmmodel-layers).
     #[default]
     NativeRust,
     /// llama.cpp-backed forward pass. Requires the daemon to be built with

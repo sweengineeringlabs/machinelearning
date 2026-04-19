@@ -3,7 +3,7 @@ use rustml_model::{
     LlmModel, ModelBuilder, ModelConfig, ModelError, ModelResult,
     TokenEmbedding, split_qkv,
 };
-use rustml_inference_layers::{
+use swe_llmmodel_layers::{
     FeedForward, LayerNorm, Linear, MultiHeadAttention, NormLayer, TransformerBlock,
 };
 use swe_ml_tensor::Tensor;

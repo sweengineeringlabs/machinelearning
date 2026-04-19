@@ -7,7 +7,7 @@ use crate::api::error::ModelResult;
 use crate::api::types::{ModelConfig, RopeParameters};
 use swe_ml_tensor::{DType, Tensor};
 use rustml_gguf::{GgufModelConfig, LoadedDType, LoadedTensor};
-use rustml_inference_layers::PositionEncoding;
+use swe_llmmodel_layers::PositionEncoding;
 use std::collections::HashMap;
 
 /// Convert a LoadedDType (GGUF) to DType (core).

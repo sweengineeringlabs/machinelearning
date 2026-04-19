@@ -3,7 +3,7 @@
 use crate::api::error::{ModelError, ModelResult};
 use crate::core::model::LlmModel;
 use crate::core::per_layer_embedding::PerLayerInput;
-use rustml_inference_layers::KVCache;
+use swe_llmmodel_layers::KVCache;
 use swe_ml_tensor::{DType, Tensor, f32_vec_to_bytes};
 use std::time::Instant;
 

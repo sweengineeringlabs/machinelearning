@@ -6,6 +6,7 @@ members = [
     "weights",
     "cli",
     "kernel",
+    "layers",
 ]
 
 [workspace.package]
@@ -45,10 +46,12 @@ log = "0.4"
 approx = "0.5"
 
 # Cross-workspace foundations (from root workspace)
-swe-ml-tensor = { path = "../main/features/tensor" }
+swe-ml-tensor        = { path = "../main/features/tensor" }
+swe-ml-normalization = { path = "../main/features/normalization" }
 
 # Internal (llmmodel) crates
 swe-llmmodel-download = { path = "download" }
 swe-llmmodel-io       = { path = "io" }
 swe-llmmodel-weights  = { path = "weights" }
 swe-llmmodel-kernel   = { path = "kernel" }
+swe-llmmodel-layers   = { path = "layers" }

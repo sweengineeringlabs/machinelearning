@@ -1788,10 +1788,10 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "rustml-generation",
- "rustml-inference-layers",
  "rustml-model",
  "rustml-tokenizer",
  "serde",
+ "swe-llmmodel-layers",
  "swe-ml-tensor",
  "toml",
 ]
@@ -1812,9 +1812,9 @@ dependencies = [
  "cbindgen",
  "log",
  "rustml-generation",
- "rustml-inference-layers",
  "rustml-model",
  "rustml-tokenizer",
+ "swe-llmmodel-layers",
  "swe-ml-tensor",
  "swellmd",
 ]
@@ -2671,8 +2671,8 @@ dependencies = [
 name = "rustml-arch-bert"
 version = "0.1.0"
 dependencies = [
- "rustml-inference-layers",
  "rustml-model",
+ "swe-llmmodel-layers",
  "swe-ml-tensor",
 ]
 
@@ -2680,8 +2680,8 @@ dependencies = [
 name = "rustml-arch-falcon"
 version = "0.1.0"
 dependencies = [
- "rustml-inference-layers",
  "rustml-model",
+ "swe-llmmodel-layers",
  "swe-ml-tensor",
 ]
 
@@ -2689,8 +2689,8 @@ dependencies = [
 name = "rustml-arch-gemma3"
 version = "0.1.0"
 dependencies = [
- "rustml-inference-layers",
  "rustml-model",
+ "swe-llmmodel-layers",
  "swe-ml-tensor",
 ]
 
@@ -2698,8 +2698,8 @@ dependencies = [
 name = "rustml-arch-gemma4"
 version = "0.1.0"
 dependencies = [
- "rustml-inference-layers",
  "rustml-model",
+ "swe-llmmodel-layers",
  "swe-ml-tensor",
 ]
 
@@ -2707,8 +2707,8 @@ dependencies = [
 name = "rustml-arch-gpt2"
 version = "0.1.0"
 dependencies = [
- "rustml-inference-layers",
  "rustml-model",
+ "swe-llmmodel-layers",
  "swe-ml-tensor",
 ]
 
@@ -2716,8 +2716,8 @@ dependencies = [
 name = "rustml-arch-llama"
 version = "0.1.0"
 dependencies = [
- "rustml-inference-layers",
  "rustml-model",
+ "swe-llmmodel-layers",
  "swe-ml-tensor",
 ]
 
@@ -2725,8 +2725,8 @@ dependencies = [
 name = "rustml-arch-mixtral"
 version = "0.1.0"
 dependencies = [
- "rustml-inference-layers",
  "rustml-model",
+ "swe-llmmodel-layers",
  "swe-ml-tensor",
 ]
 
@@ -2734,8 +2734,8 @@ dependencies = [
 name = "rustml-arch-nomic-bert"
 version = "0.1.0"
 dependencies = [
- "rustml-inference-layers",
  "rustml-model",
+ "swe-llmmodel-layers",
  "swe-ml-tensor",
 ]
 
@@ -2749,9 +2749,9 @@ dependencies = [
  "llmbackend",
  "log",
  "rustml-generation",
- "rustml-inference-layers",
  "rustml-model",
  "rustml-tokenizer",
+ "swe-llmmodel-layers",
  "swe-ml-tensor",
 ]
 
@@ -2763,9 +2763,9 @@ dependencies = [
  "log",
  "rand 0.8.5",
  "rayon",
- "rustml-inference-layers",
  "rustml-model",
  "rustml-tokenizer",
+ "swe-llmmodel-layers",
  "swe-ml-tensor",
  "thiserror 2.0.18",
 ]
@@ -2788,29 +2788,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustml-inference-layers"
-version = "0.1.0"
-dependencies = [
- "approx",
- "half",
- "log",
- "serde",
- "swe-llmmodel-kernel",
- "swe-ml-normalization",
- "swe-ml-tensor",
- "thiserror 2.0.18",
-]
-
-[[package]]
 name = "rustml-model"
 version = "0.1.0"
 dependencies = [
  "log",
  "rayon",
  "rustml-gguf",
- "rustml-inference-layers",
  "serde",
  "serde_json",
+ "swe-llmmodel-layers",
  "swe-llmmodel-weights",
  "swe-ml-tensor",
  "thiserror 2.0.18",
@@ -2821,8 +2807,8 @@ name = "rustml-prefill"
 version = "0.1.0"
 dependencies = [
  "log",
- "rustml-inference-layers",
  "rustml-model",
+ "swe-llmmodel-layers",
  "swe-ml-tensor",
 ]
 
@@ -2831,8 +2817,8 @@ name = "rustml-quantizer"
 version = "0.1.0"
 dependencies = [
  "log",
- "rustml-inference-layers",
  "rustml-model",
+ "swe-llmmodel-layers",
  "swe-ml-tensor",
 ]
 
@@ -3152,6 +3138,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "swe-llmmodel-layers"
+version = "0.1.0"
+dependencies = [
+ "half",
+ "log",
+ "serde",
+ "swe-llmmodel-kernel",
+ "swe-ml-normalization",
+ "swe-ml-tensor",
+ "thiserror 2.0.18",
+]
+
+[[package]]
 name = "swe-llmmodel-weights"
 version = "0.1.0"
 dependencies = [
@@ -3171,11 +3170,11 @@ dependencies = [
  "log",
  "rustml-arch-nomic-bert",
  "rustml-gguf",
- "rustml-inference-layers",
  "rustml-model",
  "rustml-tokenizer",
  "serde",
  "serde_json",
+ "swe-llmmodel-layers",
  "swe-ml-embedding",
  "swe-ml-tensor",
  "tokio",
@@ -3243,7 +3242,6 @@ dependencies = [
  "rustml-backend-llama-cpp",
  "rustml-generation",
  "rustml-gguf",
- "rustml-inference-layers",
  "rustml-model",
  "rustml-prefill",
  "rustml-quantizer",
@@ -3253,6 +3251,7 @@ dependencies = [
  "serde_json",
  "swe-llmmodel-download",
  "swe-llmmodel-io",
+ "swe-llmmodel-layers",
  "swe-ml-embedding",
  "swe-ml-tensor",
  "thiserror 2.0.18",

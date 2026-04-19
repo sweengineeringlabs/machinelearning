@@ -2231,7 +2231,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "swe-llmmodel-layers"
+version = "0.1.0"
+dependencies = [
+ "approx",
+ "half",
+ "log",
+ "serde",
+ "swe-llmmodel-kernel",
+ "swe-ml-normalization",
+ "swe-ml-tensor",
+ "thiserror 2.0.18",
+]
+
+[[package]]
 name = "swe-llmmodel-weights"
+version = "0.1.0"
+dependencies = [
+ "swe-ml-tensor",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "swe-ml-normalization"
 version = "0.1.0"
 dependencies = [
  "swe-ml-tensor",

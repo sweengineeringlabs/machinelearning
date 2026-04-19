@@ -15,7 +15,6 @@ resolver = "2"
 members = [
     # Inference compute stack (library — reusable by any frontend).
     "main/features/inference/model",
-    "main/features/inference/layers",
     "main/features/inference/generation",
     "main/features/inference/tokenizer",
     "main/features/inference/gguf",
@@ -112,12 +111,12 @@ swe-llmmodel-download = { path = "../llmmodel/download" }
 swe-llmmodel-io       = { path = "../llmmodel/io" }
 swe-llmmodel-weights  = { path = "../llmmodel/weights" }
 swe-llmmodel-kernel   = { path = "../llmmodel/kernel" }
+swe-llmmodel-layers   = { path = "../llmmodel/layers" }
 
 # ──────────────────────────────────────────────────────────────────────
 # Inference library (internal to this workspace).
 # ──────────────────────────────────────────────────────────────────────
 rustml-model            = { path = "main/features/inference/model" }
-rustml-inference-layers = { path = "main/features/inference/layers" }
 rustml-generation       = { path = "main/features/inference/generation" }
 rustml-tokenizer        = { path = "main/features/inference/tokenizer" }
 rustml-gguf             = { path = "main/features/inference/gguf" }

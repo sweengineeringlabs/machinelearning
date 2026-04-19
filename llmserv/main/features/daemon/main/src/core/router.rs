@@ -12,7 +12,7 @@ use tokio_stream::StreamExt;
 
 use swe_ml_embedding::{L2Normalize, Normalize};
 use rustml_generation::CompletionParams;
-use rustml_inference_layers::PoolingStrategy;
+use swe_llmmodel_layers::PoolingStrategy;
 
 use crate::api::error::DaemonError;
 use crate::api::types::*;

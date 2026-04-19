@@ -6,7 +6,7 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 
 use swe_ml_tensor::{DType, Tensor, f32_vec_to_bytes};
-use rustml_inference_layers::PoolingStrategy;
+use swe_llmmodel_layers::PoolingStrategy;
 
 use swe_ml_embedding::{
     EmbeddingData, EmbeddingUsage, EmbeddingsRequest, EmbeddingsResponse, L2Normalize, Normalize,

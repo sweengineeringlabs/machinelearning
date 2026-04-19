@@ -3,7 +3,7 @@
 use crate::api::error::ModelResult;
 use crate::core::token_embedding::TokenEmbedding;
 use swe_ml_tensor::Tensor;
-use rustml_inference_layers::{Linear, RMSNorm};
+use swe_llmmodel_layers::{Linear, RMSNorm};
 
 /// Per-layer input injection trait.
 ///

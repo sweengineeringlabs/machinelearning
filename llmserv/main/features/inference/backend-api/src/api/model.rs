@@ -1,5 +1,5 @@
 use rustml_generation::TextCompleter;
-use rustml_inference_layers::PoolingStrategy;
+use swe_llmmodel_layers::PoolingStrategy;
 use rustml_model::ModelResult;
 use rustml_tokenizer::Tokenizer;
 

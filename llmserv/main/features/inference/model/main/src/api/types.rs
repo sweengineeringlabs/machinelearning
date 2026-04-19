@@ -2,7 +2,7 @@
 
 use crate::api::error::{ModelError, ModelResult};
 use swe_ml_tensor::Tensor;
-pub use rustml_inference_layers::{KVCache, PositionEncoding, PoolingStrategy};
+pub use swe_llmmodel_layers::{KVCache, PositionEncoding, PoolingStrategy};
 use std::collections::HashMap;
 
 /// Rotary parameters for a specific layer type (Gemma 4).

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use rustml_model::{
     LlmModel, ModelBuilder, ModelConfig, ModelError, ModelResult, TokenEmbedding, WeightMap,
 };
-use rustml_inference_layers::{
+use swe_llmmodel_layers::{
     FeedForward, Linear, MoeLayer, MultiHeadAttention, NormLayer, RMSNorm, TransformerBlock,
 };
 use swe_ml_tensor::{DType, Tensor};
