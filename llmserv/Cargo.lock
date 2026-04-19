@@ -1806,18 +1806,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "llmkernel"
-version = "0.1.0"
-dependencies = [
- "approx",
- "bytemuck",
- "half",
- "log",
- "rayon",
- "thiserror 2.0.18",
-]
-
-[[package]]
 name = "llmserv-ffi"
 version = "0.1.0"
 dependencies = [
@@ -2793,8 +2781,8 @@ dependencies = [
  "crc32fast",
  "half",
  "hf-hub",
- "llmkernel",
  "memmap2",
+ "swe-llmmodel-kernel",
  "swe-ml-tensor",
  "thiserror 2.0.18",
 ]
@@ -2805,9 +2793,9 @@ version = "0.1.0"
 dependencies = [
  "approx",
  "half",
- "llmkernel",
  "log",
  "serde",
+ "swe-llmmodel-kernel",
  "swe-ml-normalization",
  "swe-ml-tensor",
  "thiserror 2.0.18",
@@ -3149,6 +3137,17 @@ dependencies = [
  "safetensors",
  "serde_json",
  "swe-ml-tensor",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "swe-llmmodel-kernel"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "half",
+ "log",
+ "rayon",
  "thiserror 2.0.18",
 ]
 

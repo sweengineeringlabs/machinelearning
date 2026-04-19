@@ -29,7 +29,7 @@ fn bench_q4_1_kernel() {
 
     // Warmup
     for _ in 0..10_000 {
-        std::hint::black_box(llmkernel::simd::dot_q4_1_q8_block(
+        std::hint::black_box(swe_llmmodel_kernel::simd::dot_q4_1_q8_block(
             std::hint::black_box(&packed),
             std::hint::black_box(unsafe {
                 std::slice::from_raw_parts(q8_values.as_ptr() as *const i8, 32)
@@ -41,7 +41,7 @@ fn bench_q4_1_kernel() {
     let start = Instant::now();
     let mut sink = (0i32, 0i32);
     for _ in 0..iterations {
-        let (d, s) = llmkernel::simd::dot_q4_1_q8_block(
+        let (d, s) = swe_llmmodel_kernel::simd::dot_q4_1_q8_block(
             std::hint::black_box(&packed),
             std::hint::black_box(unsafe {
                 std::slice::from_raw_parts(q8_values.as_ptr() as *const i8, 32)
@@ -58,7 +58,7 @@ fn bench_q4_1_kernel() {
     let start = Instant::now();
     let mut sink2 = 0i32;
     for _ in 0..iterations {
-        sink2 = sink2.wrapping_add(llmkernel::simd::dot_q4q8_block(
+        sink2 = sink2.wrapping_add(swe_llmmodel_kernel::simd::dot_q4q8_block(
             std::hint::black_box(&packed),
             std::hint::black_box(unsafe {
                 std::slice::from_raw_parts(q8_values.as_ptr() as *const i8, 32)

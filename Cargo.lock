@@ -1252,17 +1252,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6373607a59f0be73a39b6fe456b8192fcc3585f602af20751600e974dd455e77"
 
 [[package]]
-name = "llmkernel"
-version = "0.1.0"
-dependencies = [
- "bytemuck",
- "half",
- "log",
- "rayon",
- "thiserror 2.0.17",
-]
-
-[[package]]
 name = "lock_api"
 version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2011,8 +2000,8 @@ dependencies = [
  "crc32fast",
  "half",
  "hf-hub",
- "llmkernel",
  "memmap2",
+ "swe-llmmodel-kernel",
  "swe-ml-tensor",
  "thiserror 2.0.17",
 ]
@@ -2025,13 +2014,13 @@ dependencies = [
  "clap",
  "env_logger",
  "half",
- "llmkernel",
  "log",
  "rustml-gguf",
  "serde",
  "serde_json",
  "swe-llmmodel-download",
  "swe-llmmodel-io",
+ "swe-llmmodel-kernel",
  "swe-ml-tensor",
  "thiserror 2.0.17",
 ]
@@ -2279,6 +2268,17 @@ dependencies = [
  "safetensors",
  "serde_json",
  "swe-ml-tensor",
+ "thiserror 2.0.17",
+]
+
+[[package]]
+name = "swe-llmmodel-kernel"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "half",
+ "log",
+ "rayon",
  "thiserror 2.0.17",
 ]
 

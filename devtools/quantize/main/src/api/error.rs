@@ -32,8 +32,8 @@ impl From<swe_ml_tensor::TensorError> for QuantizeError {
     }
 }
 
-impl From<llmkernel::QuantError> for QuantizeError {
-    fn from(e: llmkernel::QuantError) -> Self {
+impl From<swe_llmmodel_kernel::QuantError> for QuantizeError {
+    fn from(e: swe_llmmodel_kernel::QuantError) -> Self {
         QuantizeError::Quantization(e.to_string())
     }
 }
