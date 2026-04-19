@@ -4,7 +4,8 @@ use std::time::Instant;
 use anyhow::{Context, Result, anyhow};
 
 use rustml_gguf::GGUFFile;
-use rustml_hub::HubApi;
+use swe_llmmodel_download::{Download, HuggingFaceDownload};
+use swe_llmmodel_io::{LoadTensors, SafeTensorsStore};
 use rustml_model::{
     LlmModel, ModelConfig, ModelBuilderRegistry, OptProfile, convert_tensors,
     gguf_config_to_model_config,
@@ -149,15 +150,16 @@ pub fn load_gguf(path: &Path, profile: OptProfile) -> Result<DefaultModel> {
 /// configures the runtime weight quantizer. Callers produce it from the
 /// application config loader.
 pub fn load_safetensors(model_id: &str, profile: OptProfile, quantization_toml: &str) -> Result<DefaultModel> {
-    let hub = HubApi::new();
-    let bundle = match hub.get_cached(model_id) {
+    let downloader = HuggingFaceDownload::new();
+    let bundle = match downloader.get_cached(model_id) {
         Some(b) => {
             log::info!("Using cached model: {}", model_id);
             b
         }
         None => {
             log::info!("Downloading model: {}", model_id);
-            hub.download_model_sync(model_id)
+            downloader
+                .download_model(model_id)
                 .with_context(|| format!("Failed to download model: {}", model_id))?
         }
     };
@@ -180,7 +182,8 @@ pub fn load_safetensors(model_id: &str, profile: OptProfile, quantization_toml: 
         config.vocab_size
     );
 
-    let weights = rustml_hub::load_safetensors(&bundle.weights_path())
+    let weights = SafeTensorsStore
+        .load(&bundle.weights_path())
         .with_context(|| "Failed to load SafeTensors weights")?;
     log::info!("  {} tensors loaded", weights.len());
 

@@ -39,9 +39,9 @@ run_quant_tests() {
   cargo test -p rustml-quant
 }
 
-run_hub_tests() {
-  echo "==> Testing hub..."
-  cargo test -p rustml-hub
+run_llmmodel_tests() {
+  echo "==> Testing llmmodel..."
+  (cd llmmodel && cargo test --workspace)
 }
 
 case "$SUITE" in
@@ -51,7 +51,7 @@ case "$SUITE" in
   tokenizer) run_tokenizer_tests ;;
   gguf)      run_gguf_tests ;;
   quant)     run_quant_tests ;;
-  hub)       run_hub_tests ;;
+  llmmodel)  run_llmmodel_tests ;;
   all)
     run_core_tests
     run_nn_tests
@@ -59,10 +59,10 @@ case "$SUITE" in
     run_tokenizer_tests
     run_gguf_tests
     run_quant_tests
-    run_hub_tests
+    run_llmmodel_tests
     ;;
   *)
-    echo "Usage: ./rdl test [core|nn|nlp|tokenizer|gguf|quant|hub|scripts|all]"
+    echo "Usage: ./rdl test [core|nn|nlp|tokenizer|gguf|quant|llmmodel|scripts|all]"
     exit 1
     ;;
 esac

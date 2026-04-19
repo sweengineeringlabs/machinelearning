@@ -1,19 +1,24 @@
 # machinelearning
 
-Pure-Rust ML platform. Two Cargo workspaces plus a developer-tools tree.
+Pure-Rust ML platform. Three Cargo workspaces plus a developer-tools tree.
 
 ## Layout
 
 ```
 machinelearning/
-├── main/features/          — foundation crates (workspace root at Cargo.toml)
+├── main/features/          — foundation crates (root workspace at /Cargo.toml)
 │   ├── tensor/             swe-ml-tensor — multi-dtype tensors, SIMD, mmap storage
 │   ├── activation/         swe-ml-activation
 │   ├── normalization/      swe-ml-normalization
 │   ├── architectures/      swe-ml-architectures — shared model architecture defs
-│   ├── hub/                rustml-hub — HuggingFace Hub client + SafeTensors loader
 │   ├── embedding/conversion/   swe-ml-embedding — embedding utilities
 │   └── training/           swe-ml-training — training primitives
+│
+├── llmmodel/               — model acquisition + I/O workspace (own Cargo.toml)
+│   ├── download/           swe-llmmodel-download — HuggingFace Hub client (HuggingFaceDownload)
+│   ├── io/                 swe-llmmodel-io — SafeTensorsStore, CustomBinStore
+│   ├── weights/            swe-llmmodel-weights — WeightMapper, Gpt2WeightMapper, WeightGuard
+│   └── cli/                swe-llmmodel-cli — `llmmodel` binary (download/list/info)
 │
 ├── llmserv/                — LLM serving workspace (own Cargo.toml)
 │   ├── main/config/application.toml    single source of truth for all llmserv apps
@@ -22,7 +27,8 @@ machinelearning/
 │       │                   compute, generation, gguf, prefill, quant, quantizer,
 │       │                   thread-config, tokenizer
 │       ├── daemon/         swellmd — HTTP chat-completions server (leaf frontend)
-│       ├── cli/            sweai — multi-command developer CLI
+│       ├── cli/            llmc — multi-command developer CLI (no hub subcommand;
+│       │                   model download lives in the standalone `llmmodel` binary)
 │       ├── embedding/server/     swe-ml-embed — embedding HTTP server
 │       └── experimentation/llmforge/   archived prototype (read-only)
 │
@@ -30,10 +36,9 @@ machinelearning/
     └── quantize/           rustml-quantize — offline SafeTensors → GGUF CLI tool
 ```
 
-Cross-workspace dependency rule: **llmserv → main (foundations)**. Root workspace
-never depends on llmserv, with one exception: `devtools/quantize` reaches into llmserv
-for its quantizer library. This is the single backward arrow, accepted because quantize
-is a tool, not a library.
+Cross-workspace dependency rule: **llmserv → llmmodel → main (foundations)**, **llmmodel → main**.
+Root workspace never depends on llmserv. `devtools/quantize` reaches into llmserv for its
+quantizer library — the single backward arrow, accepted because quantize is a tool, not a library.
 
 ## Quick start
 
@@ -42,6 +47,9 @@ is a tool, not a library.
 ```bash
 # Root workspace (foundations + devtools)
 cargo build --release
+
+# llmmodel workspace (download / io / weights / cli)
+cargo build --release --manifest-path llmmodel/Cargo.toml
 
 # llmserv workspace (inference stack, daemon, cli, embedding server)
 cargo build --release --manifest-path llmserv/Cargo.toml

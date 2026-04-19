@@ -47,7 +47,7 @@
 use crate::api::error::{ModelError, ModelResult};
 use crate::api::types::GptConfig;
 use swe_ml_tensor::Tensor;
-use rustml_hub::{Gpt2WeightMapper, WeightMapper};
+use swe_llmmodel_weights::{Gpt2WeightMapper, WeightMapper};
 use rustml_inference_layers::{CausalSelfAttention, LayerNorm, Linear};
 use crate::core::token_embedding::TokenEmbedding;
 use std::collections::HashMap;

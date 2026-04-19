@@ -44,8 +44,14 @@ impl From<rustml_gguf::GgufError> for QuantizeError {
     }
 }
 
-impl From<rustml_hub::HubError> for QuantizeError {
-    fn from(e: rustml_hub::HubError) -> Self {
+impl From<swe_llmmodel_download::DownloadError> for QuantizeError {
+    fn from(e: swe_llmmodel_download::DownloadError) -> Self {
+        QuantizeError::ModelLoad(e.to_string())
+    }
+}
+
+impl From<swe_llmmodel_io::IoError> for QuantizeError {
+    fn from(e: swe_llmmodel_io::IoError) -> Self {
         QuantizeError::ModelLoad(e.to_string())
     }
 }

@@ -7,7 +7,8 @@ use anyhow::{Context, Result, bail};
 use clap::Args;
 
 use rustml_gguf::GGUFFile;
-use rustml_hub::{HubApi, load_safetensors};
+use swe_llmmodel_download::{Download, HuggingFaceDownload};
+use swe_llmmodel_io::{LoadTensors, SafeTensorsStore};
 use rustml_model::{
     LanguageModel, LlmModel, ModelBuilderRegistry, OptProfile, convert_tensors,
     gguf_config_to_model_config,
@@ -449,15 +450,16 @@ fn run_safetensors(
     batch_contents: Option<String>,
     profile: OptProfile,
 ) -> Result<()> {
-    let hub = HubApi::new();
-    let bundle = match hub.get_cached(model_id) {
+    let downloader = HuggingFaceDownload::new();
+    let bundle = match downloader.get_cached(model_id) {
         Some(b) => {
             eprintln!("Using cached model: {}", model_id);
             b
         }
         None => {
             eprintln!("Downloading model: {}", model_id);
-            hub.download_model_sync(model_id)
+            downloader
+                .download_model(model_id)
                 .with_context(|| format!("Failed to download model: {}", model_id))?
         }
     };
@@ -477,7 +479,8 @@ fn run_safetensors(
     );
 
     eprintln!("  Loading SafeTensors weights...");
-    let weights = load_safetensors(&bundle.weights_path())
+    let weights = SafeTensorsStore
+        .load(&bundle.weights_path())
         .with_context(|| "Failed to load SafeTensors weights")?;
     eprintln!("  {} tensors loaded", weights.len());
 

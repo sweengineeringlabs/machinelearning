@@ -1771,13 +1771,14 @@ dependencies = [
  "rustml-arch-nomic-bert",
  "rustml-generation",
  "rustml-gguf",
- "rustml-hub",
  "rustml-model",
  "rustml-quantizer",
  "rustml-thread-config",
  "rustml-tokenizer",
  "serde",
  "serde_json",
+ "swe-llmmodel-download",
+ "swe-llmmodel-io",
  "tokio",
 ]
 
@@ -2799,27 +2800,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustml-hub"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "crc32fast",
- "dirs",
- "futures-util",
- "hf-hub",
- "memmap2",
- "reqwest",
- "rustml-gguf",
- "safetensors",
- "serde",
- "serde_json",
- "swe-ml-tensor",
- "thiserror 2.0.18",
- "tokio",
-]
-
-[[package]]
 name = "rustml-inference-layers"
 version = "0.1.0"
 dependencies = [
@@ -2840,10 +2820,10 @@ dependencies = [
  "log",
  "rayon",
  "rustml-gguf",
- "rustml-hub",
  "rustml-inference-layers",
  "serde",
  "serde_json",
+ "swe-llmmodel-weights",
  "swe-ml-tensor",
  "thiserror 2.0.18",
 ]
@@ -3150,6 +3130,37 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
+name = "swe-llmmodel-download"
+version = "0.1.0"
+dependencies = [
+ "dirs",
+ "hf-hub",
+ "reqwest",
+ "thiserror 2.0.18",
+ "tokio",
+]
+
+[[package]]
+name = "swe-llmmodel-io"
+version = "0.1.0"
+dependencies = [
+ "crc32fast",
+ "memmap2",
+ "safetensors",
+ "serde_json",
+ "swe-ml-tensor",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "swe-llmmodel-weights"
+version = "0.1.0"
+dependencies = [
+ "swe-ml-tensor",
+ "thiserror 2.0.18",
+]
+
+[[package]]
 name = "swe-ml-embed-server"
 version = "0.1.0"
 dependencies = [
@@ -3233,7 +3244,6 @@ dependencies = [
  "rustml-backend-llama-cpp",
  "rustml-generation",
  "rustml-gguf",
- "rustml-hub",
  "rustml-inference-layers",
  "rustml-model",
  "rustml-prefill",
@@ -3242,6 +3252,8 @@ dependencies = [
  "rustml-tokenizer",
  "serde",
  "serde_json",
+ "swe-llmmodel-download",
+ "swe-llmmodel-io",
  "swe-ml-embedding",
  "swe-ml-tensor",
  "thiserror 2.0.18",

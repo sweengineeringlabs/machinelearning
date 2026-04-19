@@ -1,5 +1,4 @@
 pub mod gguf;
-pub mod hub;
 pub mod infer;
 pub mod load;
 pub mod tokenizer;
@@ -15,9 +14,6 @@ pub enum Command {
     /// Encode, decode, and inspect tokenizer vocabularies.
     Tokenizer(tokenizer::TokenizerArgs),
 
-    /// Download, cache, and inspect HuggingFace models.
-    Hub(hub::HubArgs),
-
     /// Run text generation on a GGUF model.
     Infer(infer::InferArgs),
 
@@ -30,7 +26,6 @@ pub fn run(command: Command) -> anyhow::Result<()> {
     match command {
         Command::Gguf(cmd) => gguf::run(cmd),
         Command::Tokenizer(args) => tokenizer::run(args),
-        Command::Hub(args) => hub::run(args),
         Command::Infer(args) => infer::run(args),
         Command::Load(args) => load::run(args),
     }

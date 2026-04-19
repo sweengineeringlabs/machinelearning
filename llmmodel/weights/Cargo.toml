@@ -1,0 +1,12 @@
+[package]
+name = "swe-llmmodel-weights"
+description = "Weight name mapping and validation for model architectures"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+swe-ml-tensor.workspace = true
+thiserror.workspace = true

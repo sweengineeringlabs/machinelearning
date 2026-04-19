@@ -60,13 +60,13 @@ Load order (deep-merge, later wins):
 See the daemon architecture doc (`main/features/daemon/docs/3-design/architecture.md`)
 for the full lifecycle.
 
-## Dependencies on the root workspace
+## Dependencies on other workspaces
 
-llmserv depends on foundation crates in the root workspace via relative paths
-in `Cargo.toml`'s `[workspace.dependencies]`:
+llmserv depends on the root workspace foundation crates and on the llmmodel
+workspace, via relative paths in `Cargo.toml`'s `[workspace.dependencies]`:
 
-- `swe-ml-tensor`, `swe-ml-normalization`, `swe-ml-activation`
-- `swe-ml-embedding`, `rustml-hub`
-- `swe-ml-architectures`, `swe-ml-training`
+- Foundations (root): `swe-ml-tensor`, `swe-ml-normalization`, `swe-ml-activation`,
+  `swe-ml-embedding`, `swe-ml-architectures`, `swe-ml-training`
+- Model I/O (llmmodel): `swe-llmmodel-download`, `swe-llmmodel-io`, `swe-llmmodel-weights`
 
-The arrow flows one way: **llmserv → root**. Never the reverse within libraries.
+The arrow flows one way: **llmserv → llmmodel → root**. Never the reverse within libraries.

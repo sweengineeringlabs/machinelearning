@@ -1,5 +1,6 @@
 use rustml_gguf::{GGMLType, GGUFValue};
-use rustml_hub::{HubApi, load_safetensors};
+use swe_llmmodel_download::{Download, HuggingFaceDownload};
+use swe_llmmodel_io::{LoadTensors, SafeTensorsStore};
 
 use crate::api::error::{QuantizeError, QuantizeResult};
 use crate::api::traits::QuantizeEngine;
@@ -26,8 +27,8 @@ impl QuantizeEngine for DefaultQuantizeEngine {
 
 fn run_quantize(config: &QuantizeConfig) -> QuantizeResult<QuantizeReport> {
     // Step 1: Resolve model path
-    let hub = HubApi::new();
-    let model_dir = hub.cache_dir().join(config.model_id.replace('/', "--"));
+    let downloader = HuggingFaceDownload::new();
+    let model_dir = downloader.cache_dir().join(config.model_id.replace('/', "--"));
 
     let safetensors_path = model_dir.join("model.safetensors");
     let config_path = model_dir.join("config.json");
@@ -91,7 +92,7 @@ fn run_quantize(config: &QuantizeConfig) -> QuantizeResult<QuantizeReport> {
 
     // Step 4: Load safetensors via mmap
     log::info!("Loading safetensors from {}", safetensors_path.display());
-    let tensors = load_safetensors(&safetensors_path)?;
+    let tensors = SafeTensorsStore.load(&safetensors_path)?;
 
     log::info!("Loaded {} tensors", tensors.len());
 

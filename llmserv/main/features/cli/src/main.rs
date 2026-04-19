@@ -5,7 +5,8 @@ use clap::Parser;
 
 /// llmc — developer CLI for llmserv.
 ///
-/// Subcommands: infer, hub, gguf, tokenizer, load.
+/// Subcommands: infer, gguf, tokenizer, load. Model download lives in the
+/// standalone `llmmodel` binary.
 #[derive(Parser)]
 #[command(name = "llmc", version, about)]
 struct Cli {

@@ -1,0 +1,16 @@
+[package]
+name = "swe-llmmodel-io"
+description = "Tensor format I/O — SafeTensors and custom binary"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+swe-ml-tensor.workspace = true
+thiserror.workspace = true
+memmap2.workspace = true
+crc32fast.workspace = true
+safetensors.workspace = true
+serde_json.workspace = true

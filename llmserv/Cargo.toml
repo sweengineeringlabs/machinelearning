@@ -105,9 +105,13 @@ swe-ml-tensor        = { path = "../main/features/tensor" }
 swe-ml-normalization = { path = "../main/features/normalization" }
 swe-ml-activation    = { path = "../main/features/activation" }
 swe-ml-embedding     = { path = "../main/features/embedding/conversion" }
-rustml-hub           = { path = "../main/features/hub" }
 swe-ml-architectures = { path = "../main/features/architectures" }
 swe-ml-training      = { path = "../main/features/training" }
+
+# llmmodel workspace — download, io, weights.
+swe-llmmodel-download = { path = "../llmmodel/download" }
+swe-llmmodel-io       = { path = "../llmmodel/io" }
+swe-llmmodel-weights  = { path = "../llmmodel/weights" }
 
 # ──────────────────────────────────────────────────────────────────────
 # Inference library (internal to this workspace).

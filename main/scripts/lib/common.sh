@@ -74,7 +74,7 @@ crate_package() {
     tokenizer) echo "rustml-tokenizer" ;;
     gguf)      echo "rustml-gguf" ;;
     quant)     echo "rustml-quant" ;;
-    hub)       echo "rustml-hub" ;;
+    llmmodel)  echo "swe-llmmodel-download swe-llmmodel-io swe-llmmodel-weights swe-llmmodel-cli" ;;
     *)         echo "$1" ;;
   esac
 }

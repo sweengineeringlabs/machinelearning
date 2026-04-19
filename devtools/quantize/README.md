@@ -58,7 +58,7 @@ swellmd
 
 | Flag | Default | Description |
 |---|---|---|
-| `--model <HF_REPO>` | required | HuggingFace repo ID, e.g. `google/gemma-3-1b-it`. Downloaded via `rustml-hub` if not cached. |
+| `--model <HF_REPO>` | required | HuggingFace repo ID, e.g. `google/gemma-3-1b-it`. Downloaded via `swe-llmmodel-download` if not cached. |
 | `--target <FORMAT>` | `q8_0` | Quantization target: `q8_0`, `q4_0`, `q4_1`. |
 | `--output <PATH>` | required | Path to write the quantized GGUF file. |
 | `--preserve-output` | off | Keep the final `lm_head` / output projection in F32. Reduces output perplexity at the cost of a larger file. |
