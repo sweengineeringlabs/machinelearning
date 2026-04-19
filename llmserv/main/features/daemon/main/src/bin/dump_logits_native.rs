@@ -17,7 +17,8 @@ use std::path::PathBuf;
 use anyhow::{Result, bail};
 use swe_llmmodel_model::{LanguageModel, OptProfile};
 use swe_ml_tensor::{DType, Tensor};
-use swellmd::{ModelSource, load_config, load_gguf, load_safetensors};
+use swe_llmmodel_loader::{DefaultLoader, LoadModel};
+use swellmd::{ModelSource, load_config};
 
 const FIXED_TOKENS: &[u32] = &[2, 9259, 235269]; // <bos> Hello ,
 
@@ -33,6 +34,7 @@ fn main() -> Result<()> {
     );
 
     let profile = OptProfile::Optimized;
+    let loader = DefaultLoader::new();
     let model = match cfg.model.source {
         ModelSource::Safetensors => {
             let id = cfg
@@ -40,7 +42,7 @@ fn main() -> Result<()> {
                 .id
                 .as_deref()
                 .ok_or_else(|| anyhow::anyhow!("source = safetensors requires id"))?;
-            load_safetensors(id, profile, &loaded.merged_toml)?
+            loader.load_safetensors(id, profile, &loaded.merged_toml)?
         }
         ModelSource::Gguf => {
             let path_str = cfg
@@ -48,7 +50,7 @@ fn main() -> Result<()> {
                 .path
                 .as_deref()
                 .ok_or_else(|| anyhow::anyhow!("source = gguf requires path"))?;
-            load_gguf(&PathBuf::from(path_str), profile)?
+            loader.load_gguf(&PathBuf::from(path_str), profile)?
         }
     };
 

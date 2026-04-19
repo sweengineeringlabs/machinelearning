@@ -1813,6 +1813,7 @@ dependencies = [
  "log",
  "rustml-generation",
  "swe-llmmodel-layers",
+ "swe-llmmodel-loader",
  "swe-llmmodel-model",
  "swe-llmmodel-tokenizer",
  "swe-ml-tensor",
@@ -3112,6 +3113,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "swe-llmmodel-loader"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "log",
+ "serde_json",
+ "swe-llmmodel-arch-bert",
+ "swe-llmmodel-arch-falcon",
+ "swe-llmmodel-arch-gemma3",
+ "swe-llmmodel-arch-gemma4",
+ "swe-llmmodel-arch-gpt2",
+ "swe-llmmodel-arch-llama",
+ "swe-llmmodel-arch-mixtral",
+ "swe-llmmodel-arch-nomic-bert",
+ "swe-llmmodel-download",
+ "swe-llmmodel-gguf",
+ "swe-llmmodel-io",
+ "swe-llmmodel-model",
+ "swe-llmmodel-quantizer",
+ "swe-llmmodel-tokenizer",
+ "swe-ml-tensor",
+ "thiserror 2.0.18",
+]
+
+[[package]]
 name = "swe-llmmodel-model"
 version = "0.1.0"
 dependencies = [
@@ -3236,20 +3262,9 @@ dependencies = [
  "rustml-thread-config",
  "serde",
  "serde_json",
- "swe-llmmodel-arch-bert",
- "swe-llmmodel-arch-falcon",
- "swe-llmmodel-arch-gemma3",
- "swe-llmmodel-arch-gemma4",
- "swe-llmmodel-arch-gpt2",
- "swe-llmmodel-arch-llama",
- "swe-llmmodel-arch-mixtral",
- "swe-llmmodel-arch-nomic-bert",
- "swe-llmmodel-download",
- "swe-llmmodel-gguf",
- "swe-llmmodel-io",
  "swe-llmmodel-layers",
+ "swe-llmmodel-loader",
  "swe-llmmodel-model",
- "swe-llmmodel-quantizer",
  "swe-llmmodel-tokenizer",
  "swe-ml-embedding",
  "swe-ml-tensor",

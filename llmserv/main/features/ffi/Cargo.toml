@@ -18,6 +18,7 @@ rustml-generation.workspace = true
 swe-llmmodel-model.workspace = true
 swe-llmmodel-tokenizer.workspace = true
 swe-llmmodel-layers.workspace = true
+swe-llmmodel-loader.workspace = true
 log.workspace = true
 
 [build-dependencies]

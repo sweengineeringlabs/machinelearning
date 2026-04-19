@@ -3,6 +3,7 @@ use std::time::Duration;
 use crate::api::throttle::Throttle;
 use llmbackend::Model;
 use swe_llmmodel_layers::PoolingStrategy;
+use swe_llmmodel_loader::LoadedModel;
 use swe_llmmodel_model::{LanguageModel, LlmModel, ModelResult, OptProfile};
 use rustml_generation::{Generator, TextCompleter};
 use swe_llmmodel_tokenizer::Tokenizer;
@@ -17,6 +18,20 @@ pub struct DefaultModel {
     pub eos_token_id: Option<u32>,
     pub bos_token_id: Option<u32>,
     pub profile: OptProfile,
+}
+
+impl From<LoadedModel> for DefaultModel {
+    fn from(l: LoadedModel) -> Self {
+        Self {
+            model: l.model,
+            tokenizer: l.tokenizer,
+            model_id: l.model_id,
+            chat_template: l.chat_template,
+            eos_token_id: l.eos_token_id,
+            bos_token_id: l.bos_token_id,
+            profile: l.profile,
+        }
+    }
 }
 
 impl Model for DefaultModel {

@@ -3,7 +3,7 @@ pub use crate::api::error::*;
 pub use crate::api::throttle::{Permit, Throttle};
 pub use crate::api::types::*;
 pub use crate::core::config::{LoadedConfig, load as load_config};
-pub use crate::core::loader::{NativeRustBackendLoader, load_gguf, load_safetensors};
+pub use crate::core::loader::NativeRustBackendLoader;
 pub use crate::core::router::build_router;
 pub use crate::core::state::{AppState, DefaultModel};
 pub use crate::core::throttle::SemaphoreThrottle;

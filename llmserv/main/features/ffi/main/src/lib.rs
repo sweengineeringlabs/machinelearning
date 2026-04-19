@@ -47,10 +47,11 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::RwLock;
 
 use swe_llmmodel_layers::PoolingStrategy;
+use swe_llmmodel_loader::{DefaultLoader, LoadModel};
 use swe_llmmodel_model::OptProfile;
 
 use rustml_generation::CompletionParams;
-use swellmd::{Model, ModelSource};
+use swellmd::{DefaultModel, Model, ModelSource};
 
 /// Error codes returned by every function. Zero is success.
 #[repr(C)]
@@ -119,30 +120,33 @@ pub unsafe extern "C" fn llmserv_init(out_handle: *mut *mut LlmHandle) -> c_int 
             LlmError::LoadFailed
         })?;
 
+        let loader = DefaultLoader::new();
         let model: Box<dyn Model> = match loaded.app.model.source {
             ModelSource::Safetensors => {
                 let id = loaded.app.model.id.as_deref().ok_or_else(|| {
                     log::error!("llmserv_init: [model].source=safetensors requires [model].id");
                     LlmError::InvalidInput
                 })?;
-                Box::new(swellmd::load_safetensors(id, profile, &loaded.merged_toml).map_err(
-                    |e| {
+                let m = loader
+                    .load_safetensors(id, profile, &loaded.merged_toml)
+                    .map_err(|e| {
                         log::error!("llmserv_init: load_safetensors failed: {}", e);
                         LlmError::LoadFailed
-                    },
-                )?)
+                    })?;
+                Box::new(DefaultModel::from(m))
             }
             ModelSource::Gguf => {
                 let path = loaded.app.model.path.as_deref().ok_or_else(|| {
                     log::error!("llmserv_init: [model].source=gguf requires [model].path");
                     LlmError::InvalidInput
                 })?;
-                Box::new(
-                    swellmd::load_gguf(std::path::Path::new(path), profile).map_err(|e| {
+                let m = loader
+                    .load_gguf(std::path::Path::new(path), profile)
+                    .map_err(|e| {
                         log::error!("llmserv_init: load_gguf failed: {}", e);
                         LlmError::LoadFailed
-                    })?,
-                )
+                    })?;
+                Box::new(DefaultModel::from(m))
             }
         };
 

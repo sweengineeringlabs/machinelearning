@@ -52,8 +52,9 @@
 //! the cost — the alternative is shipping silent bugs.
 
 use rustml_generation::CompletionParams;
+use swe_llmmodel_loader::{DefaultLoader, LoadModel};
 use swe_llmmodel_model::OptProfile;
-use swellmd::Model;
+use swellmd::{DefaultModel, Model};
 
 /// Prompts and the substrings we accept as proof of a correct
 /// answer. Each prompt has multiple acceptable substrings to
@@ -92,8 +93,10 @@ fn native_rust_chat_completes_correctly_on_known_prompts() {
     let model_id = std::env::var("LLMSERV_CC_HF_ID")
         .expect("LLMSERV_CC_HF_ID must be set to an HF model id");
 
-    let model = swellmd::load_safetensors(&model_id, OptProfile::Optimized, "")
+    let loaded = DefaultLoader::new()
+        .load_safetensors(&model_id, OptProfile::Optimized, "")
         .expect("load model from hub");
+    let model: DefaultModel = loaded.into();
 
     let params = CompletionParams::new(0.0, MAX_TOKENS);
 
