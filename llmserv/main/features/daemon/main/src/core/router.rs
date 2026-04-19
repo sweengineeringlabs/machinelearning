@@ -10,7 +10,7 @@ use axum::{Json, Router};
 use futures_util::stream;
 use tokio_stream::StreamExt;
 
-use swe_ml_embedding::l2_normalize;
+use swe_ml_embedding::{L2Normalize, Normalize};
 use rustml_generation::CompletionParams;
 use rustml_inference_layers::PoolingStrategy;
 
@@ -473,7 +473,9 @@ async fn embeddings(
                 .model
                 .embed(ids, PoolingStrategy::Mean)
                 .map_err(|e| DaemonError::GenerationFailed(format!("Embedding failed: {}", e)))?;
-            l2_normalize(&mut vec);
+            L2Normalize
+                .normalize(&mut vec)
+                .map_err(|e| DaemonError::GenerationFailed(format!("Normalization failed: {}", e)))?;
             results.push((i, vec));
         }
 

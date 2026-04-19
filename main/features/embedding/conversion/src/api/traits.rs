@@ -18,3 +18,11 @@ pub trait Embed {
     /// Returns the embedding dimension.
     fn embedding_dim(&self) -> usize;
 }
+
+/// Vector normalization contract.
+///
+/// Rescales a mutable slice of floats according to a norm.
+/// Implementations must reject non-finite input.
+pub trait Normalize {
+    fn normalize(&self, v: &mut [f32]) -> EmbeddingResult<()>;
+}

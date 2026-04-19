@@ -13,4 +13,7 @@ pub enum EmbeddingError {
 
     #[error("Invalid configuration: {0}")]
     InvalidConfig(String),
+
+    #[error("Non-finite value in input: {0}")]
+    NonFinite(String),
 }

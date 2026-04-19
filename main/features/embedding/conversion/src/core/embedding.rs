@@ -50,9 +50,12 @@ impl Embed for DefaultEmbedding {
     fn forward(&self, indices: &Tensor) -> EmbeddingResult<Tensor> {
         let input_shape = indices.shape();
         let numel = indices.numel();
+        let dim = self.embedding_dim;
 
-        let mut output_data = Vec::with_capacity(numel * self.embedding_dim);
+        let weight_slice = self.weight.contiguous_slice_f32()?;
+        let mut output_data = vec![0.0f32; numel * dim];
 
+        let mut out_offset = 0;
         for idx_f32 in indices.iter() {
             let idx = idx_f32 as usize;
             if idx >= self.num_embeddings {
@@ -62,12 +65,14 @@ impl Embed for DefaultEmbedding {
                 )));
             }
 
-            let embedding = self.weight.select(0, idx)?;
-            output_data.extend(embedding.iter());
+            let src_start = idx * dim;
+            output_data[out_offset..out_offset + dim]
+                .copy_from_slice(&weight_slice[src_start..src_start + dim]);
+            out_offset += dim;
         }
 
         let mut output_shape = input_shape.to_vec();
-        output_shape.push(self.embedding_dim);
+        output_shape.push(dim);
 
         let result = Tensor::from_vec(output_data, output_shape)?;
         Ok(result)
@@ -121,6 +126,51 @@ mod tests {
         let emb = DefaultEmbedding::from_weights(weight).unwrap();
         assert_eq!(emb.num_embeddings(), 50);
         assert_eq!(emb.embedding_dim(), 16);
+    }
+
+    #[test]
+    fn test_forward_returns_exact_row_from_known_weights() {
+        let weight = Tensor::from_vec(
+            vec![
+                1.0, 2.0, 3.0, // row 0
+                4.0, 5.0, 6.0, // row 1
+                7.0, 8.0, 9.0, // row 2
+            ],
+            vec![3, 3],
+        )
+        .unwrap();
+        let emb = DefaultEmbedding::from_weights(weight).unwrap();
+
+        let indices = Tensor::from_vec(vec![2.0, 0.0, 1.0], vec![3]).unwrap();
+        let output = emb.forward(&indices).unwrap();
+
+        assert_eq!(output.shape(), &[3, 3]);
+        let data = output.as_slice_f32().unwrap();
+        assert_eq!(
+            data,
+            &[
+                7.0, 8.0, 9.0, // row 2
+                1.0, 2.0, 3.0, // row 0
+                4.0, 5.0, 6.0, // row 1
+            ]
+        );
+    }
+
+    #[test]
+    fn test_forward_preserves_row_content_under_2d_indices() {
+        let weight = Tensor::from_vec(
+            vec![10.0, 20.0, 30.0, 40.0, 50.0, 60.0],
+            vec![3, 2],
+        )
+        .unwrap();
+        let emb = DefaultEmbedding::from_weights(weight).unwrap();
+
+        let indices = Tensor::from_vec(vec![0.0, 2.0, 1.0, 0.0], vec![2, 2]).unwrap();
+        let output = emb.forward(&indices).unwrap();
+
+        assert_eq!(output.shape(), &[2, 2, 2]);
+        let data = output.as_slice_f32().unwrap();
+        assert_eq!(data, &[10.0, 20.0, 50.0, 60.0, 30.0, 40.0, 10.0, 20.0]);
     }
 
     #[test]

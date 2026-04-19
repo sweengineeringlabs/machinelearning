@@ -9,7 +9,7 @@ use swe_ml_tensor::{DType, Tensor, f32_vec_to_bytes};
 use rustml_inference_layers::PoolingStrategy;
 
 use swe_ml_embedding::{
-    EmbeddingData, EmbeddingUsage, EmbeddingsRequest, EmbeddingsResponse, l2_normalize,
+    EmbeddingData, EmbeddingUsage, EmbeddingsRequest, EmbeddingsResponse, L2Normalize, Normalize,
 };
 use crate::api::error::EmbeddingApiError;
 use crate::core::state::EmbeddingState;
@@ -74,7 +74,9 @@ async fn embeddings(
                 .map_err(|e| EmbeddingApiError(format!("Embedding failed: {}", e)))?;
 
             let mut vec: Vec<f32> = embedding.iter().collect();
-            l2_normalize(&mut vec);
+            L2Normalize
+                .normalize(&mut vec)
+                .map_err(|e| EmbeddingApiError(format!("Normalization failed: {}", e)))?;
             results.push((i, vec));
         }
 
