@@ -20,14 +20,6 @@ members = [
     "main/features/inference/compute",
     "main/features/inference/backend-api",
     "main/features/inference/backend-llama-cpp",
-    "main/features/inference/architectures/llama",
-    "main/features/inference/architectures/gpt2",
-    "main/features/inference/architectures/falcon",
-    "main/features/inference/architectures/mixtral",
-    "main/features/inference/architectures/gemma3",
-    "main/features/inference/architectures/gemma4",
-    "main/features/inference/architectures/bert",
-    "main/features/inference/architectures/nomic_bert",
     # Serving frontends (leaves — each removable without breaking the stack).
     "main/features/daemon",
     "main/features/cli",
@@ -112,6 +104,14 @@ swe-llmmodel-gguf     = { path = "../llmmodel/gguf" }
 swe-llmmodel-model    = { path = "../llmmodel/model" }
 swe-llmmodel-tokenizer = { path = "../llmmodel/tokenizer" }
 swe-llmmodel-quantizer = { path = "../llmmodel/quantizer" }
+swe-llmmodel-arch-llama      = { path = "../llmmodel/arch/llama" }
+swe-llmmodel-arch-gpt2       = { path = "../llmmodel/arch/gpt2" }
+swe-llmmodel-arch-falcon     = { path = "../llmmodel/arch/falcon" }
+swe-llmmodel-arch-mixtral    = { path = "../llmmodel/arch/mixtral" }
+swe-llmmodel-arch-gemma3     = { path = "../llmmodel/arch/gemma3" }
+swe-llmmodel-arch-gemma4     = { path = "../llmmodel/arch/gemma4" }
+swe-llmmodel-arch-bert       = { path = "../llmmodel/arch/bert" }
+swe-llmmodel-arch-nomic-bert = { path = "../llmmodel/arch/nomic_bert" }
 
 # ──────────────────────────────────────────────────────────────────────
 # Inference library (internal to this workspace).
@@ -122,13 +122,5 @@ rustml-thread-config    = { path = "main/features/inference/thread-config" }
 llmcompute              = { path = "main/features/inference/compute" }
 llmbackend              = { path = "main/features/inference/backend-api" }
 rustml-backend-llama-cpp = { path = "main/features/inference/backend-llama-cpp" }
-rustml-arch-llama       = { path = "main/features/inference/architectures/llama" }
-rustml-arch-gpt2        = { path = "main/features/inference/architectures/gpt2" }
-rustml-arch-falcon      = { path = "main/features/inference/architectures/falcon" }
-rustml-arch-mixtral     = { path = "main/features/inference/architectures/mixtral" }
-rustml-arch-gemma3      = { path = "main/features/inference/architectures/gemma3" }
-rustml-arch-gemma4      = { path = "main/features/inference/architectures/gemma4" }
-rustml-arch-bert        = { path = "main/features/inference/architectures/bert" }
-rustml-arch-nomic-bert  = { path = "main/features/inference/architectures/nomic_bert" }
 swe-ml-embed-server     = { path = "main/features/embedding/server" }
 swellmd                 = { path = "main/features/daemon" }

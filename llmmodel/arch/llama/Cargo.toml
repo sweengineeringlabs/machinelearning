@@ -1,5 +1,5 @@
 [package]
-name = "rustml-arch-llama"
+name = "swe-llmmodel-arch-llama"
 description = "llama architecture builder for swe-llmmodel-model"
 version.workspace = true
 edition.workspace = true

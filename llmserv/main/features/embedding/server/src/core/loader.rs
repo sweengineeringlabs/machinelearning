@@ -13,9 +13,9 @@ use super::state::EmbeddingState;
 /// Create the model registry with embedding-relevant architectures.
 fn create_registry() -> ModelBuilderRegistry {
     let mut reg = ModelBuilderRegistry::new();
-    reg.register("nomic-bert", Box::new(rustml_arch_nomic_bert::NomicBertBuilder));
+    reg.register("nomic-bert", Box::new(swe_llmmodel_arch_nomic_bert::NomicBertBuilder));
     // Add more embedding architectures here as needed:
-    // reg.register("bert", Box::new(rustml_arch_bert::BertBuilder));
+    // reg.register("bert", Box::new(swe_llmmodel_arch_bert::BertBuilder));
     reg
 }
 

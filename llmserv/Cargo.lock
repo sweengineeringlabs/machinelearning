@@ -1761,18 +1761,18 @@ dependencies = [
  "log",
  "rayon",
  "reqwest",
- "rustml-arch-bert",
- "rustml-arch-falcon",
- "rustml-arch-gemma3",
- "rustml-arch-gemma4",
- "rustml-arch-gpt2",
- "rustml-arch-llama",
- "rustml-arch-mixtral",
- "rustml-arch-nomic-bert",
  "rustml-generation",
  "rustml-thread-config",
  "serde",
  "serde_json",
+ "swe-llmmodel-arch-bert",
+ "swe-llmmodel-arch-falcon",
+ "swe-llmmodel-arch-gemma3",
+ "swe-llmmodel-arch-gemma4",
+ "swe-llmmodel-arch-gpt2",
+ "swe-llmmodel-arch-llama",
+ "swe-llmmodel-arch-mixtral",
+ "swe-llmmodel-arch-nomic-bert",
  "swe-llmmodel-download",
  "swe-llmmodel-gguf",
  "swe-llmmodel-io",
@@ -2668,78 +2668,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustml-arch-bert"
-version = "0.1.0"
-dependencies = [
- "swe-llmmodel-layers",
- "swe-llmmodel-model",
- "swe-ml-tensor",
-]
-
-[[package]]
-name = "rustml-arch-falcon"
-version = "0.1.0"
-dependencies = [
- "swe-llmmodel-layers",
- "swe-llmmodel-model",
- "swe-ml-tensor",
-]
-
-[[package]]
-name = "rustml-arch-gemma3"
-version = "0.1.0"
-dependencies = [
- "swe-llmmodel-layers",
- "swe-llmmodel-model",
- "swe-ml-tensor",
-]
-
-[[package]]
-name = "rustml-arch-gemma4"
-version = "0.1.0"
-dependencies = [
- "swe-llmmodel-layers",
- "swe-llmmodel-model",
- "swe-ml-tensor",
-]
-
-[[package]]
-name = "rustml-arch-gpt2"
-version = "0.1.0"
-dependencies = [
- "swe-llmmodel-layers",
- "swe-llmmodel-model",
- "swe-ml-tensor",
-]
-
-[[package]]
-name = "rustml-arch-llama"
-version = "0.1.0"
-dependencies = [
- "swe-llmmodel-layers",
- "swe-llmmodel-model",
- "swe-ml-tensor",
-]
-
-[[package]]
-name = "rustml-arch-mixtral"
-version = "0.1.0"
-dependencies = [
- "swe-llmmodel-layers",
- "swe-llmmodel-model",
- "swe-ml-tensor",
-]
-
-[[package]]
-name = "rustml-arch-nomic-bert"
-version = "0.1.0"
-dependencies = [
- "swe-llmmodel-layers",
- "swe-llmmodel-model",
- "swe-ml-tensor",
-]
-
-[[package]]
 name = "rustml-backend-llama-cpp"
 version = "0.1.0"
 dependencies = [
@@ -3049,6 +2977,78 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
+name = "swe-llmmodel-arch-bert"
+version = "0.1.0"
+dependencies = [
+ "swe-llmmodel-layers",
+ "swe-llmmodel-model",
+ "swe-ml-tensor",
+]
+
+[[package]]
+name = "swe-llmmodel-arch-falcon"
+version = "0.1.0"
+dependencies = [
+ "swe-llmmodel-layers",
+ "swe-llmmodel-model",
+ "swe-ml-tensor",
+]
+
+[[package]]
+name = "swe-llmmodel-arch-gemma3"
+version = "0.1.0"
+dependencies = [
+ "swe-llmmodel-layers",
+ "swe-llmmodel-model",
+ "swe-ml-tensor",
+]
+
+[[package]]
+name = "swe-llmmodel-arch-gemma4"
+version = "0.1.0"
+dependencies = [
+ "swe-llmmodel-layers",
+ "swe-llmmodel-model",
+ "swe-ml-tensor",
+]
+
+[[package]]
+name = "swe-llmmodel-arch-gpt2"
+version = "0.1.0"
+dependencies = [
+ "swe-llmmodel-layers",
+ "swe-llmmodel-model",
+ "swe-ml-tensor",
+]
+
+[[package]]
+name = "swe-llmmodel-arch-llama"
+version = "0.1.0"
+dependencies = [
+ "swe-llmmodel-layers",
+ "swe-llmmodel-model",
+ "swe-ml-tensor",
+]
+
+[[package]]
+name = "swe-llmmodel-arch-mixtral"
+version = "0.1.0"
+dependencies = [
+ "swe-llmmodel-layers",
+ "swe-llmmodel-model",
+ "swe-ml-tensor",
+]
+
+[[package]]
+name = "swe-llmmodel-arch-nomic-bert"
+version = "0.1.0"
+dependencies = [
+ "swe-llmmodel-layers",
+ "swe-llmmodel-model",
+ "swe-ml-tensor",
+]
+
+[[package]]
 name = "swe-llmmodel-download"
 version = "0.1.0"
 dependencies = [
@@ -3167,9 +3167,9 @@ dependencies = [
  "dirs",
  "env_logger",
  "log",
- "rustml-arch-nomic-bert",
  "serde",
  "serde_json",
+ "swe-llmmodel-arch-nomic-bert",
  "swe-llmmodel-gguf",
  "swe-llmmodel-layers",
  "swe-llmmodel-model",
@@ -3230,20 +3230,20 @@ dependencies = [
  "log",
  "rayon",
  "reqwest",
- "rustml-arch-bert",
- "rustml-arch-falcon",
- "rustml-arch-gemma3",
- "rustml-arch-gemma4",
- "rustml-arch-gpt2",
- "rustml-arch-llama",
- "rustml-arch-mixtral",
- "rustml-arch-nomic-bert",
  "rustml-backend-llama-cpp",
  "rustml-generation",
  "rustml-prefill",
  "rustml-thread-config",
  "serde",
  "serde_json",
+ "swe-llmmodel-arch-bert",
+ "swe-llmmodel-arch-falcon",
+ "swe-llmmodel-arch-gemma3",
+ "swe-llmmodel-arch-gemma4",
+ "swe-llmmodel-arch-gpt2",
+ "swe-llmmodel-arch-llama",
+ "swe-llmmodel-arch-mixtral",
+ "swe-llmmodel-arch-nomic-bert",
  "swe-llmmodel-download",
  "swe-llmmodel-gguf",
  "swe-llmmodel-io",

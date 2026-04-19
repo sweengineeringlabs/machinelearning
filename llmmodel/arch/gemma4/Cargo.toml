@@ -1,6 +1,6 @@
 [package]
-name = "rustml-arch-falcon"
-description = "falcon architecture builder for swe-llmmodel-model"
+name = "swe-llmmodel-arch-gemma4"
+description = "gemma4 architecture builder for swe-llmmodel-model"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

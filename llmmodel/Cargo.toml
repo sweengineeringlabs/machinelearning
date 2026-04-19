@@ -11,6 +11,14 @@ members = [
     "model",
     "tokenizer",
     "quantizer",
+    "arch/llama",
+    "arch/gpt2",
+    "arch/falcon",
+    "arch/mixtral",
+    "arch/gemma3",
+    "arch/gemma4",
+    "arch/bert",
+    "arch/nomic_bert",
 ]
 
 [workspace.package]
@@ -66,3 +74,11 @@ swe-llmmodel-gguf     = { path = "gguf" }
 swe-llmmodel-model    = { path = "model" }
 swe-llmmodel-tokenizer = { path = "tokenizer" }
 swe-llmmodel-quantizer = { path = "quantizer" }
+swe-llmmodel-arch-llama      = { path = "arch/llama" }
+swe-llmmodel-arch-gpt2       = { path = "arch/gpt2" }
+swe-llmmodel-arch-falcon     = { path = "arch/falcon" }
+swe-llmmodel-arch-mixtral    = { path = "arch/mixtral" }
+swe-llmmodel-arch-gemma3     = { path = "arch/gemma3" }
+swe-llmmodel-arch-gemma4     = { path = "arch/gemma4" }
+swe-llmmodel-arch-bert       = { path = "arch/bert" }
+swe-llmmodel-arch-nomic-bert = { path = "arch/nomic_bert" }

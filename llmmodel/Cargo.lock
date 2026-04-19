@@ -2472,6 +2472,78 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
+name = "swe-llmmodel-arch-bert"
+version = "0.1.0"
+dependencies = [
+ "swe-llmmodel-layers",
+ "swe-llmmodel-model",
+ "swe-ml-tensor",
+]
+
+[[package]]
+name = "swe-llmmodel-arch-falcon"
+version = "0.1.0"
+dependencies = [
+ "swe-llmmodel-layers",
+ "swe-llmmodel-model",
+ "swe-ml-tensor",
+]
+
+[[package]]
+name = "swe-llmmodel-arch-gemma3"
+version = "0.1.0"
+dependencies = [
+ "swe-llmmodel-layers",
+ "swe-llmmodel-model",
+ "swe-ml-tensor",
+]
+
+[[package]]
+name = "swe-llmmodel-arch-gemma4"
+version = "0.1.0"
+dependencies = [
+ "swe-llmmodel-layers",
+ "swe-llmmodel-model",
+ "swe-ml-tensor",
+]
+
+[[package]]
+name = "swe-llmmodel-arch-gpt2"
+version = "0.1.0"
+dependencies = [
+ "swe-llmmodel-layers",
+ "swe-llmmodel-model",
+ "swe-ml-tensor",
+]
+
+[[package]]
+name = "swe-llmmodel-arch-llama"
+version = "0.1.0"
+dependencies = [
+ "swe-llmmodel-layers",
+ "swe-llmmodel-model",
+ "swe-ml-tensor",
+]
+
+[[package]]
+name = "swe-llmmodel-arch-mixtral"
+version = "0.1.0"
+dependencies = [
+ "swe-llmmodel-layers",
+ "swe-llmmodel-model",
+ "swe-ml-tensor",
+]
+
+[[package]]
+name = "swe-llmmodel-arch-nomic-bert"
+version = "0.1.0"
+dependencies = [
+ "swe-llmmodel-layers",
+ "swe-llmmodel-model",
+ "swe-ml-tensor",
+]
+
+[[package]]
 name = "swe-llmmodel-cli"
 version = "0.1.0"
 dependencies = [

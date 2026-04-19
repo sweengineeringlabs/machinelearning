@@ -1,6 +1,6 @@
 [package]
-name = "rustml-arch-gpt2"
-description = "gpt2 architecture builder for swe-llmmodel-model"
+name = "swe-llmmodel-arch-bert"
+description = "bert architecture builder for swe-llmmodel-model"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

@@ -1,6 +1,6 @@
 [package]
-name = "rustml-arch-mixtral"
-description = "mixtral architecture builder for swe-llmmodel-model"
+name = "swe-llmmodel-arch-nomic-bert"
+description = "Nomic-BERT architecture builder for swe-llmmodel-model"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
