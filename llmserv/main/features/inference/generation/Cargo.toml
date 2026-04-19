@@ -13,7 +13,7 @@ path = "main/src/lib.rs"
 [dependencies]
 swe-llmmodel-model.workspace = true
 swe-llmmodel-layers.workspace = true
-rustml-tokenizer.workspace = true
+swe-llmmodel-tokenizer.workspace = true
 swe-ml-tensor.workspace = true
 thiserror.workspace = true
 rand.workspace = true

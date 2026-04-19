@@ -1770,15 +1770,15 @@ dependencies = [
  "rustml-arch-mixtral",
  "rustml-arch-nomic-bert",
  "rustml-generation",
- "rustml-quantizer",
  "rustml-thread-config",
- "rustml-tokenizer",
  "serde",
  "serde_json",
  "swe-llmmodel-download",
  "swe-llmmodel-gguf",
  "swe-llmmodel-io",
  "swe-llmmodel-model",
+ "swe-llmmodel-quantizer",
+ "swe-llmmodel-tokenizer",
  "tokio",
 ]
 
@@ -1788,10 +1788,10 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "rustml-generation",
- "rustml-tokenizer",
  "serde",
  "swe-llmmodel-layers",
  "swe-llmmodel-model",
+ "swe-llmmodel-tokenizer",
  "swe-ml-tensor",
  "toml",
 ]
@@ -1812,9 +1812,9 @@ dependencies = [
  "cbindgen",
  "log",
  "rustml-generation",
- "rustml-tokenizer",
  "swe-llmmodel-layers",
  "swe-llmmodel-model",
+ "swe-llmmodel-tokenizer",
  "swe-ml-tensor",
  "swellmd",
 ]
@@ -2749,9 +2749,9 @@ dependencies = [
  "llmbackend",
  "log",
  "rustml-generation",
- "rustml-tokenizer",
  "swe-llmmodel-layers",
  "swe-llmmodel-model",
+ "swe-llmmodel-tokenizer",
  "swe-ml-tensor",
 ]
 
@@ -2763,25 +2763,15 @@ dependencies = [
  "log",
  "rand 0.8.5",
  "rayon",
- "rustml-tokenizer",
  "swe-llmmodel-layers",
  "swe-llmmodel-model",
+ "swe-llmmodel-tokenizer",
  "swe-ml-tensor",
  "thiserror 2.0.18",
 ]
 
 [[package]]
 name = "rustml-prefill"
-version = "0.1.0"
-dependencies = [
- "log",
- "swe-llmmodel-layers",
- "swe-llmmodel-model",
- "swe-ml-tensor",
-]
-
-[[package]]
-name = "rustml-quantizer"
 version = "0.1.0"
 dependencies = [
  "log",
@@ -2798,19 +2788,6 @@ dependencies = [
  "rayon",
  "swe-llmmodel-model",
  "swe-ml-tensor",
-]
-
-[[package]]
-name = "rustml-tokenizer"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "regex",
- "serde_json",
- "swe-llmmodel-gguf",
- "thiserror 2.0.18",
- "tokenizers",
 ]
 
 [[package]]
@@ -3150,6 +3127,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "swe-llmmodel-quantizer"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "swe-llmmodel-layers",
+ "swe-llmmodel-model",
+ "swe-ml-tensor",
+]
+
+[[package]]
+name = "swe-llmmodel-tokenizer"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "regex",
+ "serde_json",
+ "swe-llmmodel-gguf",
+ "thiserror 2.0.18",
+ "tokenizers",
+]
+
+[[package]]
 name = "swe-llmmodel-weights"
 version = "0.1.0"
 dependencies = [
@@ -3168,12 +3168,12 @@ dependencies = [
  "env_logger",
  "log",
  "rustml-arch-nomic-bert",
- "rustml-tokenizer",
  "serde",
  "serde_json",
  "swe-llmmodel-gguf",
  "swe-llmmodel-layers",
  "swe-llmmodel-model",
+ "swe-llmmodel-tokenizer",
  "swe-ml-embedding",
  "swe-ml-tensor",
  "tokio",
@@ -3241,9 +3241,7 @@ dependencies = [
  "rustml-backend-llama-cpp",
  "rustml-generation",
  "rustml-prefill",
- "rustml-quantizer",
  "rustml-thread-config",
- "rustml-tokenizer",
  "serde",
  "serde_json",
  "swe-llmmodel-download",
@@ -3251,6 +3249,8 @@ dependencies = [
  "swe-llmmodel-io",
  "swe-llmmodel-layers",
  "swe-llmmodel-model",
+ "swe-llmmodel-quantizer",
+ "swe-llmmodel-tokenizer",
  "swe-ml-embedding",
  "swe-ml-tensor",
  "thiserror 2.0.18",

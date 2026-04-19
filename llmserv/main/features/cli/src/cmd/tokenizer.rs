@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use anyhow::{Context, Result, bail};
 use clap::{Args, Subcommand};
 
-use rustml_tokenizer::{BpeTokenizer, ByteTokenizer, GgufTokenizer, HFTokenizer, Tokenizer};
+use swe_llmmodel_tokenizer::{BpeTokenizer, ByteTokenizer, GgufTokenizer, HFTokenizer, Tokenizer};
 
 /// Tokenizer backend selection (exactly one required).
 #[derive(Args)]

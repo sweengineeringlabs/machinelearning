@@ -16,7 +16,7 @@ swellmd.workspace = true
 swe-ml-tensor.workspace = true
 rustml-generation.workspace = true
 swe-llmmodel-model.workspace = true
-rustml-tokenizer.workspace = true
+swe-llmmodel-tokenizer.workspace = true
 swe-llmmodel-layers.workspace = true
 log.workspace = true
 

@@ -1,7 +1,7 @@
 use rustml_generation::TextCompleter;
 use swe_llmmodel_layers::PoolingStrategy;
 use swe_llmmodel_model::ModelResult;
-use rustml_tokenizer::Tokenizer;
+use swe_llmmodel_tokenizer::Tokenizer;
 
 /// Interface for a loaded model instance ready for inference.
 ///

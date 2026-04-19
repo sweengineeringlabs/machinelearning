@@ -32,7 +32,7 @@ if [ -z "$BINARY" ]; then
   echo "Usage: ./rdl run <BINARY> [--release] [-- args...]" >&2
   echo "" >&2
   echo "Available binaries:" >&2
-  echo "  rustml-tokenizer    Tokenizer CLI (encode/decode/info)" >&2
+  echo "  swe-llmmodel-tokenizer    Tokenizer CLI (encode/decode/info)" >&2
   exit 1
 fi
 

@@ -71,7 +71,7 @@ crate_package() {
     core)      echo "rustml-core" ;;
     nn)        echo "rustml-nn" ;;
     nlp)       echo "rustml-nlp" ;;
-    tokenizer) echo "rustml-tokenizer" ;;
+    tokenizer) echo "swe-llmmodel-tokenizer" ;;
     gguf)      echo "swe-llmmodel-gguf" ;;
     quant)     echo "rustml-quant" ;;
     llmmodel)  echo "swe-llmmodel-download swe-llmmodel-io swe-llmmodel-weights swe-llmmodel-cli" ;;

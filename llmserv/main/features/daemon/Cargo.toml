@@ -55,7 +55,7 @@ swe-ml-tensor.workspace = true
 swe-ml-embedding.workspace = true
 swe-llmmodel-layers.workspace = true
 swe-llmmodel-model.workspace = true
-rustml-quantizer.workspace = true
+swe-llmmodel-quantizer.workspace = true
 rustml-prefill.workspace = true
 rustml-thread-config.workspace = true
 rustml-arch-llama.workspace = true
@@ -70,7 +70,7 @@ rustml-generation.workspace = true
 swe-llmmodel-download.workspace = true
 swe-llmmodel-io.workspace = true
 swe-llmmodel-gguf.workspace = true
-rustml-tokenizer.workspace = true
+swe-llmmodel-tokenizer.workspace = true
 llmbackend.workspace = true
 rustml-backend-llama-cpp = { workspace = true, optional = true }
 tokio-stream = "0.1"

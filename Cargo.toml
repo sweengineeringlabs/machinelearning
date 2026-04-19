@@ -77,11 +77,11 @@ swe-llmmodel-kernel   = { path = "llmmodel/kernel" }
 swe-llmmodel-layers   = { path = "llmmodel/layers" }
 swe-llmmodel-gguf     = { path = "llmmodel/gguf" }
 swe-llmmodel-model    = { path = "llmmodel/model" }
+swe-llmmodel-tokenizer = { path = "llmmodel/tokenizer" }
+swe-llmmodel-quantizer = { path = "llmmodel/quantizer" }
 
 # Cross-workspace deps to llmserv — used only by devtools/quantize.
 # devtools is a tool, so the backward arrow is acceptable.
-rustml-quantizer    = { path = "llmserv/main/features/inference/quantizer" }
-rustml-tokenizer    = { path = "llmserv/main/features/inference/tokenizer" }
 rustml-thread-config = { path = "llmserv/main/features/inference/thread-config" }
 
 [profile.release]

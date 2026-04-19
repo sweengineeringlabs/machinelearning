@@ -14,7 +14,7 @@ use swe_llmmodel_model::{
     gguf_config_to_model_config,
 };
 use rustml_generation::Generator;
-use rustml_tokenizer::{BpeTokenizer, GgufTokenizer, HFTokenizer, Tokenizer};
+use swe_llmmodel_tokenizer::{BpeTokenizer, GgufTokenizer, HFTokenizer, Tokenizer};
 
 fn create_registry() -> ModelBuilderRegistry {
     let mut reg = ModelBuilderRegistry::new();
@@ -338,7 +338,7 @@ fn run_generation(
 
 fn run_interactive(
     generator: &rustml_generation::Generator,
-    tokenizer: &(dyn rustml_tokenizer::Tokenizer + Sync),
+    tokenizer: &(dyn swe_llmmodel_tokenizer::Tokenizer + Sync),
     max_tokens: usize,
 ) -> Result<()> {
     eprintln!("Interactive chat mode. Type 'quit' or 'exit' to leave, '/clear' to reset history.");

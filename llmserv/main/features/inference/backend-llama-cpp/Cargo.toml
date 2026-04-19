@@ -19,7 +19,7 @@ llama-cpp = ["dep:llama-cpp-2", "dep:encoding_rs"]
 [dependencies]
 llmbackend.workspace = true
 rustml-generation.workspace = true
-rustml-tokenizer.workspace = true
+swe-llmmodel-tokenizer.workspace = true
 swe-llmmodel-layers.workspace = true
 swe-llmmodel-model.workspace = true
 swe-ml-tensor.workspace = true

@@ -9,6 +9,8 @@ members = [
     "layers",
     "gguf",
     "model",
+    "tokenizer",
+    "quantizer",
 ]
 
 [workspace.package]
@@ -46,6 +48,9 @@ rayon = "1.8"
 log = "0.4"
 # Test utilities
 approx = "0.5"
+# Tokenization
+regex = "1"
+tokenizers = "0.21"
 
 # Cross-workspace foundations (from root workspace)
 swe-ml-tensor        = { path = "../main/features/tensor" }
@@ -59,3 +64,5 @@ swe-llmmodel-kernel   = { path = "kernel" }
 swe-llmmodel-layers   = { path = "layers" }
 swe-llmmodel-gguf     = { path = "gguf" }
 swe-llmmodel-model    = { path = "model" }
+swe-llmmodel-tokenizer = { path = "tokenizer" }
+swe-llmmodel-quantizer = { path = "quantizer" }

@@ -1,7 +1,7 @@
 use std::process::Command;
 
 fn bin() -> Command {
-    Command::new(env!("CARGO_BIN_EXE_rustml-tokenizer"))
+    Command::new(env!("CARGO_BIN_EXE_swe-llmmodel-tokenizer"))
 }
 
 // ── encode ──────────────────────────────────────────────────────────

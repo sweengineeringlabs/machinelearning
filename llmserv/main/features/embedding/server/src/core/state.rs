@@ -1,5 +1,5 @@
 use swe_llmmodel_model::LlmModel;
-use rustml_tokenizer::Tokenizer;
+use swe_llmmodel_tokenizer::Tokenizer;
 
 /// Loaded embedding model state.
 pub struct EmbeddingState {

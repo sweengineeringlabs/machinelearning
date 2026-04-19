@@ -126,7 +126,7 @@ test_crate_package_maps_tokenizer() {
     source "$REPO_ROOT/main/scripts/lib/common.sh"
     crate_package "tokenizer"
   )
-  assert_eq "rustml-tokenizer" "$result" "crate_package tokenizer should map to rustml-tokenizer"
+  assert_eq "swe-llmmodel-tokenizer" "$result" "crate_package tokenizer should map to swe-llmmodel-tokenizer"
 }
 
 test_crate_package_passes_through_unknown() {

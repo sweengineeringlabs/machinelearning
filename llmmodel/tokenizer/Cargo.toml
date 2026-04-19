@@ -1,5 +1,5 @@
 [package]
-name = "rustml-tokenizer"
+name = "swe-llmmodel-tokenizer"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -10,7 +10,7 @@ description = "Tokenizer implementations for RustML — BPE, SentencePiece, Hugg
 path = "main/src/lib.rs"
 
 [[bin]]
-name = "rustml-tokenizer"
+name = "swe-llmmodel-tokenizer"
 path = "main/src/bin/tokenizer_cli.rs"
 
 [dependencies]

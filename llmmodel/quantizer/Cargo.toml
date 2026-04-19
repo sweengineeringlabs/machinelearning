@@ -1,5 +1,5 @@
 [package]
-name = "rustml-quantizer"
+name = "swe-llmmodel-quantizer"
 description = "Model quantization strategies — pluggable weight compression"
 version.workspace = true
 edition.workspace = true

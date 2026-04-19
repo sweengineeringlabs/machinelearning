@@ -4,13 +4,13 @@ use std::path::PathBuf;
 use anyhow::{Context, Result, bail};
 use clap::{Args, Parser, Subcommand};
 
-use rustml_tokenizer::{
+use swe_llmmodel_tokenizer::{
     BpeTokenizer, ByteTokenizer, GgufTokenizer, HFTokenizer, Tokenizer,
 };
 
 /// RustML Tokenizer CLI — encode, decode, and inspect tokenizer vocabularies.
 #[derive(Parser)]
-#[command(name = "rustml-tokenizer", version, about)]
+#[command(name = "swe-llmmodel-tokenizer", version, about)]
 struct Cli {
     #[command(flatten)]
     backend: Backend,

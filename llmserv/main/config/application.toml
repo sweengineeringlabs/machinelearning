@@ -84,7 +84,7 @@ max_concurrent = 2
 request_timeout_secs = 0
 
 # ──────────────────────────────────────────────────────────────────────
-# [quantization] — runtime weight quantization (rustml-quantizer)
+# [quantization] — runtime weight quantization (swe-llmmodel-quantizer)
 #
 # Per-layer-type targets. Valid values: f32, f16, bf16, q8_0, q4_0, q4_1
 # min_dim: skip tensors with any dimension < min_dim (0 = no minimum)

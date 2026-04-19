@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 use crate::api::error::GenerationResult;
 use swe_llmmodel_model::LanguageModel;
 use crate::core::sampling;
-use rustml_tokenizer::Tokenizer;
+use swe_llmmodel_tokenizer::Tokenizer;
 use rayon::prelude::*;
 use swe_ml_tensor::{DType, Tensor, f32_vec_to_bytes};
 use swe_llmmodel_layers::KVCache;
@@ -945,10 +945,10 @@ mod tests {
     struct ByteTokenizer;
 
     impl Tokenizer for ByteTokenizer {
-        fn encode(&self, text: &str) -> rustml_tokenizer::TokenizerResult<Vec<u32>> {
+        fn encode(&self, text: &str) -> swe_llmmodel_tokenizer::TokenizerResult<Vec<u32>> {
             Ok(text.bytes().map(|b| b as u32).collect())
         }
-        fn decode(&self, tokens: &[u32]) -> rustml_tokenizer::TokenizerResult<String> {
+        fn decode(&self, tokens: &[u32]) -> swe_llmmodel_tokenizer::TokenizerResult<String> {
             let bytes: Vec<u8> = tokens.iter().map(|&t| t as u8).collect();
             Ok(String::from_utf8_lossy(&bytes).into_owned())
         }

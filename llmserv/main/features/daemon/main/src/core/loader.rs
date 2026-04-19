@@ -10,8 +10,8 @@ use swe_llmmodel_model::{
     LlmModel, ModelConfig, ModelBuilderRegistry, OptProfile, convert_tensors,
     gguf_config_to_model_config,
 };
-use rustml_tokenizer::{BpeTokenizer, GgufTokenizer, HFTokenizer, Tokenizer};
-use rustml_quantizer::Quantizer;
+use swe_llmmodel_tokenizer::{BpeTokenizer, GgufTokenizer, HFTokenizer, Tokenizer};
+use swe_llmmodel_quantizer::Quantizer;
 
 use llmbackend::{Model, ModelBackendLoader, ModelSource, ModelSpec};
 
@@ -116,8 +116,8 @@ pub fn load_gguf(path: &Path, profile: OptProfile) -> Result<DefaultModel> {
         .with_context(|| format!("Failed to build {} model", config.architecture))?;
     model.set_optimization_profile(profile);
 
-    use rustml_quantizer::Fuser;
-    let qkv_fuser = rustml_quantizer::QkvFuser;
+    use swe_llmmodel_quantizer::Fuser;
+    let qkv_fuser = swe_llmmodel_quantizer::QkvFuser;
     let fused_qkv = qkv_fuser.fuse(&mut model);
     if fused_qkv > 0 {
         log::info!("  {}: {} triples", qkv_fuser.describe(), fused_qkv);
@@ -249,7 +249,7 @@ pub fn load_safetensors(model_id: &str, profile: OptProfile, quantization_toml: 
 
     // Post-construction optimization via pluggable providers
     if !model.output.is_quantized() {
-        let quantizer = rustml_quantizer::ConfigQuantizer::from_toml_str(quantization_toml);
+        let quantizer = swe_llmmodel_quantizer::ConfigQuantizer::from_toml_str(quantization_toml);
         match quantizer.quantize(&mut model) {
             Ok(n) if n > 0 => log::info!("  Quantized {} linear layers ({})", n, quantizer.describe()),
             Ok(_) => {}
@@ -257,13 +257,13 @@ pub fn load_safetensors(model_id: &str, profile: OptProfile, quantization_toml: 
         }
     }
 
-    use rustml_quantizer::Fuser;
-    let gate_up_fuser = rustml_quantizer::GateUpFuser;
+    use swe_llmmodel_quantizer::Fuser;
+    let gate_up_fuser = swe_llmmodel_quantizer::GateUpFuser;
     let fused = gate_up_fuser.fuse(&mut model);
     if fused > 0 {
         log::info!("  {}: {} pairs", gate_up_fuser.describe(), fused);
     }
-    let qkv_fuser = rustml_quantizer::QkvFuser;
+    let qkv_fuser = swe_llmmodel_quantizer::QkvFuser;
     let fused_qkv = qkv_fuser.fuse(&mut model);
     if fused_qkv > 0 {
         log::info!("  {}: {} triples", qkv_fuser.describe(), fused_qkv);

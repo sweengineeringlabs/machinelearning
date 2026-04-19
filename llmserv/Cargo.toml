@@ -15,8 +15,6 @@ resolver = "2"
 members = [
     # Inference compute stack (library — reusable by any frontend).
     "main/features/inference/generation",
-    "main/features/inference/tokenizer",
-    "main/features/inference/quantizer",
     "main/features/inference/prefill",
     "main/features/inference/thread-config",
     "main/features/inference/compute",
@@ -112,13 +110,13 @@ swe-llmmodel-kernel   = { path = "../llmmodel/kernel" }
 swe-llmmodel-layers   = { path = "../llmmodel/layers" }
 swe-llmmodel-gguf     = { path = "../llmmodel/gguf" }
 swe-llmmodel-model    = { path = "../llmmodel/model" }
+swe-llmmodel-tokenizer = { path = "../llmmodel/tokenizer" }
+swe-llmmodel-quantizer = { path = "../llmmodel/quantizer" }
 
 # ──────────────────────────────────────────────────────────────────────
 # Inference library (internal to this workspace).
 # ──────────────────────────────────────────────────────────────────────
 rustml-generation       = { path = "main/features/inference/generation" }
-rustml-tokenizer        = { path = "main/features/inference/tokenizer" }
-rustml-quantizer        = { path = "main/features/inference/quantizer" }
 rustml-prefill          = { path = "main/features/inference/prefill" }
 rustml-thread-config    = { path = "main/features/inference/thread-config" }
 llmcompute              = { path = "main/features/inference/compute" }

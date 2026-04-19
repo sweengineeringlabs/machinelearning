@@ -26,7 +26,7 @@ run_nlp_tests() {
 
 run_tokenizer_tests() {
   echo "==> Testing tokenizer..."
-  cargo test -p rustml-tokenizer
+  cargo test -p swe-llmmodel-tokenizer
 }
 
 run_gguf_tests() {

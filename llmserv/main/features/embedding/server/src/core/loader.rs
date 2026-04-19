@@ -6,7 +6,7 @@ use swe_llmmodel_gguf::GGUFFile;
 use swe_llmmodel_model::{
     ModelBuilderRegistry, gguf_config_to_model_config,
 };
-use rustml_tokenizer::{GgufTokenizer, Tokenizer};
+use swe_llmmodel_tokenizer::{GgufTokenizer, Tokenizer};
 
 use super::state::EmbeddingState;
 

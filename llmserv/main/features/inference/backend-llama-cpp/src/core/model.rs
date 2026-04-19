@@ -60,7 +60,7 @@ use llmbackend::{Model, ModelSource, ModelSpec};
 use rustml_generation::{CompletionParams, GenerationError, GenerationResult, TextCompleter};
 use swe_llmmodel_layers::PoolingStrategy;
 use swe_llmmodel_model::{ModelError, ModelResult, OptProfile};
-use rustml_tokenizer::{Tokenizer, TokenizerError, TokenizerResult};
+use swe_llmmodel_tokenizer::{Tokenizer, TokenizerError, TokenizerResult};
 
 /// Process-wide `llama.cpp` backend. Initialized once per process via
 /// double-checked locking — `LlamaBackend::init` returns

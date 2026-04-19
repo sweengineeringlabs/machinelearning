@@ -14,7 +14,7 @@ pub enum GenerationError {
     NnError(#[from] swe_llmmodel_layers::NnError),
 
     #[error("Tokenizer error: {0}")]
-    TokenizerError(#[from] rustml_tokenizer::TokenizerError),
+    TokenizerError(#[from] swe_llmmodel_tokenizer::TokenizerError),
 
     #[error("Generation error: {0}")]
     Generation(String),
