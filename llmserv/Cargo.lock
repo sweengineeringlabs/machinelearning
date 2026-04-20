@@ -1812,12 +1812,12 @@ dependencies = [
  "cbindgen",
  "log",
  "rustml-generation",
+ "swe-inference-systemd",
  "swe-llmmodel-layers",
  "swe-llmmodel-loader",
  "swe-llmmodel-model",
  "swe-llmmodel-tokenizer",
  "swe-ml-tensor",
- "swellmd",
 ]
 
 [[package]]
@@ -2978,6 +2978,63 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
+name = "swe-embedding-systemd"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "clap",
+ "dirs",
+ "env_logger",
+ "log",
+ "serde",
+ "serde_json",
+ "swe-llmmodel-arch-nomic-bert",
+ "swe-llmmodel-gguf",
+ "swe-llmmodel-layers",
+ "swe-llmmodel-model",
+ "swe-llmmodel-tokenizer",
+ "swe-ml-embedding",
+ "swe-ml-tensor",
+ "tokio",
+ "toml",
+]
+
+[[package]]
+name = "swe-inference-systemd"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "chrono",
+ "clap",
+ "dirs",
+ "env_logger",
+ "futures-util",
+ "llmbackend",
+ "log",
+ "rayon",
+ "reqwest",
+ "rustml-backend-llama-cpp",
+ "rustml-generation",
+ "rustml-prefill",
+ "rustml-thread-config",
+ "serde",
+ "serde_json",
+ "swe-llmmodel-layers",
+ "swe-llmmodel-loader",
+ "swe-llmmodel-model",
+ "swe-llmmodel-tokenizer",
+ "swe-ml-embedding",
+ "swe-ml-tensor",
+ "thiserror 2.0.18",
+ "tokio",
+ "tokio-stream",
+ "toml",
+ "uuid",
+]
+
+[[package]]
 name = "swe-llmmodel-arch-bert"
 version = "0.1.0"
 dependencies = [
@@ -3184,29 +3241,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "swe-ml-embed-server"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "axum",
- "clap",
- "dirs",
- "env_logger",
- "log",
- "serde",
- "serde_json",
- "swe-llmmodel-arch-nomic-bert",
- "swe-llmmodel-gguf",
- "swe-llmmodel-layers",
- "swe-llmmodel-model",
- "swe-llmmodel-tokenizer",
- "swe-ml-embedding",
- "swe-ml-tensor",
- "tokio",
- "toml",
-]
-
-[[package]]
 name = "swe-ml-embedding"
 version = "0.1.0"
 dependencies = [
@@ -3239,40 +3273,6 @@ dependencies = [
  "smallvec",
  "thiserror 2.0.18",
  "toml",
-]
-
-[[package]]
-name = "swellmd"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "axum",
- "chrono",
- "clap",
- "dirs",
- "env_logger",
- "futures-util",
- "llmbackend",
- "log",
- "rayon",
- "reqwest",
- "rustml-backend-llama-cpp",
- "rustml-generation",
- "rustml-prefill",
- "rustml-thread-config",
- "serde",
- "serde_json",
- "swe-llmmodel-layers",
- "swe-llmmodel-loader",
- "swe-llmmodel-model",
- "swe-llmmodel-tokenizer",
- "swe-ml-embedding",
- "swe-ml-tensor",
- "thiserror 2.0.18",
- "tokio",
- "tokio-stream",
- "toml",
- "uuid",
 ]
 
 [[package]]

@@ -1,17 +1,17 @@
 [package]
-name = "swellmd"
+name = "swe-inference-systemd"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "HTTP daemon for RustML LLM inference — serves OpenAI-compatible completions API"
+description = "Inference HTTP daemon — OpenAI-compatible chat + embedding endpoints"
 
 [lib]
 path = "main/src/lib.rs"
 
 [[bin]]
-name = "swellmd"
-path = "main/src/bin/serve.rs"
+name = "infer"
+path = "main/src/bin/infer.rs"
 
 # Diagnostic binary for P9 investigation — dumps first-token
 # logits from native_rust forward pass for a fixed token sequence.

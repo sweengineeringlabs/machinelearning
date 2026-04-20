@@ -12,7 +12,7 @@ crate-type = ["cdylib", "rlib"]
 path = "main/src/lib.rs"
 
 [dependencies]
-swellmd.workspace = true
+swe-inference-systemd.workspace = true
 swe-ml-tensor.workspace = true
 rustml-generation.workspace = true
 swe-llmmodel-model.workspace = true

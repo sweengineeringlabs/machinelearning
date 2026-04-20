@@ -21,9 +21,9 @@ members = [
     "main/features/inference/backend-api",
     "main/features/inference/backend-llama-cpp",
     # Serving frontends (leaves — each removable without breaking the stack).
-    "main/features/daemon",
+    "main/features/inference/systemd",
     "main/features/cli",
-    "main/features/embedding/server",
+    "main/features/embedding/systemd",
     # Foreign-function interface — cdylib for desktop/IDE integration.
     "main/features/ffi",
     # Note: experimentation/llmforge has its own nested workspace; excluded below.
@@ -123,5 +123,5 @@ rustml-thread-config    = { path = "main/features/inference/thread-config" }
 llmcompute              = { path = "main/features/inference/compute" }
 llmbackend              = { path = "main/features/inference/backend-api" }
 rustml-backend-llama-cpp = { path = "main/features/inference/backend-llama-cpp" }
-swe-ml-embed-server     = { path = "main/features/embedding/server" }
-swellmd                 = { path = "main/features/daemon" }
+swe-embedding-systemd     = { path = "main/features/embedding/systemd" }
+swe-inference-systemd                 = { path = "main/features/inference/systemd" }

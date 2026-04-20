@@ -10,14 +10,14 @@
 # set XDG_CONFIG_HOME=/path/to/dir where the file lives under llmserv/.
 
 # ──────────────────────────────────────────────────────────────────────
-# [server] — HTTP daemon (swellmd) bind settings
+# [server] — HTTP daemon (swe-inference-systemd) bind settings
 # ──────────────────────────────────────────────────────────────────────
 [server]
 host = "127.0.0.1"
 port = 8080
 
 # ──────────────────────────────────────────────────────────────────────
-# [embedding.server] — embedding HTTP server (swe-ml-embed-server)
+# [embedding.server] — embedding HTTP server (swe-embedding-systemd)
 # ──────────────────────────────────────────────────────────────────────
 [embedding.server]
 host = "127.0.0.1"
@@ -27,7 +27,7 @@ port = 8081
 # [embedding.model] — embedding model source
 #
 # Currently GGUF only. Set gguf_path to an absolute or workspace-relative
-# path before running swe-ml-embed.
+# path before running `embed serve`.
 # ──────────────────────────────────────────────────────────────────────
 [embedding.model]
 gguf_path = ""

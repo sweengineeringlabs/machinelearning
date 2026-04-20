@@ -36,11 +36,11 @@
 //! ```bash
 //! # native_rust path against an HF model id (downloads to cache if needed)
 //! export LLMSERV_CC_HF_ID="google/gemma-3-1b-it"
-//! cargo test -p swellmd --test content_correctness native_rust -- --ignored --nocapture
+//! cargo test -p swe_inference_systemd --test content_correctness native_rust -- --ignored --nocapture
 //!
 //! # llama_cpp path against a local GGUF (e.g. Ollama's cache)
 //! export LLMSERV_CC_GGUF="C:/Users/elvis/.ollama/models/blobs/sha256-..."
-//! cargo test -p swellmd --features backend-llama-cpp \
+//! cargo test -p swe_inference_systemd --features backend-llama-cpp \
 //!     --test content_correctness llama_cpp -- --ignored --nocapture
 //! ```
 //!
@@ -54,7 +54,7 @@
 use rustml_generation::CompletionParams;
 use swe_llmmodel_loader::{DefaultLoader, LoadModel};
 use swe_llmmodel_model::OptProfile;
-use swellmd::{DefaultModel, Model};
+use swe_inference_systemd::{DefaultModel, Model};
 
 /// Prompts and the substrings we accept as proof of a correct
 /// answer. Each prompt has multiple acceptable substrings to
@@ -126,9 +126,9 @@ fn llama_cpp_chat_completes_correctly_on_known_prompts() {
         .filter(|p| p.exists())
         .expect("LLMSERV_CC_GGUF must be set to an existing .gguf file path");
 
-    let spec = swellmd::ModelSpec {
-        backend: swellmd::ModelBackend::LlamaCpp,
-        source: swellmd::ModelSource::Gguf,
+    let spec = swe_inference_systemd::ModelSpec {
+        backend: swe_inference_systemd::ModelBackend::LlamaCpp,
+        source: swe_inference_systemd::ModelSource::Gguf,
         id: None,
         path: Some(gguf_path.to_string_lossy().into_owned()),
     };

@@ -51,7 +51,7 @@ use swe_llmmodel_loader::{DefaultLoader, LoadModel};
 use swe_llmmodel_model::OptProfile;
 
 use rustml_generation::CompletionParams;
-use swellmd::{DefaultModel, Model, ModelSource};
+use swe_inference_systemd::{DefaultModel, Model, ModelSource};
 
 /// Error codes returned by every function. Zero is success.
 #[repr(C)]
@@ -100,7 +100,7 @@ pub unsafe extern "C" fn llmserv_init(out_handle: *mut *mut LlmHandle) -> c_int 
             return Err(LlmError::InvalidInput);
         }
 
-        let loaded = swellmd::load_config().map_err(|e| {
+        let loaded = swe_inference_systemd::load_config().map_err(|e| {
             log::error!("llmserv_init: load_config failed: {}", e);
             LlmError::LoadFailed
         })?;

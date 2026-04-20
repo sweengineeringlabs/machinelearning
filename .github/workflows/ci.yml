@@ -152,12 +152,12 @@ jobs:
 
       - name: Build with backend-llama-cpp feature
         working-directory: llmserv
-        run: cargo build --release -p swellmd --features backend-llama-cpp --locked
+        run: cargo build --release -p swe-inference-systemd --features backend-llama-cpp --locked
 
       - name: Test with backend-llama-cpp feature
         working-directory: llmserv
         shell: bash
         run: |
-          cargo test --release -p swellmd --features backend-llama-cpp --locked
+          cargo test --release -p swe-inference-systemd --features backend-llama-cpp --locked
           cargo test --release -p rustml-backend-llama-cpp --features llama-cpp --locked
           cargo test --release -p llmbackend --locked

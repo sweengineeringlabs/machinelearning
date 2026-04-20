@@ -18,7 +18,7 @@ use anyhow::{Result, bail};
 use swe_llmmodel_model::{LanguageModel, OptProfile};
 use swe_ml_tensor::{DType, Tensor};
 use swe_llmmodel_loader::{DefaultLoader, LoadModel};
-use swellmd::{ModelSource, load_config};
+use swe_inference_systemd::{ModelSource, load_config};
 
 const FIXED_TOKENS: &[u32] = &[2, 9259, 235269]; // <bos> Hello ,
 

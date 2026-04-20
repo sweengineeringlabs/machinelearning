@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Concurrent load test for the swellmd daemon.
+# Concurrent load test for the swe_inference_systemd daemon.
 #
 # Usage: ./llmserv/main/features/daemon/scripts/load_test.sh [N] [URL]
 #   N   — number of concurrent requests (default: 4)

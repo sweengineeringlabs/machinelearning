@@ -24,7 +24,7 @@ use crate::api::config::AppConfig;
 
 /// Bundled default config compiled into the binary. Lives at
 /// `llmserv/main/config/application.toml` relative to the repo root.
-const BUNDLED_DEFAULT: &str = include_str!("../../../../../config/application.toml");
+const BUNDLED_DEFAULT: &str = include_str!("../../../../../../config/application.toml");
 
 /// Result of loading and merging the application config.
 pub struct LoadedConfig {
