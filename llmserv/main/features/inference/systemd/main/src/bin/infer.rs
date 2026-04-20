@@ -13,7 +13,7 @@ use std::time::Duration;
 use anyhow::{Result, anyhow, bail};
 use clap::{Parser, Subcommand};
 
-use swe_cli::Cli as SweCli;
+use swe_cli::{Cli as SweCli, VerbosityArgs, install_panic_hook};
 use swe_inference_systemd::{
     AppConfig, AppState, Model, ModelBackend, ModelBackendLoader, NativeRustBackendLoader,
     SemaphoreThrottle, Throttle, apply_logging_filter, build_router, load_config, serve_http,
@@ -63,6 +63,9 @@ use swe_inference_thread_config::ThreadConfig;
     long_about = None,
 )]
 struct Cli {
+    #[command(flatten)]
+    verbosity: VerbosityArgs,
+
     #[command(subcommand)]
     command: Command,
 }
@@ -80,8 +83,10 @@ enum Command {
 
 impl SweCli for Cli {
     fn dispatch(self) -> Result<()> {
-        match self.command {
-            Command::Serve => run_serve(),
+        install_panic_hook();
+        let Cli { verbosity, command } = self;
+        match command {
+            Command::Serve => run_serve(verbosity),
         }
     }
 }
@@ -91,9 +96,9 @@ fn main() -> Result<()> {
 }
 
 #[tokio::main(flavor = "multi_thread")]
-async fn run_serve() -> Result<()> {
+async fn run_serve(verbosity: VerbosityArgs) -> Result<()> {
     let loaded = load_config()?;
-    apply_logging_filter(&loaded.app.logging.level);
+    apply_logging_filter(&verbosity.resolve(&loaded.app.logging.level));
     env_logger::init();
 
     log::info!("Config sources ({}):", loaded.sources.len());

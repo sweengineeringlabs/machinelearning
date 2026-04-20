@@ -2861,6 +2861,7 @@ dependencies = [
  "anyhow",
  "clap",
  "env_logger",
+ "log",
 ]
 
 [[package]]

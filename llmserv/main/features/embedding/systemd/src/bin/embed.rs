@@ -11,7 +11,7 @@ use std::sync::Arc;
 use anyhow::{Result, bail};
 use clap::{Parser, Subcommand};
 
-use swe_cli::Cli as SweCli;
+use swe_cli::{Cli as SweCli, VerbosityArgs, install_panic_hook};
 use swe_embedding_systemd::{
     AppConfig, apply_logging_filter, build_embedding_router, load_config, load_gguf, serve_http,
 };
@@ -56,6 +56,9 @@ use swe_embedding_systemd::{
     long_about = None,
 )]
 struct Cli {
+    #[command(flatten)]
+    verbosity: VerbosityArgs,
+
     #[command(subcommand)]
     command: Command,
 }
@@ -72,8 +75,10 @@ enum Command {
 
 impl SweCli for Cli {
     fn dispatch(self) -> Result<()> {
-        match self.command {
-            Command::Serve => run_serve(),
+        install_panic_hook();
+        let Cli { verbosity, command } = self;
+        match command {
+            Command::Serve => run_serve(verbosity),
         }
     }
 }
@@ -83,9 +88,9 @@ fn main() -> Result<()> {
 }
 
 #[tokio::main(flavor = "multi_thread")]
-async fn run_serve() -> Result<()> {
+async fn run_serve(verbosity: VerbosityArgs) -> Result<()> {
     let loaded = load_config()?;
-    apply_logging_filter(&loaded.app.logging.level);
+    apply_logging_filter(&verbosity.resolve(&loaded.app.logging.level));
     env_logger::init();
 
     log::info!("Config sources ({}):", loaded.sources.len());

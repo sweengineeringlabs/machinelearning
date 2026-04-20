@@ -3,7 +3,9 @@ use std::path::PathBuf;
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 
-use swe_cli::{Cli as SweCli, apply_logging_filter, init_env_logger};
+use swe_cli::{
+    Cli as SweCli, VerbosityArgs, apply_logging_filter, init_env_logger, install_panic_hook,
+};
 use swe_llmmodel_download::{Download, HuggingFaceDownload};
 
 /// llmmodel — download, cache, and inspect HuggingFace models.
@@ -17,6 +19,9 @@ struct Cli {
     /// HuggingFace API token for private models.
     #[arg(long, global = true)]
     token: Option<String>,
+
+    #[command(flatten)]
+    verbosity: VerbosityArgs,
 
     #[command(subcommand)]
     command: Command,
@@ -62,8 +67,9 @@ fn main() -> Result<()> {
 
 impl SweCli for Cli {
     fn dispatch(self) -> Result<()> {
-        apply_logging_filter("info");
+        apply_logging_filter(&self.verbosity.resolve("info"));
         init_env_logger();
+        install_panic_hook();
 
         let dl = build_downloader(&self);
 

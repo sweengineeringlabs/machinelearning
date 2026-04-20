@@ -2,7 +2,9 @@ mod cmd;
 
 use anyhow::Result;
 use clap::Parser;
-use swe_cli::{Cli as SweCli, apply_logging_filter, init_env_logger};
+use swe_cli::{
+    Cli as SweCli, VerbosityArgs, apply_logging_filter, init_env_logger, install_panic_hook,
+};
 
 /// llmc — developer CLI for llmserv.
 ///
@@ -11,14 +13,18 @@ use swe_cli::{Cli as SweCli, apply_logging_filter, init_env_logger};
 #[derive(Parser)]
 #[command(name = "llmc", version, about)]
 struct Cli {
+    #[command(flatten)]
+    verbosity: VerbosityArgs,
+
     #[command(subcommand)]
     command: cmd::Command,
 }
 
 impl SweCli for Cli {
     fn dispatch(self) -> Result<()> {
-        apply_logging_filter("info");
+        apply_logging_filter(&self.verbosity.resolve("info"));
         init_env_logger();
+        install_panic_hook();
         cmd::run(self.command)
     }
 }
