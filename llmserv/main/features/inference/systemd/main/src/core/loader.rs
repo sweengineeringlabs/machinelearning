@@ -5,7 +5,7 @@ use anyhow::{Result, anyhow};
 use swe_llmmodel_loader::{DefaultLoader, LoadModel};
 use swe_llmmodel_model::OptProfile;
 
-use llmbackend::{Model, ModelBackendLoader, ModelSource, ModelSpec};
+use swe_inference_backend_api::{Model, ModelBackendLoader, ModelSource, ModelSpec};
 
 use super::state::DefaultModel;
 

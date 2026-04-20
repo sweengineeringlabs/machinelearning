@@ -1,5 +1,5 @@
 [package]
-name = "llmserv-ffi"
+name = "swe-inference-ffi"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -14,7 +14,7 @@ path = "main/src/lib.rs"
 [dependencies]
 swe-inference-systemd.workspace = true
 swe-ml-tensor.workspace = true
-rustml-generation.workspace = true
+swe-inference-generation.workspace = true
 swe-llmmodel-model.workspace = true
 swe-llmmodel-tokenizer.workspace = true
 swe-llmmodel-layers.workspace = true

@@ -13,7 +13,7 @@ use swe_llmmodel_model::{
     LanguageModel, LlmModel, ModelBuilderRegistry, OptProfile, convert_tensors,
     gguf_config_to_model_config,
 };
-use rustml_generation::Generator;
+use swe_inference_generation::Generator;
 use swe_llmmodel_tokenizer::{BpeTokenizer, GgufTokenizer, HFTokenizer, Tokenizer};
 
 fn create_registry() -> ModelBuilderRegistry {
@@ -337,7 +337,7 @@ fn run_generation(
 }
 
 fn run_interactive(
-    generator: &rustml_generation::Generator,
+    generator: &swe_inference_generation::Generator,
     tokenizer: &(dyn swe_llmmodel_tokenizer::Tokenizer + Sync),
     max_tokens: usize,
 ) -> Result<()> {

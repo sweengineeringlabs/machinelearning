@@ -82,7 +82,7 @@ swe-llmmodel-quantizer = { path = "llmmodel/quantizer" }
 
 # Cross-workspace deps to llmserv — used only by devtools/quantize.
 # devtools is a tool, so the backward arrow is acceptable.
-rustml-thread-config = { path = "llmserv/main/features/inference/thread-config" }
+swe-inference-thread-config = { path = "llmserv/main/features/inference/thread-config" }
 
 [profile.release]
 lto = "thin"

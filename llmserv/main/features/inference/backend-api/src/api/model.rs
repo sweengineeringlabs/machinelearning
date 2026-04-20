@@ -1,4 +1,4 @@
-use rustml_generation::TextCompleter;
+use swe_inference_generation::TextCompleter;
 use swe_llmmodel_layers::PoolingStrategy;
 use swe_llmmodel_model::ModelResult;
 use swe_llmmodel_tokenizer::Tokenizer;

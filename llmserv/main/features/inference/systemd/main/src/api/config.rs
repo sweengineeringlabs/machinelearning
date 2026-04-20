@@ -3,10 +3,10 @@
 //! The schema mirrors the sections of `llmserv/main/config/application.toml`.
 //! Only sections the daemon consumes are defined here; unknown sections are
 //! tolerated and ignored. Backend-selection types (`ModelSpec`,
-//! `ModelBackend`, `ModelSource`) live in `llmbackend` so backend crates
+//! `ModelBackend`, `ModelSource`) live in `swe_inference_backend_api` so backend crates
 //! can consume them without pulling in the daemon's HTTP stack.
 
-use llmbackend::ModelSpec;
+use swe_inference_backend_api::ModelSpec;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]

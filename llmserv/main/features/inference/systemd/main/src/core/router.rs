@@ -11,7 +11,7 @@ use futures_util::stream;
 use tokio_stream::StreamExt;
 
 use swe_ml_embedding::{L2Normalize, Normalize};
-use rustml_generation::CompletionParams;
+use swe_inference_generation::CompletionParams;
 use swe_llmmodel_layers::PoolingStrategy;
 
 use crate::api::error::DaemonError;

@@ -1,11 +1,11 @@
 use std::time::Duration;
 
 use crate::api::throttle::Throttle;
-use llmbackend::Model;
+use swe_inference_backend_api::Model;
 use swe_llmmodel_layers::PoolingStrategy;
 use swe_llmmodel_loader::LoadedModel;
 use swe_llmmodel_model::{LanguageModel, LlmModel, ModelResult, OptProfile};
-use rustml_generation::{Generator, TextCompleter};
+use swe_inference_generation::{Generator, TextCompleter};
 use swe_llmmodel_tokenizer::Tokenizer;
 use swe_ml_tensor::{DType, Tensor, f32_vec_to_bytes};
 

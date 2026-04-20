@@ -1,5 +1,5 @@
 [package]
-name = "rustml-thread-config"
+name = "swe-inference-thread-config"
 description = "Thread pool configuration — auto-tuned parallelism"
 version.workspace = true
 edition.workspace = true

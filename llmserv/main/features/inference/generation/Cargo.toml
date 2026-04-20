@@ -1,5 +1,5 @@
 [package]
-name = "rustml-generation"
+name = "swe-inference-generation"
 description = "Text generation engine — sampling, streaming, and chat templates"
 version.workspace = true
 edition.workspace = true

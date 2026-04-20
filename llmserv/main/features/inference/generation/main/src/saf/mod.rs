@@ -1,4 +1,4 @@
-//! Facade re-exports for rustml-generation
+//! Facade re-exports for swe-inference-generation
 
 pub use crate::api::completer::{CompletionParams, TextCompleter};
 pub use crate::api::error::*;

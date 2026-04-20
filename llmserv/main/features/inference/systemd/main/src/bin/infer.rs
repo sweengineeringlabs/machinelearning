@@ -18,7 +18,7 @@ use swe_inference_systemd::{
     SemaphoreThrottle, Throttle, build_router, load_config,
 };
 use swe_llmmodel_model::OptProfile;
-use rustml_thread_config::ThreadConfig;
+use swe_inference_thread_config::ThreadConfig;
 
 /// `infer` — inference HTTP daemon.
 ///
@@ -100,7 +100,7 @@ async fn run_serve() -> Result<()> {
         .apply()
         .map_err(|e| anyhow::anyhow!("Failed to apply runtime config: {}", e))?;
 
-    let thread_config = rustml_thread_config::AutoThreadConfig::new();
+    let thread_config = swe_inference_thread_config::AutoThreadConfig::new();
     log::info!(
         "Thread config: {} threads ({})",
         thread_config.num_threads(),
@@ -179,7 +179,7 @@ fn build_backend_registry() -> BackendRegistry {
     #[cfg(feature = "backend-llama-cpp")]
     reg.insert(
         ModelBackend::LlamaCpp,
-        Box::new(rustml_backend_llama_cpp::LlamaCppBackendLoader),
+        Box::new(swe_inference_backend_llama_cpp::LlamaCppBackendLoader),
     );
 
     reg

@@ -50,7 +50,7 @@ use swe_llmmodel_layers::PoolingStrategy;
 use swe_llmmodel_loader::{DefaultLoader, LoadModel};
 use swe_llmmodel_model::OptProfile;
 
-use rustml_generation::CompletionParams;
+use swe_inference_generation::CompletionParams;
 use swe_inference_systemd::{DefaultModel, Model, ModelSource};
 
 /// Error codes returned by every function. Zero is success.

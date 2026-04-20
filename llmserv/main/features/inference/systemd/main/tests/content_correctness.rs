@@ -51,7 +51,7 @@
 //! download (HF case) or a pre-staged GGUF (llama_cpp case). Worth
 //! the cost — the alternative is shipping silent bugs.
 
-use rustml_generation::CompletionParams;
+use swe_inference_generation::CompletionParams;
 use swe_llmmodel_loader::{DefaultLoader, LoadModel};
 use swe_llmmodel_model::OptProfile;
 use swe_inference_systemd::{DefaultModel, Model};
@@ -133,7 +133,7 @@ fn llama_cpp_chat_completes_correctly_on_known_prompts() {
         path: Some(gguf_path.to_string_lossy().into_owned()),
     };
     let model =
-        rustml_backend_llama_cpp::load_llama_cpp_model(&spec, OptProfile::Optimized, "")
+        swe_inference_backend_llama_cpp::load_llama_cpp_model(&spec, OptProfile::Optimized, "")
             .expect("load gguf via llama_cpp");
 
     let params = CompletionParams::new(0.0, MAX_TOKENS);

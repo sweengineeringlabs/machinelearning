@@ -1,5 +1,5 @@
 [package]
-name = "rustml-prefill"
+name = "swe-inference-prefill"
 description = "Prefill strategies — batch vs sequential prompt processing"
 version.workspace = true
 edition.workspace = true

@@ -8,7 +8,7 @@
 //!
 //! Run:
 //!   export LLMSERV_DUMP_GGUF="path/to/model.gguf"
-//!   cargo test -p rustml-backend-llama-cpp --features llama-cpp \
+//!   cargo test -p swe-inference-backend-llama-cpp --features llama-cpp \
 //!     --test dump_logits dump_logits -- --ignored --nocapture \
 //!     > /tmp/llamacpp_logits.txt
 

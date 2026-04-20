@@ -3,7 +3,7 @@
 //! Everything in this crate is gated behind the `llama-cpp` feature. When
 //! the feature is off, the crate compiles to an empty shell — workspace
 //! builds don't require a C++ toolchain. When on, it exposes
-//! `LlamaCppBackendLoader`, a `llmbackend::ModelBackendLoader` impl that
+//! `LlamaCppBackendLoader`, a `swe_inference_backend_api::ModelBackendLoader` impl that
 //! loads GGUF models via the `llama-cpp-2` crate.
 //!
 //! The daemon gates its dependency on this crate behind the matching

@@ -1,5 +1,5 @@
 [package]
-name = "llmcompute"
+name = "swe-inference-compute"
 description = "LLM compute backends — CPU / GPU / foreign-runtime dispatch (ComputeBackend + ModelBackend)"
 version.workspace = true
 edition.workspace = true

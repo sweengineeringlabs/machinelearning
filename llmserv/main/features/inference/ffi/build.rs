@@ -1,6 +1,6 @@
 //! Regenerate `include/llmserv.h` from the Rust source on every build.
 //!
-//! Run `cargo build -p llmserv-ffi` and the header will be rewritten in
+//! Run `cargo build -p swe-inference-ffi` and the header will be rewritten in
 //! place. Commit the result so non-Rust consumers don't need a Rust
 //! toolchain.
 

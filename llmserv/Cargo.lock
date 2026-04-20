@@ -1749,78 +1749,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "llm_cli"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "env_logger",
- "futures-util",
- "hdrhistogram",
- "llmcompute",
- "log",
- "rayon",
- "reqwest",
- "rustml-generation",
- "rustml-thread-config",
- "serde",
- "serde_json",
- "swe-llmmodel-arch-bert",
- "swe-llmmodel-arch-falcon",
- "swe-llmmodel-arch-gemma3",
- "swe-llmmodel-arch-gemma4",
- "swe-llmmodel-arch-gpt2",
- "swe-llmmodel-arch-llama",
- "swe-llmmodel-arch-mixtral",
- "swe-llmmodel-arch-nomic-bert",
- "swe-llmmodel-download",
- "swe-llmmodel-gguf",
- "swe-llmmodel-io",
- "swe-llmmodel-model",
- "swe-llmmodel-quantizer",
- "swe-llmmodel-tokenizer",
- "tokio",
-]
-
-[[package]]
-name = "llmbackend"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "rustml-generation",
- "serde",
- "swe-llmmodel-layers",
- "swe-llmmodel-model",
- "swe-llmmodel-tokenizer",
- "swe-ml-tensor",
- "toml",
-]
-
-[[package]]
-name = "llmcompute"
-version = "0.1.0"
-dependencies = [
- "log",
- "swe-llmmodel-model",
- "swe-ml-tensor",
-]
-
-[[package]]
-name = "llmserv-ffi"
-version = "0.1.0"
-dependencies = [
- "cbindgen",
- "log",
- "rustml-generation",
- "swe-inference-systemd",
- "swe-llmmodel-layers",
- "swe-llmmodel-loader",
- "swe-llmmodel-model",
- "swe-llmmodel-tokenizer",
- "swe-ml-tensor",
-]
-
-[[package]]
 name = "lock_api"
 version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2669,57 +2597,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustml-backend-llama-cpp"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "encoding_rs",
- "llama-cpp-2",
- "llmbackend",
- "log",
- "rustml-generation",
- "swe-llmmodel-layers",
- "swe-llmmodel-model",
- "swe-llmmodel-tokenizer",
- "swe-ml-tensor",
-]
-
-[[package]]
-name = "rustml-generation"
-version = "0.1.0"
-dependencies = [
- "approx",
- "log",
- "rand 0.8.5",
- "rayon",
- "swe-llmmodel-layers",
- "swe-llmmodel-model",
- "swe-llmmodel-tokenizer",
- "swe-ml-tensor",
- "thiserror 2.0.18",
-]
-
-[[package]]
-name = "rustml-prefill"
-version = "0.1.0"
-dependencies = [
- "log",
- "swe-llmmodel-layers",
- "swe-llmmodel-model",
- "swe-ml-tensor",
-]
-
-[[package]]
-name = "rustml-thread-config"
-version = "0.1.0"
-dependencies = [
- "log",
- "rayon",
- "swe-llmmodel-model",
- "swe-ml-tensor",
-]
-
-[[package]]
 name = "rustversion"
 version = "1.0.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3001,6 +2878,119 @@ dependencies = [
 ]
 
 [[package]]
+name = "swe-inference-backend-api"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "serde",
+ "swe-inference-generation",
+ "swe-llmmodel-layers",
+ "swe-llmmodel-model",
+ "swe-llmmodel-tokenizer",
+ "swe-ml-tensor",
+ "toml",
+]
+
+[[package]]
+name = "swe-inference-backend-llama-cpp"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "encoding_rs",
+ "llama-cpp-2",
+ "log",
+ "swe-inference-backend-api",
+ "swe-inference-generation",
+ "swe-llmmodel-layers",
+ "swe-llmmodel-model",
+ "swe-llmmodel-tokenizer",
+ "swe-ml-tensor",
+]
+
+[[package]]
+name = "swe-inference-cli"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "env_logger",
+ "futures-util",
+ "hdrhistogram",
+ "log",
+ "rayon",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "swe-inference-compute",
+ "swe-inference-generation",
+ "swe-inference-thread-config",
+ "swe-llmmodel-arch-bert",
+ "swe-llmmodel-arch-falcon",
+ "swe-llmmodel-arch-gemma3",
+ "swe-llmmodel-arch-gemma4",
+ "swe-llmmodel-arch-gpt2",
+ "swe-llmmodel-arch-llama",
+ "swe-llmmodel-arch-mixtral",
+ "swe-llmmodel-arch-nomic-bert",
+ "swe-llmmodel-download",
+ "swe-llmmodel-gguf",
+ "swe-llmmodel-io",
+ "swe-llmmodel-model",
+ "swe-llmmodel-quantizer",
+ "swe-llmmodel-tokenizer",
+ "tokio",
+]
+
+[[package]]
+name = "swe-inference-compute"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "swe-llmmodel-model",
+ "swe-ml-tensor",
+]
+
+[[package]]
+name = "swe-inference-ffi"
+version = "0.1.0"
+dependencies = [
+ "cbindgen",
+ "log",
+ "swe-inference-generation",
+ "swe-inference-systemd",
+ "swe-llmmodel-layers",
+ "swe-llmmodel-loader",
+ "swe-llmmodel-model",
+ "swe-llmmodel-tokenizer",
+ "swe-ml-tensor",
+]
+
+[[package]]
+name = "swe-inference-generation"
+version = "0.1.0"
+dependencies = [
+ "approx",
+ "log",
+ "rand 0.8.5",
+ "rayon",
+ "swe-llmmodel-layers",
+ "swe-llmmodel-model",
+ "swe-llmmodel-tokenizer",
+ "swe-ml-tensor",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "swe-inference-prefill"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "swe-llmmodel-layers",
+ "swe-llmmodel-model",
+ "swe-ml-tensor",
+]
+
+[[package]]
 name = "swe-inference-systemd"
 version = "0.1.0"
 dependencies = [
@@ -3011,16 +3001,16 @@ dependencies = [
  "dirs",
  "env_logger",
  "futures-util",
- "llmbackend",
  "log",
  "rayon",
  "reqwest",
- "rustml-backend-llama-cpp",
- "rustml-generation",
- "rustml-prefill",
- "rustml-thread-config",
  "serde",
  "serde_json",
+ "swe-inference-backend-api",
+ "swe-inference-backend-llama-cpp",
+ "swe-inference-generation",
+ "swe-inference-prefill",
+ "swe-inference-thread-config",
  "swe-llmmodel-layers",
  "swe-llmmodel-loader",
  "swe-llmmodel-model",
@@ -3032,6 +3022,16 @@ dependencies = [
  "tokio-stream",
  "toml",
  "uuid",
+]
+
+[[package]]
+name = "swe-inference-thread-config"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "rayon",
+ "swe-llmmodel-model",
+ "swe-ml-tensor",
 ]
 
 [[package]]

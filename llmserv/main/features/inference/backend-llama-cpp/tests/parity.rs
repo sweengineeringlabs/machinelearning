@@ -13,7 +13,7 @@
 //! cd llmserv
 //! export LLMSERV_PARITY_GGUF_PATH="/path/to/model.gguf"
 //! export CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL CFLAGS=-MD CXXFLAGS=-MD  # Windows only
-//! cargo test -p rustml-backend-llama-cpp --features llama-cpp --test parity -- --ignored --nocapture
+//! cargo test -p swe-inference-backend-llama-cpp --features llama-cpp --test parity -- --ignored --nocapture
 //! ```
 //!
 //! # What's asserted
@@ -36,9 +36,9 @@
 
 use std::path::PathBuf;
 
-use llmbackend::{Model, ModelBackend, ModelSource, ModelSpec};
-use rustml_backend_llama_cpp::load_llama_cpp_model;
-use rustml_generation::CompletionParams;
+use swe_inference_backend_api::{Model, ModelBackend, ModelSource, ModelSpec};
+use swe_inference_backend_llama_cpp::load_llama_cpp_model;
+use swe_inference_generation::CompletionParams;
 use swe_llmmodel_model::OptProfile;
 
 const PARITY_PROMPTS: &[&str] = &[

@@ -1,5 +1,5 @@
 [package]
-name = "llmbackend"
+name = "swe-inference-backend-api"
 description = "Backend contract — Model + ModelBackendLoader traits plus config schema. No HTTP, no daemon deps."
 version.workspace = true
 edition.workspace = true
@@ -8,7 +8,7 @@ authors.workspace = true
 repository.workspace = true
 
 [dependencies]
-rustml-generation.workspace = true
+swe-inference-generation.workspace = true
 swe-llmmodel-tokenizer.workspace = true
 swe-llmmodel-layers.workspace = true
 swe-llmmodel-model.workspace = true

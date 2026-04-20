@@ -69,5 +69,5 @@ build-llama        = "build --release -p swe-inference-systemd --features backen
 test-llama         = "test  --release -p swe-inference-systemd --features backend-llama-cpp --locked"
 
 # Run the backend crate's own tests with its inner feature active.
-# Useful when iterating on rustml-backend-llama-cpp in isolation.
-test-backend-llama = "test  --release -p rustml-backend-llama-cpp --features llama-cpp --locked"
+# Useful when iterating on swe-inference-backend-llama-cpp in isolation.
+test-backend-llama = "test  --release -p swe-inference-backend-llama-cpp --features llama-cpp --locked"

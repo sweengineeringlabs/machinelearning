@@ -1,5 +1,5 @@
 [package]
-name = "rustml-backend-llama-cpp"
+name = "swe-inference-backend-llama-cpp"
 description = "llama.cpp-backed ModelBackendLoader — architectural skeleton; llama-cpp-2 integration is a separate follow-up"
 version.workspace = true
 edition.workspace = true
@@ -17,8 +17,8 @@ default = []
 llama-cpp = ["dep:llama-cpp-2", "dep:encoding_rs"]
 
 [dependencies]
-llmbackend.workspace = true
-rustml-generation.workspace = true
+swe-inference-backend-api.workspace = true
+swe-inference-generation.workspace = true
 swe-llmmodel-tokenizer.workspace = true
 swe-llmmodel-layers.workspace = true
 swe-llmmodel-model.workspace = true

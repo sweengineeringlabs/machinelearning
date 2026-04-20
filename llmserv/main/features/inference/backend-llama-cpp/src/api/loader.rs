@@ -2,7 +2,7 @@
 //! registers under `ModelBackend::LlamaCpp`.
 
 use anyhow::Result;
-use llmbackend::{Model, ModelBackendLoader, ModelSpec};
+use swe_inference_backend_api::{Model, ModelBackendLoader, ModelSpec};
 use swe_llmmodel_model::OptProfile;
 
 use crate::core::model::load_llama_cpp_model;

@@ -22,10 +22,10 @@ members = [
     "main/features/inference/backend-llama-cpp",
     # Serving frontends (leaves — each removable without breaking the stack).
     "main/features/inference/systemd",
-    "main/features/cli",
+    "main/features/inference/cli",
     "main/features/embedding/systemd",
     # Foreign-function interface — cdylib for desktop/IDE integration.
-    "main/features/ffi",
+    "main/features/inference/ffi",
     # Note: experimentation/llmforge has its own nested workspace; excluded below.
 ]
 exclude = [
@@ -117,11 +117,11 @@ swe-llmmodel-loader          = { path = "../llmmodel/loader" }
 # ──────────────────────────────────────────────────────────────────────
 # Inference library (internal to this workspace).
 # ──────────────────────────────────────────────────────────────────────
-rustml-generation       = { path = "main/features/inference/generation" }
-rustml-prefill          = { path = "main/features/inference/prefill" }
-rustml-thread-config    = { path = "main/features/inference/thread-config" }
-llmcompute              = { path = "main/features/inference/compute" }
-llmbackend              = { path = "main/features/inference/backend-api" }
-rustml-backend-llama-cpp = { path = "main/features/inference/backend-llama-cpp" }
+swe-inference-generation       = { path = "main/features/inference/generation" }
+swe-inference-prefill          = { path = "main/features/inference/prefill" }
+swe-inference-thread-config    = { path = "main/features/inference/thread-config" }
+swe-inference-compute              = { path = "main/features/inference/compute" }
+swe-inference-backend-api              = { path = "main/features/inference/backend-api" }
+swe-inference-backend-llama-cpp = { path = "main/features/inference/backend-llama-cpp" }
 swe-embedding-systemd     = { path = "main/features/embedding/systemd" }
 swe-inference-systemd                 = { path = "main/features/inference/systemd" }

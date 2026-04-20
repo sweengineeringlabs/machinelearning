@@ -22,7 +22,7 @@
 //!
 //! a) **The struct is never moved after construction.** Enforced by
 //!    exposing only `load_llama_cpp_model(...) -> Result<Box<dyn
-//!    llmbackend::Model>>` — the concrete struct is `pub(crate)` and
+//!    swe_inference_backend_api::Model>>` — the concrete struct is `pub(crate)` and
 //!    the public API boxes it on the way out. Once boxed, callers
 //!    have `Box<dyn Model>`, and `mem::swap` on trait objects
 //!    requires their concrete types, which is unreachable.
@@ -56,8 +56,8 @@ use llama_cpp_2::llama_batch::LlamaBatch;
 use llama_cpp_2::model::params::LlamaModelParams;
 use llama_cpp_2::model::{AddBos, LlamaChatMessage, LlamaChatTemplate, LlamaModel};
 use llama_cpp_2::token::LlamaToken;
-use llmbackend::{Model, ModelSource, ModelSpec};
-use rustml_generation::{CompletionParams, GenerationError, GenerationResult, TextCompleter};
+use swe_inference_backend_api::{Model, ModelSource, ModelSpec};
+use swe_inference_generation::{CompletionParams, GenerationError, GenerationResult, TextCompleter};
 use swe_llmmodel_layers::PoolingStrategy;
 use swe_llmmodel_model::{ModelError, ModelResult, OptProfile};
 use swe_llmmodel_tokenizer::{Tokenizer, TokenizerError, TokenizerResult};
@@ -502,7 +502,7 @@ mod tests {
 
     fn spec_with(source: ModelSource, path: Option<&str>) -> ModelSpec {
         ModelSpec {
-            backend: llmbackend::ModelBackend::LlamaCpp,
+            backend: swe_inference_backend_api::ModelBackend::LlamaCpp,
             source,
             id: None,
             path: path.map(String::from),
