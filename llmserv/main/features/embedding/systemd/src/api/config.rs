@@ -4,6 +4,7 @@
 //! this binary consumes.
 
 use serde::Deserialize;
+use swe_systemd::DaemonConfig;
 
 #[derive(Debug, Deserialize)]
 pub struct AppConfig {
@@ -11,6 +12,12 @@ pub struct AppConfig {
     pub embedding: EmbeddingSection,
     #[serde(default)]
     pub logging: LoggingSpec,
+}
+
+impl DaemonConfig for AppConfig {
+    fn logging_level(&self) -> &str {
+        &self.logging.level
+    }
 }
 
 #[derive(Debug, Deserialize, Default)]

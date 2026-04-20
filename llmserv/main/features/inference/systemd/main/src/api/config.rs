@@ -8,6 +8,7 @@
 
 use swe_inference_backend_api::ModelSpec;
 use serde::Deserialize;
+use swe_systemd::DaemonConfig;
 
 #[derive(Debug, Deserialize)]
 pub struct AppConfig {
@@ -23,6 +24,12 @@ pub struct AppConfig {
     pub generation: GenerationSpec,
     #[serde(default)]
     pub logging: LoggingSpec,
+}
+
+impl DaemonConfig for AppConfig {
+    fn logging_level(&self) -> &str {
+        &self.logging.level
+    }
 }
 
 /// Per-request generation limits applied uniformly by the daemon.

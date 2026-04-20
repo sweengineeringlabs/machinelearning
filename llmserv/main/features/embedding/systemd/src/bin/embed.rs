@@ -12,7 +12,7 @@ use anyhow::{Result, bail};
 use clap::{Parser, Subcommand};
 
 use swe_embedding_systemd::{
-    AppConfig, build_embedding_router, load_config, load_gguf,
+    AppConfig, apply_logging_filter, build_embedding_router, load_config, load_gguf, serve_http,
 };
 
 /// `embed` — embedding HTTP daemon.
@@ -79,7 +79,7 @@ fn main() -> Result<()> {
 #[tokio::main(flavor = "multi_thread")]
 async fn run_serve() -> Result<()> {
     let loaded = load_config()?;
-    apply_logging_filter(&loaded.app);
+    apply_logging_filter(&loaded.app.logging.level);
     env_logger::init();
 
     log::info!("Config sources ({}):", loaded.sources.len());
@@ -101,19 +101,7 @@ async fn run_serve() -> Result<()> {
     .parse()?;
     log::info!("embed: serving '{}' on http://{}", model_id, addr);
 
-    let listener = tokio::net::TcpListener::bind(addr).await?;
-    axum::serve(listener, app).await?;
-
-    Ok(())
-}
-
-fn apply_logging_filter(cfg: &AppConfig) {
-    // SAFETY: runs single-threaded before any tokio/rayon threads spawn.
-    if std::env::var_os("RUST_LOG").is_none() {
-        unsafe {
-            std::env::set_var("RUST_LOG", &cfg.logging.level);
-        }
-    }
+    serve_http(addr, app).await
 }
 
 fn resolve_model_path(cfg: &AppConfig) -> Result<PathBuf> {

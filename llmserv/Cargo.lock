@@ -2861,7 +2861,6 @@ dependencies = [
  "anyhow",
  "axum",
  "clap",
- "dirs",
  "env_logger",
  "log",
  "serde",
@@ -2873,8 +2872,8 @@ dependencies = [
  "swe-llmmodel-tokenizer",
  "swe-ml-embedding",
  "swe-ml-tensor",
+ "swe-systemd",
  "tokio",
- "toml",
 ]
 
 [[package]]
@@ -2998,7 +2997,6 @@ dependencies = [
  "axum",
  "chrono",
  "clap",
- "dirs",
  "env_logger",
  "futures-util",
  "log",
@@ -3017,10 +3015,10 @@ dependencies = [
  "swe-llmmodel-tokenizer",
  "swe-ml-embedding",
  "swe-ml-tensor",
+ "swe-systemd",
  "thiserror 2.0.18",
  "tokio",
  "tokio-stream",
- "toml",
  "uuid",
 ]
 
@@ -3272,6 +3270,20 @@ dependencies = [
  "serde",
  "smallvec",
  "thiserror 2.0.18",
+ "toml",
+]
+
+[[package]]
+name = "swe-systemd"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dirs",
+ "log",
+ "serde",
+ "thiserror 2.0.18",
+ "tokio",
  "toml",
 ]
 

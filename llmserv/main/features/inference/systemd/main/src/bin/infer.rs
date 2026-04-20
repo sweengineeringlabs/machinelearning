@@ -15,7 +15,7 @@ use clap::{Parser, Subcommand};
 
 use swe_inference_systemd::{
     AppConfig, AppState, Model, ModelBackend, ModelBackendLoader, NativeRustBackendLoader,
-    SemaphoreThrottle, Throttle, build_router, load_config,
+    SemaphoreThrottle, Throttle, apply_logging_filter, build_router, load_config, serve_http,
 };
 use swe_llmmodel_model::OptProfile;
 use swe_inference_thread_config::ThreadConfig;
@@ -87,7 +87,7 @@ fn main() -> Result<()> {
 #[tokio::main(flavor = "multi_thread")]
 async fn run_serve() -> Result<()> {
     let loaded = load_config()?;
-    apply_logging_filter(&loaded.app);
+    apply_logging_filter(&loaded.app.logging.level);
     env_logger::init();
 
     log::info!("Config sources ({}):", loaded.sources.len());
@@ -139,10 +139,7 @@ async fn run_serve() -> Result<()> {
     let addr: SocketAddr = format!("{}:{}", loaded.app.server.host, loaded.app.server.port).parse()?;
     log::info!("infer: serving model '{}' on http://{}", model_id, addr);
 
-    let listener = tokio::net::TcpListener::bind(addr).await?;
-    axum::serve(listener, app).await?;
-
-    Ok(())
+    serve_http(addr, app).await
 }
 
 fn parse_opt_profile(s: &str) -> Result<OptProfile> {
@@ -154,16 +151,6 @@ fn parse_opt_profile(s: &str) -> Result<OptProfile> {
             "Unknown runtime.opt_profile '{}' (expected: optimized, baseline, aggressive)",
             other
         ),
-    }
-}
-
-fn apply_logging_filter(cfg: &AppConfig) {
-    // env_logger reads RUST_LOG; set it from config if not already set.
-    // SAFETY: runs single-threaded before any tokio/rayon threads spawn.
-    if std::env::var_os("RUST_LOG").is_none() {
-        unsafe {
-            std::env::set_var("RUST_LOG", &cfg.logging.level);
-        }
     }
 }
 

@@ -64,8 +64,7 @@ swe-inference-backend-api.workspace = true
 swe-inference-backend-llama-cpp = { workspace = true, optional = true }
 tokio-stream = "0.1"
 futures-util.workspace = true
-toml.workspace = true
-dirs.workspace = true
+swe-systemd.workspace = true
 
 [dev-dependencies]
 reqwest.workspace = true

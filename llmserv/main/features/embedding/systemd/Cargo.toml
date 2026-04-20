@@ -27,5 +27,4 @@ serde.workspace = true
 serde_json.workspace = true
 log.workspace = true
 env_logger.workspace = true
-toml.workspace = true
-dirs.workspace = true
+swe-systemd.workspace = true
