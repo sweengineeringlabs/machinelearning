@@ -2855,6 +2855,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
+name = "swe-cli"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "env_logger",
+]
+
+[[package]]
 name = "swe-embedding-systemd"
 version = "0.1.0"
 dependencies = [
@@ -2865,6 +2874,7 @@ dependencies = [
  "log",
  "serde",
  "serde_json",
+ "swe-cli",
  "swe-llmmodel-arch-nomic-bert",
  "swe-llmmodel-gguf",
  "swe-llmmodel-layers",
@@ -2920,6 +2930,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "swe-cli",
  "swe-inference-compute",
  "swe-inference-generation",
  "swe-inference-thread-config",
@@ -3004,6 +3015,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "swe-cli",
  "swe-inference-backend-api",
  "swe-inference-backend-llama-cpp",
  "swe-inference-generation",
@@ -3282,6 +3294,7 @@ dependencies = [
  "dirs",
  "log",
  "serde",
+ "swe-cli",
  "thiserror 2.0.18",
  "tokio",
  "toml",

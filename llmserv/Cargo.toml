@@ -93,6 +93,7 @@ swe-ml-tensor        = { path = "../main/features/tensor" }
 swe-ml-normalization = { path = "../main/features/normalization" }
 swe-ml-activation    = { path = "../main/features/activation" }
 swe-ml-embedding     = { path = "../main/features/embedding/conversion" }
+swe-cli              = { path = "../main/features/cli" }
 swe-ml-architectures = { path = "../main/features/architectures" }
 swe-ml-training      = { path = "../main/features/training" }
 

@@ -1,0 +1,13 @@
+[package]
+name = "swe-cli"
+description = "Shared CLI infrastructure — entry-point trait, logging filter, env_logger init"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+env_logger.workspace = true

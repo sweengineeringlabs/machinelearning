@@ -13,6 +13,7 @@ use std::time::Duration;
 use anyhow::{Result, anyhow, bail};
 use clap::{Parser, Subcommand};
 
+use swe_cli::Cli as SweCli;
 use swe_inference_systemd::{
     AppConfig, AppState, Model, ModelBackend, ModelBackendLoader, NativeRustBackendLoader,
     SemaphoreThrottle, Throttle, apply_logging_filter, build_router, load_config, serve_http,
@@ -77,11 +78,16 @@ enum Command {
     Serve,
 }
 
-fn main() -> Result<()> {
-    let cli = Cli::parse();
-    match cli.command {
-        Command::Serve => run_serve(),
+impl SweCli for Cli {
+    fn dispatch(self) -> Result<()> {
+        match self.command {
+            Command::Serve => run_serve(),
+        }
     }
+}
+
+fn main() -> Result<()> {
+    <Cli as SweCli>::run()
 }
 
 #[tokio::main(flavor = "multi_thread")]

@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 
+use swe_cli::{Cli as SweCli, apply_logging_filter, init_env_logger};
 use swe_llmmodel_download::{Download, HuggingFaceDownload};
 
 /// llmmodel — download, cache, and inspect HuggingFace models.
@@ -56,10 +57,17 @@ fn build_downloader(cli: &Cli) -> HuggingFaceDownload {
 }
 
 fn main() -> Result<()> {
-    let cli = Cli::parse();
-    let dl = build_downloader(&cli);
+    <Cli as SweCli>::run()
+}
 
-    match &cli.command {
+impl SweCli for Cli {
+    fn dispatch(self) -> Result<()> {
+        apply_logging_filter("info");
+        init_env_logger();
+
+        let dl = build_downloader(&self);
+
+        match &self.command {
         Command::Download { model_id, gguf } => {
             if let Some(filename) = gguf {
                 eprintln!("Downloading GGUF {model_id} / {filename} ...");
@@ -113,5 +121,6 @@ fn main() -> Result<()> {
         }
     }
 
-    Ok(())
+        Ok(())
+    }
 }

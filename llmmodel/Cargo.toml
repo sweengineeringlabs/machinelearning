@@ -64,6 +64,7 @@ tokenizers = "0.21"
 # Cross-workspace foundations (from root workspace)
 swe-ml-tensor        = { path = "../main/features/tensor" }
 swe-ml-normalization = { path = "../main/features/normalization" }
+swe-cli              = { path = "../main/features/cli" }
 
 # Internal (llmmodel) crates
 swe-llmmodel-download = { path = "download" }

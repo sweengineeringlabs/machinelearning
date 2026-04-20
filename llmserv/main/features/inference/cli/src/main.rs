@@ -2,6 +2,7 @@ mod cmd;
 
 use anyhow::Result;
 use clap::Parser;
+use swe_cli::{Cli as SweCli, apply_logging_filter, init_env_logger};
 
 /// llmc — developer CLI for llmserv.
 ///
@@ -14,8 +15,14 @@ struct Cli {
     command: cmd::Command,
 }
 
+impl SweCli for Cli {
+    fn dispatch(self) -> Result<()> {
+        apply_logging_filter("info");
+        init_env_logger();
+        cmd::run(self.command)
+    }
+}
+
 fn main() -> Result<()> {
-    env_logger::init();
-    let cli = Cli::parse();
-    cmd::run(cli.command)
+    <Cli as SweCli>::run()
 }

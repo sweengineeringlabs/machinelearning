@@ -11,6 +11,7 @@ use std::sync::Arc;
 use anyhow::{Result, bail};
 use clap::{Parser, Subcommand};
 
+use swe_cli::Cli as SweCli;
 use swe_embedding_systemd::{
     AppConfig, apply_logging_filter, build_embedding_router, load_config, load_gguf, serve_http,
 };
@@ -69,11 +70,16 @@ enum Command {
     Serve,
 }
 
-fn main() -> Result<()> {
-    let cli = Cli::parse();
-    match cli.command {
-        Command::Serve => run_serve(),
+impl SweCli for Cli {
+    fn dispatch(self) -> Result<()> {
+        match self.command {
+            Command::Serve => run_serve(),
+        }
     }
+}
+
+fn main() -> Result<()> {
+    <Cli as SweCli>::run()
 }
 
 #[tokio::main(flavor = "multi_thread")]
