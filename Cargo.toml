@@ -16,7 +16,8 @@ members = [
     # accept, because it's a tool, not a library.
     "devtools/quantize",
 ]
-exclude = ["llmserv", "llmmodel", "llamacpp"]
+exclude = ["llminference", "llmmodel", "llamacpp"]
+
 
 [workspace.package]
 version = "0.1.0"
@@ -84,11 +85,11 @@ swe-llmmodel-model    = { path = "llmmodel/model" }
 swe-llmmodel-tokenizer = { path = "llmmodel/tokenizer" }
 swe-llmmodel-quantizer = { path = "llmmodel/quantizer" }
 
-# Cross-workspace deps to llmserv — used only by devtools/quantize.
+# Cross-workspace deps to llminference — used only by devtools/quantize.
 # devtools is a tool, so the backward arrow is acceptable.
-swe-inference-thread-config = { path = "llmserv/main/features/inference/thread-config" }
-swe-inference-backend-api = { path = "llmserv/main/features/inference/backend-api" }
-swe-inference-generation = { path = "llmserv/main/features/inference/generation" }
+swe-inference-thread-config = { path = "llminference/main/features/inference/thread-config" }
+swe-inference-backend-api = { path = "llminference/main/features/inference/backend-api" }
+swe-inference-generation = { path = "llminference/main/features/inference/generation" }
 swe-llmserver-llamacpp = { path = "llamacpp" }
 
 [profile.release]

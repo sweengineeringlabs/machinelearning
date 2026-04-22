@@ -4,14 +4,14 @@
 //!
 //! # Running
 //!
-//! Gated by the `LLMSERV_PARITY_GGUF_PATH` env var plus `--ignored`
+//! Gated by the `LLMINFERENCE_PARITY_GGUF_PATH` env var plus `--ignored`
 //! because GGUF files are hundreds of MB and aren't committed. Point
 //! it at any gemma3/llama/qwen GGUF on your disk — Ollama's cache at
 //! `~/.ollama/models/blobs/` is a convenient source.
 //!
 //! ```bash
-//! cd llmserv
-//! export LLMSERV_PARITY_GGUF_PATH="/path/to/model.gguf"
+//! cd llminference
+//! export LLMINFERENCE_PARITY_GGUF_PATH="/path/to/model.gguf"
 //! export CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL CFLAGS=-MD CXXFLAGS=-MD  # Windows only
 //! cargo test -p swe-llmserver-llamacpp --features llama-cpp --test parity -- --ignored --nocapture
 //! ```
@@ -50,20 +50,20 @@ const PARITY_PROMPTS: &[&str] = &[
 const MAX_TOKENS: usize = 32;
 
 fn gguf_path_from_env() -> Option<PathBuf> {
-    std::env::var("LLMSERV_PARITY_GGUF_PATH")
+    std::env::var("LLMINFERENCE_PARITY_GGUF_PATH")
         .ok()
         .map(PathBuf::from)
         .filter(|p| p.exists())
 }
 
 #[test]
-#[ignore = "requires LLMSERV_PARITY_GGUF_PATH pointing at a .gguf file"]
+#[ignore = "requires LLMINFERENCE_PARITY_GGUF_PATH pointing at a .gguf file"]
 fn llama_cpp_backend_produces_nonempty_completions_for_parity_prompts() {
     let Some(gguf) = gguf_path_from_env() else {
         panic!(
-            "LLMSERV_PARITY_GGUF_PATH must be set to a .gguf file path. \
+            "LLMINFERENCE_PARITY_GGUF_PATH must be set to a .gguf file path. \
              Current value: {:?}",
-            std::env::var("LLMSERV_PARITY_GGUF_PATH").ok()
+            std::env::var("LLMINFERENCE_PARITY_GGUF_PATH").ok()
         );
     };
 
@@ -118,10 +118,10 @@ fn llama_cpp_backend_produces_nonempty_completions_for_parity_prompts() {
 
 /// Chat-template path — exercises `apply_chat_template`.
 #[test]
-#[ignore = "requires LLMSERV_PARITY_GGUF_PATH pointing at a .gguf file with a chat template"]
+#[ignore = "requires LLMINFERENCE_PARITY_GGUF_PATH pointing at a .gguf file with a chat template"]
 fn llama_cpp_backend_chat_completions_produce_nonempty_output() {
     let Some(gguf) = gguf_path_from_env() else {
-        panic!("LLMSERV_PARITY_GGUF_PATH not set");
+        panic!("LLMINFERENCE_PARITY_GGUF_PATH not set");
     };
 
     let spec = ModelSpec {
@@ -153,10 +153,10 @@ fn llama_cpp_backend_chat_completions_produce_nonempty_output() {
 
 /// Sanity: tokenizer round-trip via the Model trait's `tokenizer()`.
 #[test]
-#[ignore = "requires LLMSERV_PARITY_GGUF_PATH pointing at a .gguf file"]
+#[ignore = "requires LLMINFERENCE_PARITY_GGUF_PATH pointing at a .gguf file"]
 fn llama_cpp_tokenizer_roundtrip_preserves_text() {
     let Some(gguf) = gguf_path_from_env() else {
-        panic!("LLMSERV_PARITY_GGUF_PATH not set");
+        panic!("LLMINFERENCE_PARITY_GGUF_PATH not set");
     };
 
     let spec = ModelSpec {

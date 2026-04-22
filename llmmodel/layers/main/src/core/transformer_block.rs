@@ -306,10 +306,10 @@ impl TransformerBlock {
             // Standard pre-norm (with optional sandwich norms for Gemma 3)
 
             // Intra-block diagnostic dumps for the first 2 layers
-            // when LLMSERV_DUMP_INTERMEDIATES is set (P9 investigation).
+            // when LLMINFERENCE_DUMP_INTERMEDIATES is set (P9 investigation).
             // Costs nothing when disabled. Single static counter so
             // we only see layer 0 + 1, not every layer.
-            let dump = std::env::var("LLMSERV_DUMP_INTERMEDIATES").is_ok();
+            let dump = std::env::var("LLMINFERENCE_DUMP_INTERMEDIATES").is_ok();
             let layer_n = if dump {
                 use std::sync::atomic::{AtomicUsize, Ordering};
                 static COUNTER: AtomicUsize = AtomicUsize::new(0);

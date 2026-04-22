@@ -1,14 +1,14 @@
-# LLM serving workspace.
+# LLM inference serving workspace.
 #
 # This workspace holds the inference-server stack: the inference compute
 # library (under main/features/inference/) plus serving frontends (daemon,
 # cli, embedding server, experimentation).
 #
-# Cross-workspace dependencies flow one way: llmserv crates depend on
+# Cross-workspace dependencies flow one way: llminference crates depend on
 # foundation crates in the root workspace (tensor, hub, activation,
 # normalization, architectures, training, embedding/conversion) via path.
 # The root workspace has a single tool-level backward arrow from
-# devtools/quantize into llmserv, accepted because quantize is a tool.
+# devtools/quantize into llminference, accepted because quantize is a tool.
 
 [workspace]
 resolver = "2"

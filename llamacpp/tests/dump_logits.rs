@@ -7,7 +7,7 @@
 //! prompt re-tokenized by two different tokenizers.
 //!
 //! Run:
-//!   export LLMSERV_DUMP_GGUF="path/to/model.gguf"
+//!   export LLMINFERENCE_DUMP_GGUF="path/to/model.gguf"
 //!   cargo test -p swe-llmserver-llamacpp --features llama-cpp \
 //!     --test dump_logits dump_logits -- --ignored --nocapture \
 //!     > /tmp/llamacpp_logits.txt
@@ -26,13 +26,13 @@ use llama_cpp_2::token::LlamaToken;
 const FIXED_TOKENS: &[i32] = &[2, 9259, 235269]; // <bos> Hello ,
 
 #[test]
-#[ignore = "requires LLMSERV_DUMP_GGUF env var pointing at a .gguf file"]
+#[ignore = "requires LLMINFERENCE_DUMP_GGUF env var pointing at a .gguf file"]
 fn dump_logits() {
-    let gguf = std::env::var("LLMSERV_DUMP_GGUF")
+    let gguf = std::env::var("LLMINFERENCE_DUMP_GGUF")
         .ok()
         .map(PathBuf::from)
         .filter(|p| p.exists())
-        .expect("LLMSERV_DUMP_GGUF must be set to an existing .gguf path");
+        .expect("LLMINFERENCE_DUMP_GGUF must be set to an existing .gguf path");
 
     let backend = LlamaBackend::init().expect("LlamaBackend::init");
     let params = LlamaModelParams::default();

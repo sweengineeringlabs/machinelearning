@@ -1,4 +1,4 @@
-//! Regenerate `include/llmserv.h` from the Rust source on every build.
+//! Regenerate `include/llminference.h` from the Rust source on every build.
 //!
 //! Run `cargo build -p swe-inference-ffi` and the header will be rewritten in
 //! place. Commit the result so non-Rust consumers don't need a Rust
@@ -9,7 +9,7 @@ use std::path::PathBuf;
 
 fn main() {
     let crate_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
-    let out = crate_dir.join("include").join("llmserv.h");
+    let out = crate_dir.join("include").join("llminference.h");
 
     // Only regenerate when source files change.
     println!("cargo:rerun-if-changed=main/src/lib.rs");

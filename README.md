@@ -20,8 +20,8 @@ machinelearning/
 │   ├── weights/            swe-llmmodel-weights — WeightMapper, Gpt2WeightMapper, WeightGuard
 │   └── cli/                swe-llmmodel-cli — `llmmodel` binary (download/list/info)
 │
-├── llmserv/                — LLM serving workspace (own Cargo.toml)
-│   ├── main/config/application.toml    single source of truth for all llmserv apps
+├── llminference/           — LLM inference serving workspace (own Cargo.toml)
+│   ├── main/config/application.toml    single source of truth for all llminference apps
 │   └── main/features/
 │       ├── inference/      the compute library — model, layers, architectures,
 │       │                   compute, generation, gguf, prefill, quant, quantizer,
@@ -39,10 +39,10 @@ machinelearning/
     └── quantize/           rustml-quantize — offline SafeTensors → GGUF CLI tool
 ```
 
-Cross-workspace dependency rule: **llmserv → llamacpp → llmserv**, **llmserv → llmmodel → main (foundations)**, **llmmodel → main**.
-Root workspace never depends on llmserv (except for llamacpp, which acts as a bridge).
+Cross-workspace dependency rule: **llminference → llamacpp → llminference**, **llminference → llmmodel → main (foundations)**, **llmmodel → main**.
+Root workspace never depends on llminference (except for llamacpp, which acts as a bridge).
 
-`devtools/quantize` reaches into llmserv for its quantizer library — the single backward arrow,
+`devtools/quantize` reaches into llminference for its quantizer library — the single backward arrow,
 accepted because quantize is a tool, not a library.
 
 ## Quick start
@@ -56,14 +56,14 @@ cargo build --release
 # llmmodel workspace (download / io / weights / cli)
 cargo build --release --manifest-path llmmodel/Cargo.toml
 
-# llmserv workspace (inference stack, daemon, cli, embedding server)
-cargo build --release --manifest-path llmserv/Cargo.toml
+# llminference workspace (inference stack, daemon, cli, embedding server)
+cargo build --release --manifest-path llminference/Cargo.toml
 ```
 
 ### Run the LLM daemon
 
-swellmd is config-driven. Edit `llmserv/main/config/application.toml` to pick the model,
-or set an override at `$XDG_CONFIG_HOME/llmserv/application.toml`:
+swellmd is config-driven. Edit `llminference/main/config/application.toml` to pick the model,
+or set an override at `$XDG_CONFIG_HOME/llminference/application.toml`:
 
 ```toml
 [server]
@@ -79,7 +79,7 @@ id = "google/gemma-3-1b-it"             # HuggingFace repo ID
 Then:
 
 ```bash
-llmserv/target/release/swellmd
+llminference/target/release/swellmd
 # → serves OpenAI-compatible /v1/chat/completions on configured host/port
 ```
 
@@ -109,16 +109,16 @@ gguf_path = "./models/nomic-embed-text-v1.5.Q8_0.gguf"
 ```
 
 ```bash
-llmserv/target/release/swe-ml-embed
+llminference/target/release/swe-ml-embed
 # → serves OpenAI-compatible /v1/embeddings on configured host/port
 ```
 
-### Developer CLI (sweai)
+### Developer CLI (llmc)
 
-Unlike the daemons, `sweai` is flag-driven (single-invocation dev tool):
+Unlike the daemons, `llmc` is flag-driven (single-invocation dev tool):
 
 ```bash
-llmserv/target/release/sweai --help
+llminference/target/release/llmc --help
 ```
 
 Subcommands: `infer`, `hub`, `gguf`, `tokenizer`.
@@ -127,7 +127,7 @@ Subcommands: `infer`, `hub`, `gguf`, `tokenizer`.
 
 | Topic | Location |
 |---|---|
-| Daemon architecture | `llmserv/main/features/daemon/docs/3-design/architecture.md` |
+| Daemon architecture | `llminference/main/features/daemon/docs/3-design/architecture.md` |
 | Load testing strategy | `docs/5-testing/load_testing_strategy.md` |
 | Load testing reports | `docs/5-testing/report/load_testing_*.md` |
 | Performance reports | `docs/5-testing/report/perf-*.md` |

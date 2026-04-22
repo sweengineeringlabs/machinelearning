@@ -82,7 +82,7 @@ impl ModelBuilder for Gemma3Builder {
             let ffn_norm_w = get_tensor(&format!("layers.{i}.ffn_norm.weight"))?;
             let post_attention_norm_w = get_tensor(&format!("layers.{i}.post_attention_norm.weight"))?;
             let post_ffn_norm_w = get_tensor(&format!("layers.{i}.post_ffn_norm.weight"))?;
-            if i == 0 && std::env::var("LLMSERV_DUMP_INTERMEDIATES").is_ok() {
+            if i == 0 && std::env::var("LLMINFERENCE_DUMP_INTERMEDIATES").is_ok() {
                 let stat = |name: &str, t: &Tensor| {
                     let v: Vec<f32> = t.iter().collect();
                     let mean: f32 = v.iter().sum::<f32>() / v.len() as f32;

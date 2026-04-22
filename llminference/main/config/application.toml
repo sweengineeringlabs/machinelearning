@@ -1,13 +1,13 @@
-# llmserv application configuration — single source of truth.
+# llminference application configuration — single source of truth.
 #
 # Load order per consumer (first found wins, overlaid with deep-merge):
-#   1. $XDG_CONFIG_HOME/llmserv/application.toml       (user override, highest precedence)
-#   2. $XDG_CONFIG_DIRS/llmserv/application.toml       (system-wide)
-#   3. llmserv/main/features/<feature>/config/application.toml  (per-feature override, bundled)
-#   4. llmserv/main/config/application.toml            (this file — bundled defaults)
+#   1. $XDG_CONFIG_HOME/llminference/application.toml       (user override, highest precedence)
+#   2. $XDG_CONFIG_DIRS/llminference/application.toml       (system-wide)
+#   3. llminference/main/features/<feature>/config/application.toml  (per-feature override, bundled)
+#   4. llminference/main/config/application.toml            (this file — bundled defaults)
 #
 # No CLI flags override these values. To run against a different config,
-# set XDG_CONFIG_HOME=/path/to/dir where the file lives under llmserv/.
+# set XDG_CONFIG_HOME=/path/to/dir where the file lives under llminference/.
 
 # ──────────────────────────────────────────────────────────────────────
 # [server] — HTTP daemon (swe-inference-systemd) bind settings

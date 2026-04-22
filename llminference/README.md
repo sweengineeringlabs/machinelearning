@@ -1,4 +1,4 @@
-# llmserv
+# llminference
 
 LLM-serving Cargo workspace. Contains the inference compute library plus the
 serving frontends (daemon, cli, embedding server) and experimentation code.
@@ -10,7 +10,7 @@ cross-workspace dependency rule.
 ## Layout
 
 ```
-llmserv/
+llminference/
 ├── Cargo.toml                  workspace manifest
 ├── BACKLOG.md                  remaining work on the inference stack
 └── main/
@@ -31,7 +31,7 @@ llmserv/
         │   ├── thread-config/  rayon pool configuration
         │   └── tokenizer/      BPE, GGUF, HuggingFace backends
         ├── daemon/             swellmd HTTP chat-completions server
-        ├── cli/                sweai multi-command developer CLI
+        ├── cli/                llmc multi-command developer CLI
         ├── embedding/server/   swe-ml-embed embedding HTTP server
         └── experimentation/
             └── llmforge/       archived inference prototype (read-only)
@@ -43,30 +43,30 @@ llmserv/
 cargo build --release --manifest-path Cargo.toml
 ```
 
-Binaries land at `llmserv/target/release/`.
+Binaries land at `llminference/target/release/`.
 
 ## Configuration
 
 Daemons (`swellmd`, `swe-ml-embed`) are entirely config-driven — no CLI
 flags. Edit `main/config/application.toml` to change defaults, or provide
-an overlay at `$XDG_CONFIG_HOME/llmserv/application.toml`.
+an overlay at `$XDG_CONFIG_HOME/llminference/application.toml`.
 
 Load order (deep-merge, later wins):
 
 1. Bundled default (compiled into the binary via `include_str!`)
-2. `$XDG_CONFIG_DIRS/llmserv/application.toml` (each entry)
-3. `$XDG_CONFIG_HOME/llmserv/application.toml`
+2. `$XDG_CONFIG_DIRS/llminference/application.toml` (each entry)
+3. `$XDG_CONFIG_HOME/llminference/application.toml`
 
 See the daemon architecture doc (`main/features/daemon/docs/3-design/architecture.md`)
 for the full lifecycle.
 
 ## Dependencies on other workspaces
 
-llmserv depends on the root workspace foundation crates and on the llmmodel
+llminference depends on the root workspace foundation crates and on the llmmodel
 workspace, via relative paths in `Cargo.toml`'s `[workspace.dependencies]`:
 
 - Foundations (root): `swe-ml-tensor`, `swe-ml-normalization`, `swe-ml-activation`,
   `swe-ml-embedding`, `swe-ml-architectures`, `swe-ml-training`
 - Model I/O (llmmodel): `swe-llmmodel-download`, `swe-llmmodel-io`, `swe-llmmodel-weights`
 
-The arrow flows one way: **llmserv → llmmodel → root**. Never the reverse within libraries.
+The arrow flows one way: **llminference → llmmodel → root**. Never the reverse within libraries.

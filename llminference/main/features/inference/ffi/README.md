@@ -1,12 +1,12 @@
-# llmserv-ffi
+# llminference-ffi
 
-C-ABI cdylib for llmserv — load the inference stack directly from
+C-ABI cdylib for llminference — load the inference stack directly from
 Python / Go / C# / Swift / Java / any language with FFI support.
 
 **Not a performance play.** LLM generation is compute-bound (~3000 ms on
 CPU for a 1 B model). HTTP loopback overhead is ~1 ms — 0.03% of wall
 time. FFI does not make inference faster. See T2 in
-`llmserv/BACKLOG.md` for the honest motivation.
+`llminference/BACKLOG.md` for the honest motivation.
 
 This crate is the worked example for the repo-wide cdylib contract
 checklist at `docs/3-design/guides/cdylib_contract_checklist.md` — use
@@ -19,37 +19,38 @@ plugins). These are the real reasons to use it.
 ## Build
 
 ```bash
-cargo build --release --manifest-path llmserv/Cargo.toml -p llmserv-ffi
+cargo build --release --manifest-path llminference/Cargo.toml -p llminference-ffi
 ```
 
-Artifacts land at `llmserv/target/release/`:
+Artifacts land at `llminference/target/release/`:
 
 | Platform | File |
 |---|---|
-| Linux | `libllmserv.so` |
-| macOS | `libllmserv.dylib` |
-| Windows | `llmserv.dll` |
+| Linux | `libllminference.so` |
+| macOS | `libllminference.dylib` |
+| Windows | `llminference.dll` |
 
-The C header is regenerated on every build into `include/llmserv.h`.
+The C header is regenerated on every build into `include/llminference.h`.
 Commit it so non-Rust consumers don't need a Rust toolchain to get
 bindings.
 
 ## API surface
 
-See `include/llmserv.h` for the canonical declarations. Summary:
+See `include/llminference.h` for the canonical declarations. Summary:
 
 | Function | Purpose |
 |---|---|
-| `llmserv_init(LlmHandle**)` | Load the model specified by `application.toml`. |
-| `llmserv_complete(h, prompt, max_tokens, temperature, out_text**)` | Single completion (blocking, returns full text). |
-| `llmserv_complete_stream(h, prompt, max_tokens, temperature, cb, ctx)` | Streaming completion — `cb` called per token; return `false` to stop. |
-| `llmserv_embed(h, text, out_vec**, out_dim*)` | Mean-pooled embedding. |
-| `llmserv_tokenize(h, text, out_ids**, out_len*)` | Encode to token ids. |
-| `llmserv_token_count(h, text, out_count*)` | Just the count (IDE keystroke-frequency use). |
-| `llmserv_destroy(h)` | Free the handle. |
-| `llmserv_free_string(char*)` | Free a string returned by `complete`. |
-| `llmserv_free_floats(float*, usize)` | Free floats returned by `embed`. |
-| `llmserv_free_u32s(u32*, usize)` | Free ids returned by `tokenize`. |
+| `llminference_init(LlmHandle**)` | Load the model specified by `application.toml`. |
+| `llminference_complete(h, prompt, max_tokens, temperature, out_text**)` | Single completion (blocking, returns full text). |
+| `llminference_complete_stream(h, prompt, max_tokens, temperature, cb, ctx)` | Streaming completion — `cb` called per token; return `false` to stop. |
+| `llminference_embed(h, text, out_vec**, out_dim*)` | Mean-pooled embedding. |
+| `llminference_tokenize(h, text, out_ids**, out_len*)` | Encode to token ids. |
+| `llminference_token_count(h, text, out_count*)` | Just the count (IDE keystroke-frequency use). |
+| `llminference_destroy(h)` | Free the handle. |
+| `llminference_free_string(char*)` | Free a string returned by `complete`. |
+| `llminference_free_floats(float*, usize)` | Free floats returned by `embed`. |
+| `llminference_free_u32s(u32*, usize)` | Free ids returned by `tokenize`. |
+
 
 All functions return an `LlmError` code (zero = OK). Panics are caught
 at the boundary and converted to `PANIC`; they never unwind across FFI.
@@ -57,9 +58,9 @@ at the boundary and converted to `PANIC`; they never unwind across FFI.
 ## Memory ownership
 
 **Rust allocates, Rust frees.** Every pointer written to an `out_*`
-argument is valid until you call the matching `llmserv_free_*` function.
+argument is valid until you call the matching `llminference_free_*` function.
 Do not call your platform's `free()` on these pointers. Do not use them
-after `llmserv_destroy`.
+after `llminference_destroy`.
 
 ## Thread-safety contract
 
@@ -75,20 +76,20 @@ destroy takes a write-lock (waits for all readers).
 
 | Operation | From one thread | From N threads on the same handle | On multiple handles across N threads |
 |---|---|---|---|
-| `llmserv_complete` | safe | **safe** (concurrent calls OK) | safe |
-| `llmserv_embed` | safe | **safe** | safe |
-| `llmserv_tokenize` | safe | **safe** | safe |
-| `llmserv_token_count` | safe | **safe** | safe |
-| `llmserv_free_*` | safe | safe (different buffers) | safe |
+| `llminference_complete` | safe | **safe** (concurrent calls OK) | safe |
+| `llminference_embed` | safe | **safe** | safe |
+| `llminference_tokenize` | safe | **safe** | safe |
+| `llminference_token_count` | safe | **safe** | safe |
+| `llminference_free_*` | safe | safe (different buffers) | safe |
 
 ### Destroy, use-after-destroy, double-destroy — all safe
 
-The handle pointer returned by `llmserv_init` remains valid for the
-lifetime of the process. `llmserv_destroy` releases the inner model
+The handle pointer returned by `llminference_init` remains valid for the
+lifetime of the process. `llminference_destroy` releases the inner model
 (frees weights, activations, tokenizer) but does not free the outer
 handle struct. This means:
 
-- **`llmserv_destroy` concurrent with any other call** — the destroy
+- **`llminference_destroy` concurrent with any other call** — the destroy
   waits for in-flight calls to finish, then transitions atomically.
   In-flight calls complete normally; calls that start after destroy
   return `LlmError::Destroyed`.
@@ -98,23 +99,23 @@ handle struct. This means:
   undefined behavior. No segfault, no memory corruption.
 
 Per-init memory cost: one small struct (~40 bytes) permanently retained
-after destroy. Bounded by the number of `llmserv_init` calls in the
+after destroy. Bounded by the number of `llminference_init` calls in the
 process lifetime — irrelevant for typical desktop/IDE usage where a
 handle lives for the process.
 
 ### Still the caller's responsibility
 
-- **Free Rust-allocated buffers with the matching `llmserv_free_*`**,
+- **Free Rust-allocated buffers with the matching `llminference_free_*`**,
   not `free()` / `PyMem_Free` / `delete`. The allocator crossing the
   FFI boundary must match. Opaque wrapper classes in the host language
   are the idiomatic fix (see the Python smoke tests for the pattern).
 - **Respect the ownership lifetime of returned buffers.** A pointer
-  from `llmserv_complete` is valid until you call `llmserv_free_string`
+  from `llminference_complete` is valid until you call `llminference_free_string`
   on it — not after.
 
 ### Allowed but not useful
 
-Spawning N threads that each call `llmserv_complete` on the same handle
+Spawning N threads that each call `llminference_complete` on the same handle
 does NOT give N× throughput. The underlying matmul uses rayon's global
 thread pool, so all calls contend for the same CPUs. See the load-test
 report for why concurrency ≈ 2 is the sweet spot on CPU.
@@ -131,7 +132,7 @@ See `examples/smoke.py` for the canonical `ctypes` binding pattern. Run
 it:
 
 ```bash
-python llmserv/main/features/ffi/examples/smoke.py
+python llminference/main/features/ffi/examples/smoke.py
 ```
 
 Expected output: init → token_count → tokenize → complete → destroy,
@@ -139,18 +140,18 @@ all returning `OK`.
 
 ## Configuration
 
-`llmserv_init` reads the same `application.toml` that the daemons use,
+`llminference_init` reads the same `application.toml` that the daemons use,
 with the same XDG load order:
 
 1. Bundled default (compiled into the library)
-2. `$XDG_CONFIG_DIRS/llmserv/application.toml`
-3. `$XDG_CONFIG_HOME/llmserv/application.toml`
+2. `$XDG_CONFIG_DIRS/llminference/application.toml`
+3. `$XDG_CONFIG_HOME/llminference/application.toml`
 
 To point the FFI at a specific model without editing the bundled
 default, set `XDG_CONFIG_HOME` to a directory containing an override:
 
 ```
-$XDG_CONFIG_HOME/llmserv/application.toml:
+$XDG_CONFIG_HOME/llminference/application.toml:
     [model]
     source = "gguf"
     path = "/path/to/model.gguf"

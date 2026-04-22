@@ -10,7 +10,7 @@ use std::time::Instant;
 impl LlmModel {
     /// Full-sequence forward pass (no KV cache). Used for prefill or scoring.
     pub fn forward_pass(&self, input_ids: &Tensor) -> ModelResult<Tensor> {
-        let dump_inter = std::env::var("LLMSERV_DUMP_INTERMEDIATES").is_ok();
+        let dump_inter = std::env::var("LLMINFERENCE_DUMP_INTERMEDIATES").is_ok();
         let dump_stats = |label: &str, t: &Tensor| {
             if !dump_inter {
                 return;

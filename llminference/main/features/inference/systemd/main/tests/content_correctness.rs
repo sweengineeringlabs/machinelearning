@@ -35,11 +35,11 @@
 //!
 //! ```bash
 //! # native_rust path against an HF model id (downloads to cache if needed)
-//! export LLMSERV_CC_HF_ID="google/gemma-3-1b-it"
+//! export LLMINFERENCE_CC_HF_ID="google/gemma-3-1b-it"
 //! cargo test -p swe_inference_systemd --test content_correctness native_rust -- --ignored --nocapture
 //!
 //! # llama_cpp path against a local GGUF (e.g. Ollama's cache)
-//! export LLMSERV_CC_GGUF="C:/Users/elvis/.ollama/models/blobs/sha256-..."
+//! export LLMINFERENCE_CC_GGUF="C:/Users/elvis/.ollama/models/blobs/sha256-..."
 //! cargo test -p swe_inference_systemd --features backend-llama-cpp \
 //!     --test content_correctness llama_cpp -- --ignored --nocapture
 //! ```
@@ -88,10 +88,10 @@ fn assert_response_contains_expected(prompt: &str, response: &str, expected: &[&
 }
 
 #[test]
-#[ignore = "needs LLMSERV_CC_HF_ID env var (an HF model id like google/gemma-3-1b-it)"]
+#[ignore = "needs LLMINFERENCE_CC_HF_ID env var (an HF model id like google/gemma-3-1b-it)"]
 fn native_rust_chat_completes_correctly_on_known_prompts() {
-    let model_id = std::env::var("LLMSERV_CC_HF_ID")
-        .expect("LLMSERV_CC_HF_ID must be set to an HF model id");
+    let model_id = std::env::var("LLMINFERENCE_CC_HF_ID")
+        .expect("LLMINFERENCE_CC_HF_ID must be set to an HF model id");
 
     let loaded = DefaultLoader::new()
         .load_safetensors(&model_id, OptProfile::Optimized, "")
@@ -116,15 +116,15 @@ fn native_rust_chat_completes_correctly_on_known_prompts() {
 
 #[cfg(feature = "backend-llama-cpp")]
 #[test]
-#[ignore = "needs LLMSERV_CC_GGUF env var (path to a .gguf file)"]
+#[ignore = "needs LLMINFERENCE_CC_GGUF env var (path to a .gguf file)"]
 fn llama_cpp_chat_completes_correctly_on_known_prompts() {
     use std::path::PathBuf;
 
-    let gguf_path = std::env::var("LLMSERV_CC_GGUF")
+    let gguf_path = std::env::var("LLMINFERENCE_CC_GGUF")
         .ok()
         .map(PathBuf::from)
         .filter(|p| p.exists())
-        .expect("LLMSERV_CC_GGUF must be set to an existing .gguf file path");
+        .expect("LLMINFERENCE_CC_GGUF must be set to an existing .gguf file path");
 
     let spec = swe_inference_systemd::ModelSpec {
         backend: swe_inference_systemd::ModelBackend::LlamaCpp,
