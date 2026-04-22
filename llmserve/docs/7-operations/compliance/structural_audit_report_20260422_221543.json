@@ -1,0 +1,1659 @@
+{
+  "timestamp": "2026-04-22T20:15:43.207288900+00:00",
+  "results": [
+    {
+      "id": 1,
+      "category": "structure",
+      "description": "Cargo.toml exists at root",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 0.1948
+    },
+    {
+      "id": 2,
+      "category": "structure",
+      "description": "src/ directory exists",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 0.1805
+    },
+    {
+      "id": 3,
+      "category": "structure",
+      "description": "src/lib.rs or src/main.rs exists",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 6,
+      "category": "structure",
+      "description": "bootstrap.sh or build.sh exists at root",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 7,
+      "category": "structure",
+      "description": "No nested src/ dirs (src/src/)",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 0.033800000000000004
+    },
+    {
+      "id": 8,
+      "category": "structure",
+      "description": "benches/ directory exists (if benchmarks declared)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 9,
+      "category": "cargo_metadata",
+      "description": "package.name exists",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 0.0012
+    },
+    {
+      "id": 10,
+      "category": "cargo_metadata",
+      "description": "package.version exists",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 0.0005
+    },
+    {
+      "id": 11,
+      "category": "cargo_metadata",
+      "description": "package.edition exists",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 0.0005
+    },
+    {
+      "id": 12,
+      "category": "cargo_metadata",
+      "description": "package.description exists",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 12,
+            "path": "Cargo.toml",
+            "message": "Key 'package.description' not found in Cargo.toml",
+            "severity": "warning",
+            "rule_type": "cargo_key_exists",
+            "expected": "package.description",
+            "actual": "missing",
+            "fix_hint": "Add key 'package.description' to Cargo.toml",
+            "remediation_strategy": "manual"
+          }
+        ]
+      },
+      "duration_ms": 0.18330000000000002
+    },
+    {
+      "id": 13,
+      "category": "cargo_metadata",
+      "description": "package.license or package.license-file exists",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 13,
+            "path": "Cargo.toml",
+            "message": "Neither package.license nor package.license-file is set",
+            "severity": "warning",
+            "rule_type": "builtin:license_field_exists",
+            "expected": "package.license or package.license-file",
+            "actual": "missing",
+            "fix_hint": "Add license = \"MIT\" (or appropriate license) to [package] in Cargo.toml",
+            "remediation_strategy": "manual"
+          }
+        ]
+      }
+    },
+    {
+      "id": 14,
+      "category": "cargo_metadata",
+      "description": "package.repository exists",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 14,
+            "path": "Cargo.toml",
+            "message": "Key 'package.repository' not found in Cargo.toml",
+            "severity": "info",
+            "rule_type": "cargo_key_exists",
+            "expected": "package.repository",
+            "actual": "missing",
+            "fix_hint": "Add key 'package.repository' to Cargo.toml",
+            "remediation_strategy": "manual"
+          }
+        ]
+      },
+      "duration_ms": 0.0086
+    },
+    {
+      "id": 15,
+      "category": "cargo_metadata",
+      "description": "package.authors exists",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 15,
+            "path": "Cargo.toml",
+            "message": "Key 'package.authors' not found in Cargo.toml",
+            "severity": "info",
+            "rule_type": "cargo_key_exists",
+            "expected": "package.authors",
+            "actual": "missing",
+            "fix_hint": "Add key 'package.authors' to Cargo.toml",
+            "remediation_strategy": "manual"
+          }
+        ]
+      },
+      "duration_ms": 0.0018
+    },
+    {
+      "id": 16,
+      "category": "cargo_metadata",
+      "description": "package.rust-version exists",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 16,
+            "path": "Cargo.toml",
+            "message": "Key 'package.rust-version' not found in Cargo.toml",
+            "severity": "info",
+            "rule_type": "cargo_key_exists",
+            "expected": "package.rust-version",
+            "actual": "missing",
+            "fix_hint": "Add key 'package.rust-version' to Cargo.toml",
+            "remediation_strategy": "manual"
+          }
+        ]
+      },
+      "duration_ms": 0.002
+    },
+    {
+      "id": 17,
+      "category": "cargo_metadata",
+      "description": "package.keywords exists (libraries)",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 17,
+            "path": "Cargo.toml",
+            "message": "Key 'package.keywords' not found in Cargo.toml",
+            "severity": "info",
+            "rule_type": "cargo_key_exists",
+            "expected": "package.keywords",
+            "actual": "missing",
+            "fix_hint": "Add key 'package.keywords' to Cargo.toml",
+            "remediation_strategy": "manual"
+          }
+        ]
+      },
+      "duration_ms": 0.0598
+    },
+    {
+      "id": 18,
+      "category": "cargo_metadata",
+      "description": "package.categories exists (libraries)",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 18,
+            "path": "Cargo.toml",
+            "message": "Key 'package.categories' not found in Cargo.toml",
+            "severity": "info",
+            "rule_type": "cargo_key_exists",
+            "expected": "package.categories",
+            "actual": "missing",
+            "fix_hint": "Add key 'package.categories' to Cargo.toml",
+            "remediation_strategy": "manual"
+          }
+        ]
+      },
+      "duration_ms": 0.0031
+    },
+    {
+      "id": 19,
+      "category": "cargo_targets",
+      "description": "[lib] path matches existing file",
+      "result": {
+        "status": "skip",
+        "reason": "No [lib] section in Cargo.toml"
+      }
+    },
+    {
+      "id": 20,
+      "category": "cargo_targets",
+      "description": "[[bin]] path matches existing file",
+      "result": {
+        "status": "skip",
+        "reason": "No [[bin]] targets in Cargo.toml"
+      }
+    },
+    {
+      "id": 21,
+      "category": "cargo_targets",
+      "description": "[[test]] targets declared for tests/ files",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 22,
+      "category": "cargo_targets",
+      "description": "[[bench]] targets have harness = false",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 23,
+      "category": "cargo_targets",
+      "description": "No undeclared test files",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 24,
+      "category": "cargo_targets",
+      "description": "No undeclared bench files",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 25,
+      "category": "cargo_targets",
+      "description": "[[example]] targets exist if examples/ present",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 26,
+      "category": "cargo_targets",
+      "description": "[[test]] paths resolve to existing files",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 27,
+      "category": "naming",
+      "description": "Package name uses kebab-case",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 0.9332
+    },
+    {
+      "id": 28,
+      "category": "naming",
+      "description": "Package name has rustboot_ prefix (rustboot)",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: requires Workspace project layout (detected Library)"
+      }
+    },
+    {
+      "id": 29,
+      "category": "naming",
+      "description": "Source files use snake_case naming",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 1.2746000000000002
+    },
+    {
+      "id": 30,
+      "category": "naming",
+      "description": "No uppercase in source file names",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 1.9123
+    },
+    {
+      "id": 31,
+      "category": "naming",
+      "description": "Module file names match mod declarations",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 32,
+      "category": "naming",
+      "description": "Binary names use hyphens or underscores",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 33,
+      "category": "test_org",
+      "description": "Test files use correct suffixes (_test.rs, _int_test.rs, _e2e_test.rs, etc.)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 34,
+      "category": "test_org",
+      "description": "Test function name prefix follows location-aware convention: <feature>_<type_kind>_<fn>_<suffix> for tests/<file>.rs; <type_kind>_<fn>_<suffix> for tests/<feature>/<file>.rs (type_kind ∈ {trait,struct,type,enum})",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 35,
+      "category": "test_org",
+      "description": "Test function name uses either the conventional test_ prefix or a recognised test-category suffix (_test, _int_test, _e2e_test, _perf_test, _security_test, _stress_test, _load_test, _unit_test, _smoke_test, _contract_test)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 36,
+      "category": "test_org",
+      "description": "Integration tests in tests/src/ (rustboot)",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: requires Workspace project layout (detected Library)"
+      }
+    },
+    {
+      "id": 37,
+      "category": "test_org",
+      "description": "Unit tests colocated in source files",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 38,
+      "category": "test_org",
+      "description": "No test code in src/ (non-#[cfg(test)])",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 39,
+      "category": "documentation",
+      "description": "README.md exists",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 0.0851
+    },
+    {
+      "id": 40,
+      "category": "documentation",
+      "description": "doc/ or docs/ directory exists (if library)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 41,
+      "category": "documentation",
+      "description": "examples/ directory exists (if library)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 42,
+      "category": "documentation",
+      "description": "CHANGELOG.md exists",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 0.0795
+    },
+    {
+      "id": 43,
+      "category": "hygiene",
+      "description": ".gitignore exists with target/",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 0.26439999999999997
+    },
+    {
+      "id": 44,
+      "category": "hygiene",
+      "description": "No generated files committed (target/)",
+      "result": {
+        "status": "skip",
+        "reason": "Not a git repository"
+      },
+      "duration_ms": 0.0498
+    },
+    {
+      "id": 46,
+      "category": "interface",
+      "description": "api/ layer must not import from core/ (L2 must not depend on L3)",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 2.1145
+    },
+    {
+      "id": 47,
+      "category": "interface",
+      "description": "saf/ must not re-export from core/ (SAF re-exports from api/ and spi/ only)",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 0.0974
+    },
+    {
+      "id": 48,
+      "category": "interface",
+      "description": "api/traits.rs must exist (SEA interface contract)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 49,
+      "category": "interface",
+      "description": "Core modules must implement their api traits (impl <Trait> for)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 50,
+      "category": "interface",
+      "description": "Core items (struct, enum, type, trait, fn, const, static) must use pub(crate) visibility, not bare pub",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 52,
+      "category": "interface",
+      "description": "saf/mod.rs must exist (SAF facade entry point)",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: rule only applies to [Lib, Gateway], not Binary"
+      }
+    },
+    {
+      "id": 53,
+      "category": "interface",
+      "description": "saf/ must not define new pub structs (facade layer only re-exports and wires)",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 1.7136
+    },
+    {
+      "id": 54,
+      "category": "interface",
+      "description": "lib.rs must delegate public surface to saf/ via pub use",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: rule only applies to [Lib, Gateway], not Binary"
+      }
+    },
+    {
+      "id": 55,
+      "category": "interface",
+      "description": "lib.rs must not declare core as public (pub mod core is forbidden)",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 1.3287
+    },
+    {
+      "id": 56,
+      "category": "interface",
+      "description": "lib.rs must not declare api as public (pub mod api is forbidden — all layers must be private)",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 1.4523
+    },
+    {
+      "id": 57,
+      "category": "interface",
+      "description": "spi/ must not import from core/ (L2 peers must not depend on each other)",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 1.0277
+    },
+    {
+      "id": 58,
+      "category": "interface",
+      "description": "When spi/ exists, lib.rs must declare `mod spi` (private, not pub mod)",
+      "result": {
+        "status": "skip",
+        "reason": "No spi/ directory found — spi layer is not in use"
+      }
+    },
+    {
+      "id": 60,
+      "category": "interface",
+      "description": "spi/ must not import from saf/ (L2 must not depend on L3)",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 1.8353
+    },
+    {
+      "id": 61,
+      "category": "interface",
+      "description": "core/ must not import from spi/ (L2 peers must not depend on each other)",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 2.1177
+    },
+    {
+      "id": 62,
+      "category": "workspace",
+      "description": "main/{subdir}/ directory exists (workspace projects)",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: requires Workspace project layout (detected Library)"
+      }
+    },
+    {
+      "id": 63,
+      "category": "workspace",
+      "description": "Each workspace member has Cargo.toml",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: requires Workspace project layout (detected Library)"
+      }
+    },
+    {
+      "id": 64,
+      "category": "workspace",
+      "description": "Each workspace member has src/ directory",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: requires Workspace project layout (detected Library)"
+      }
+    },
+    {
+      "id": 65,
+      "category": "workspace",
+      "description": "Each workspace member has src/lib.rs or src/main.rs",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: requires Workspace project layout (detected Library)"
+      }
+    },
+    {
+      "id": 66,
+      "category": "scripts",
+      "description": "scripts/ci/ directory exists (if scripts/ present)",
+      "result": {
+        "status": "skip",
+        "reason": "No scripts/ directory"
+      }
+    },
+    {
+      "id": 67,
+      "category": "scripts",
+      "description": "scripts/ci/build.sh exists (if scripts/ci/ present)",
+      "result": {
+        "status": "skip",
+        "reason": "No scripts/ci/ directory"
+      }
+    },
+    {
+      "id": 68,
+      "category": "scripts",
+      "description": "scripts/ci/test.sh exists (if scripts/ci/ present)",
+      "result": {
+        "status": "skip",
+        "reason": "No scripts/ci/ directory"
+      }
+    },
+    {
+      "id": 69,
+      "category": "scripts",
+      "description": "scripts/ci/lint.sh exists (if scripts/ci/ present)",
+      "result": {
+        "status": "skip",
+        "reason": "No scripts/ci/ directory"
+      }
+    },
+    {
+      "id": 70,
+      "category": "workspace",
+      "description": "Multi-feature workspace must not have [package] at root",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: requires Workspace project layout (detected Library)"
+      }
+    },
+    {
+      "id": 71,
+      "category": "structure",
+      "description": "Root contains only allowed entries (whitelist enforcement)",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 71,
+            "path": "llamacpp",
+            "message": "Unexpected entry 'llamacpp' at feature level (not in feature whitelist)",
+            "severity": "error",
+            "rule_type": "builtin:root_whitelist",
+            "expected": "Only entries from the feature whitelist",
+            "actual": "llamacpp",
+            "fix_hint": "Fix the issue detected by builtin check 'root_whitelist'",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 71,
+            "path": "llmmodel",
+            "message": "Unexpected entry 'llmmodel' at feature level (not in feature whitelist)",
+            "severity": "error",
+            "rule_type": "builtin:root_whitelist",
+            "expected": "Only entries from the feature whitelist",
+            "actual": "llmmodel",
+            "fix_hint": "Fix the issue detected by builtin check 'root_whitelist'",
+            "remediation_strategy": "manual"
+          }
+        ]
+      }
+    },
+    {
+      "id": 75,
+      "category": "structure",
+      "description": "bootstrap.ps1 or build.ps1 exists at root (Windows)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 76,
+      "category": "structure",
+      "description": "docs/ directory exists at root",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 0.1193
+    },
+    {
+      "id": 77,
+      "category": "test_org",
+      "description": "All public functions have corresponding tests (name-based)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 78,
+      "category": "test_org",
+      "description": "Tests use @covers: annotation for explicit 1:1 function linking",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 79,
+      "category": "naming",
+      "description": "Trait names must be singular (not plural)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 80,
+      "category": "test_org",
+      "description": "tests/ directory exists at same level as src/",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 0.126
+    },
+    {
+      "id": 81,
+      "category": "interface",
+      "description": "Reports deprecated trait definitions in api/traits.rs for tracking",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 82,
+      "category": "workspace",
+      "description": "Workspace members with SEA layers (api/ or spi/) must have tests/ directory",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: requires Workspace project layout (detected Library)"
+      }
+    },
+    {
+      "id": 83,
+      "category": "workspace",
+      "description": "Workspace members with spi/ must have *_int_test.rs and *_security_test.rs files",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: requires Workspace project layout (detected Library)"
+      }
+    },
+    {
+      "id": 84,
+      "category": "workspace",
+      "description": "Tests must only import external crates via saf/ (test domain isolation)",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: requires Workspace project layout (detected Library)"
+      }
+    },
+    {
+      "id": 85,
+      "category": "workspace",
+      "description": "Workspace root should not have tests/ directory (tests belong in member crates)",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: requires Workspace project layout (detected Library)"
+      }
+    },
+    {
+      "id": 86,
+      "category": "interface",
+      "description": "core/ must not define traits (L3 contains implementations only)",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 1.6462
+    },
+    {
+      "id": 87,
+      "category": "interface",
+      "description": "SEA layer directories must not contain crates (no Cargo.toml inside api/, core/, saf/, spi/)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 89,
+      "category": "naming",
+      "description": "Core module filenames must match their primary struct/trait name (with suffix tolerance)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 90,
+      "category": "naming",
+      "description": "Types in core modules must be name-cohesive (SRP enforcement)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 91,
+      "category": "naming",
+      "description": "Suggest Builder pattern for complex structs (advisory)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 92,
+      "category": "application_type",
+      "description": "application_type must be defined in project metadata",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 93,
+      "category": "application_type",
+      "description": "Project structure must match declared application_type",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 94,
+      "category": "test_org",
+      "description": "Integration tests must not use mocking libraries or mock types",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 95,
+      "category": "test_org",
+      "description": "Dependencies used in src/ must have integration or e2e test coverage",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 96,
+      "category": "hygiene",
+      "description": "Dependencies declared in Cargo.toml must be used in src/",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 97,
+      "category": "hygiene",
+      "description": "CLI projects should use dirs/directories crate for XDG-compliant paths",
+      "result": {
+        "status": "skip",
+        "reason": "Not a CLI project (no bin targets or main.rs)"
+      }
+    },
+    {
+      "id": 98,
+      "category": "hygiene",
+      "description": "No hardcoded home directory paths in source code",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 99,
+      "category": "test_org",
+      "description": "Test files use suffixes consistent with dependency scope (allowing integration-style *_int_test.rs / *_e2e_test.rs in tests/)",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 99,
+            "path": "llmmodel\\cli\\tests\\cli.rs",
+            "message": "Test file 'cli.rs' has dependency scope 'unit test (imports only from tested module)' but uses suffix '(no valid suffix)'",
+            "severity": "warning",
+            "rule_type": "builtin:test_location_by_deps",
+            "expected": "_test.rs",
+            "fix_hint": "Rename to use '_test.rs' suffix, or adjust imports to match current suffix",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 99,
+            "path": "llmmodel\\gguf\\tests\\cli.rs",
+            "message": "Test file 'cli.rs' has dependency scope 'unit test (imports only from tested module)' but uses suffix '(no valid suffix)'",
+            "severity": "warning",
+            "rule_type": "builtin:test_location_by_deps",
+            "expected": "_test.rs",
+            "fix_hint": "Rename to use '_test.rs' suffix, or adjust imports to match current suffix",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 99,
+            "path": "llmmodel\\layers\\tests\\bench_optimizations.rs",
+            "message": "Test file 'bench_optimizations.rs' has dependency scope 'unit test (imports only from tested module)' but uses suffix '(no valid suffix)'",
+            "severity": "warning",
+            "rule_type": "builtin:test_location_by_deps",
+            "expected": "_test.rs",
+            "fix_hint": "Rename to use '_test.rs' suffix, or adjust imports to match current suffix",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 99,
+            "path": "llmmodel\\tokenizer\\tests\\cli.rs",
+            "message": "Test file 'cli.rs' has dependency scope 'unit test (imports only from tested module)' but uses suffix '(no valid suffix)'",
+            "severity": "warning",
+            "rule_type": "builtin:test_location_by_deps",
+            "expected": "_test.rs",
+            "fix_hint": "Rename to use '_test.rs' suffix, or adjust imports to match current suffix",
+            "remediation_strategy": "manual"
+          }
+        ]
+      }
+    },
+    {
+      "id": 100,
+      "category": "workspace",
+      "description": "Workspace members under gateway/output/ must have *_int_test.rs files",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: requires Workspace project layout (detected Library)"
+      }
+    },
+    {
+      "id": 101,
+      "category": "shell_structure",
+      "description": "bin/main.sh must exist for shell_binary projects",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: rule only applies to [ShellBinary], not Binary"
+      }
+    },
+    {
+      "id": 102,
+      "category": "shell_structure",
+      "description": "src/lib.sh must exist for shell_lib projects",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: rule only applies to [ShellLib], not Binary"
+      }
+    },
+    {
+      "id": 103,
+      "category": "gateway_isolation",
+      "description": "lib.rs must declare gateway as a private module — pub mod and pub(crate) mod are forbidden",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 1.8098
+    },
+    {
+      "id": 104,
+      "category": "gateway_isolation",
+      "description": "src/gateway/ must not exist in binary/gateway crates — only lib app types may have a gateway module",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 104,
+            "path": "src/gateway",
+            "message": "src/gateway/ directory found — only application_type = 'lib' crates may have a gateway module",
+            "severity": "error",
+            "rule_type": "dir_not_exists",
+            "expected": "absent",
+            "actual": "src/gateway",
+            "fix_hint": "Remove src/gateway/ or change application_type to 'lib' if this crate requires gateway I/O",
+            "remediation_strategy": "manual"
+          }
+        ]
+      },
+      "duration_ms": 0.1516
+    },
+    {
+      "id": 105,
+      "category": "test_org",
+      "description": "Each api/ trait has a corresponding test file in tests/",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 106,
+      "category": "interface",
+      "description": "saf/ must wrap all non-deprecated api/ traits as standalone public functions",
+      "result": {
+        "status": "dormant",
+        "waiting_on": [
+          52
+        ],
+        "reason": "Dormant: would fire when prerequisite rule(s) 52 pass"
+      }
+    },
+    {
+      "id": 107,
+      "category": "workspace",
+      "description": "In dual workspace layouts, innermost crates must be members of the root workspace (not the inner workspace as a member)",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: requires Workspace project layout (detected Library)"
+      }
+    },
+    {
+      "id": 108,
+      "category": "code_organization",
+      "description": "Each public struct/trait/enum must have its own .rs file (one primary type per file)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 109,
+      "category": "code_organization",
+      "description": "Rust source file names must be nouns (no verb or assertion names like check_exists.rs)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 110,
+      "category": "code_organization",
+      "description": "mod.rs must contain only module declarations and re-exports — no struct/impl/fn logic",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 111,
+      "category": "code_organization",
+      "description": "No loose .rs files directly under src/core/ — all code must live in subfolders",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 112,
+      "category": "code_organization",
+      "description": "Sibling files sharing a common prefix must be grouped into a subdirectory module (e.g., check_runner.rs + check_result.rs → check/runner.rs + check/result.rs)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 113,
+      "category": "interface",
+      "description": "Every core/ struct with pub/pub(crate) methods must implement a trait defined in api/ (program to the interface)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 114,
+      "category": "interface",
+      "description": "core/ must not import from spi/ — depend on api/ traits, receive implementations via DI from saf/",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 2.3514
+    },
+    {
+      "id": 115,
+      "category": "interface",
+      "description": "core/ must not import from gateway/ — depend on api/ traits, receive implementations via DI from saf/",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 2.5284
+    },
+    {
+      "id": 116,
+      "category": "interface",
+      "description": "api/ must not import from core/ — api/ defines abstractions, it must not depend on implementations",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 2.848
+    },
+    {
+      "id": 117,
+      "category": "interface",
+      "description": "api/ must not import from spi/ — api/ defines abstractions, it must not depend on implementations",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 1.6663999999999999
+    },
+    {
+      "id": 118,
+      "category": "interface",
+      "description": "api/ must not import from gateway/ — api/ defines abstractions, it must not depend on implementations",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 2.2479
+    },
+    {
+      "id": 119,
+      "category": "interface",
+      "description": "gateway/ must not import from spi/ — gateway/ depends on saf/ only, not on SPI implementations",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 1.9022
+    },
+    {
+      "id": 120,
+      "category": "test_org",
+      "description": "Each source file in SEA layers has coverage via inline tests, a matching test file, or a layer-level test file in tests/ — reports per-layer coverage",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 120,
+            "path": null,
+            "message": "Structural test coverage is 0% (0/2 source files covered), minimum is 80%. Per-layer: [api=0%(0/2)]",
+            "severity": "warning",
+            "rule_type": "builtin:sea_layer_test_coverage",
+            "expected": ">=80% coverage",
+            "actual": "0% coverage",
+            "fix_hint": "Add test files for uncovered source modules",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 120,
+            "path": "src/api/traits.rs",
+            "message": "[api] Source file 'src/api/traits.rs' has no corresponding test file in tests",
+            "severity": "warning",
+            "rule_type": "builtin:sea_layer_test_coverage",
+            "expected": "traits_test.rs or traits_int_test.rs",
+            "actual": "no matching test file found",
+            "fix_hint": "Create a test file like `tests/traits_test.rs`",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 120,
+            "path": "src/api/types.rs",
+            "message": "[api] Source file 'src/api/types.rs' has no corresponding test file in tests",
+            "severity": "warning",
+            "rule_type": "builtin:sea_layer_test_coverage",
+            "expected": "types_test.rs or types_int_test.rs",
+            "actual": "no matching test file found",
+            "fix_hint": "Create a test file like `tests/types_test.rs`",
+            "remediation_strategy": "manual"
+          }
+        ]
+      }
+    },
+    {
+      "id": 121,
+      "category": "interface",
+      "description": "Every {implementation_layer}/ submodule must have a corresponding {interface_layer}/ submodule defining its types or traits",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: builtin handler 'core_api_module_correspondence' not implemented"
+      }
+    },
+    {
+      "id": 122,
+      "category": "interface",
+      "description": "Config struct methods must be pub(crate), not pub — configs are not for public consumption",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 123,
+      "category": "naming",
+      "description": "Module name must not prefix the struct/trait name (e.g., config::Config not config::ConfigConfig)",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: builtin handler 'module_name_not_prefix_type' not implemented"
+      }
+    },
+    {
+      "id": 124,
+      "category": "test_org",
+      "description": "Every pub/pub(crate) fn in core/ must have an inline unit test (#[cfg(test)] block with #[test])",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 125,
+      "category": "test_org",
+      "description": "Every pub fn in saf/ must have corresponding public-API test coverage (_e2e_test.rs, _int_test.rs, or a layer-level saf_* test)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 126,
+      "category": "interface",
+      "description": "saf/ must not re-export traits via pub use — wrap trait methods as standalone functions instead",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 2.7378
+    },
+    {
+      "id": 127,
+      "category": "workspace",
+      "description": "Workspace root should not have config/ directory (config belongs under main/)",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: requires Workspace project layout (detected Library)"
+      }
+    },
+    {
+      "id": 128,
+      "category": "workspace",
+      "description": "Workspace root should not have scripts/ directory (scripts belongs under main/)",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: requires Workspace project layout (detected Library)"
+      }
+    },
+    {
+      "id": 129,
+      "category": "workspace",
+      "description": "Workspace root should not have examples/ directory (examples belongs under main/)",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: requires Workspace project layout (detected Library)"
+      }
+    },
+    {
+      "id": 130,
+      "category": "structure",
+      "description": "Root must not have both build and bootstrap scripts",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 131,
+      "category": "gateway_isolation",
+      "description": "src/gateway/ must exist (prerequisite gate for rules 132-133)",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: rule only applies to [Lib], not Binary"
+      }
+    },
+    {
+      "id": 132,
+      "category": "gateway_isolation",
+      "description": "gateway/mod.rs must declare pub(crate) mod input",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: rule only applies to [Lib], not Binary"
+      }
+    },
+    {
+      "id": 133,
+      "category": "gateway_isolation",
+      "description": "gateway/mod.rs must declare pub(crate) mod output",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: rule only applies to [Lib], not Binary"
+      }
+    },
+    {
+      "id": 134,
+      "category": "interface",
+      "description": "core/ must not import from saf/ — core/ depends only on api/ traits",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 1.7991000000000001
+    },
+    {
+      "id": 135,
+      "category": "interface",
+      "description": "spi/ must not import from gateway/ — spi/ implements api/ traits only",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 2.4608999999999996
+    },
+    {
+      "id": 136,
+      "category": "interface",
+      "description": "gateway/ must not import from core/ — gateway/ calls saf/, not core/ directly",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 2.1928
+    },
+    {
+      "id": 137,
+      "category": "interface",
+      "description": "saf/ must not import from gateway/ — gateway/ calls saf/, not the reverse",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 1.3507
+    },
+    {
+      "id": 138,
+      "category": "naming",
+      "description": "Directory names under src/ must use snake_case",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 139,
+      "category": "shim_detection",
+      "description": "SEA layer files must contain substantive code (not just comments or empty re-exports)",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 139,
+            "path": "src/api/traits.rs",
+            "message": "'src/api/traits.rs' contains no substantive code (only comments/blanks)",
+            "severity": "warning",
+            "rule_type": "builtin:sea_layer_substantive_code",
+            "expected": "struct, trait, enum, fn, or impl definitions",
+            "actual": "empty file",
+            "fix_hint": "Add real type/trait definitions to 'src/api/traits.rs'",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 139,
+            "path": "src/api/types.rs",
+            "message": "'src/api/types.rs' contains no substantive code (only comments/blanks)",
+            "severity": "warning",
+            "rule_type": "builtin:sea_layer_substantive_code",
+            "expected": "struct, trait, enum, fn, or impl definitions",
+            "actual": "empty file",
+            "fix_hint": "Add real type/trait definitions to 'src/api/types.rs'",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 139,
+            "path": "src/core/mod.rs",
+            "message": "'src/core/mod.rs' contains no substantive code (only comments/blanks)",
+            "severity": "warning",
+            "rule_type": "builtin:sea_layer_substantive_code",
+            "expected": "struct, trait, enum, fn, or impl definitions",
+            "actual": "empty file",
+            "fix_hint": "Add real type/trait definitions to 'src/core/mod.rs'",
+            "remediation_strategy": "manual"
+          }
+        ]
+      }
+    },
+    {
+      "id": 140,
+      "category": "shim_detection",
+      "description": "lib.rs must be a real entry point, not a shim with only re-exports",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 141,
+      "category": "shim_detection",
+      "description": "SEA layer mod.rs must not be a crate-level re-export shim",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 142,
+      "category": "shim_detection",
+      "description": "SEA layer directories must meet minimum LOC threshold (api/>10, core/>20, saf/>5)",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 142,
+            "path": "src/api/",
+            "message": "api/ has only 2 lines of code (minimum: 10)",
+            "severity": "info",
+            "rule_type": "builtin:sea_layer_min_loc",
+            "expected": ">=10 lines of code",
+            "actual": "2 LOC",
+            "fix_hint": "Add substantive code to api/ — current content may be a shim",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 142,
+            "path": "src/core/",
+            "message": "core/ has only 0 lines of code (minimum: 20)",
+            "severity": "info",
+            "rule_type": "builtin:sea_layer_min_loc",
+            "expected": ">=20 lines of code",
+            "actual": "0 LOC",
+            "fix_hint": "Add substantive code to core/ — current content may be a shim",
+            "remediation_strategy": "manual"
+          }
+        ]
+      }
+    },
+    {
+      "id": 143,
+      "category": "shim_detection",
+      "description": "[lib] and [[bin]] paths must point inside src/",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 144,
+      "category": "shim_detection",
+      "description": "Non-standard [lib] path with src/ present suggests shim directory",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 145,
+      "category": "interface",
+      "description": "Free functions in saf/ or core/ taking an api-defined type as parameter should be methods on that type",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 146,
+      "category": "naming",
+      "description": "Package name must not use SEA layer suffixes as defined in sea_layers config",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 147,
+      "category": "workspace",
+      "description": "Workspace root Cargo.toml must not contain [package] — workspace roots must be virtual",
+      "result": {
+        "status": "skip",
+        "reason": "Not a workspace root — [workspace] absent"
+      }
+    },
+    {
+      "id": 148,
+      "category": "workspace",
+      "description": "Crate name must not duplicate any other crate name or module name in the same workspace",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: requires Workspace project layout (detected Library)"
+      }
+    },
+    {
+      "id": 149,
+      "category": "test_org",
+      "description": "Test file prefix must match a source module name, optionally followed by a pub fn name",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 150,
+      "category": "hygiene",
+      "description": "Weak filesystem patterns — code that produces host-dependent paths (MAIN_SEPARATOR, hardcoded \\\\, replace-hacks, literal backslashes)",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 3.8428
+    },
+    {
+      "id": 151,
+      "category": "structure",
+      "description": "Feature crate must have config/application.toml for runtime configuration",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 0.1296
+    },
+    {
+      "id": 152,
+      "category": "service_type",
+      "description": "service_type must be defined in project metadata",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: builtin handler 'service_type_defined' not implemented"
+      }
+    },
+    {
+      "id": 153,
+      "category": "service_type",
+      "description": "api/traits.rs must contain the primary trait matching service_type",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: builtin handler 'service_type_primary_trait_exists' not implemented"
+      }
+    },
+    {
+      "id": 154,
+      "category": "service_type",
+      "description": "core/ must implement the primary api trait (impl <PrimaryTrait> for)",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: builtin handler 'service_type_core_implements_trait' not implemented"
+      }
+    },
+    {
+      "id": 155,
+      "category": "service_type",
+      "description": "Every non-orchestrator crate must have a Validator trait in api/traits.rs",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: builtin handler 'service_type_has_validator' not implemented"
+      }
+    },
+    {
+      "id": 156,
+      "category": "workspace",
+      "description": "Workspace member paths and crate names must not contain duplicate segments (design smell)",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: requires Workspace project layout (detected Library)"
+      }
+    },
+    {
+      "id": 157,
+      "category": "workspace",
+      "description": "Same directory basename must not appear at multiple paths under workspace_layout (detects orphaned legacy duplication)",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: requires Workspace project layout (detected Library)"
+      }
+    },
+    {
+      "id": 158,
+      "category": "test_org",
+      "description": "Test functions must not be placeholders (panic!/todo!/unimplemented!/unreachable!/empty body)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 159,
+      "category": "interface",
+      "description": "saf/ public function signatures must not name types from core/ (signature leak)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 160,
+      "category": "interface",
+      "description": "All public types (struct, enum, trait, type alias) must be declared under api/ — no other layer is a legal declaration site",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 161,
+      "category": "naming",
+      "description": "Each pub type/trait in api/ must be in its own standalone file with the file stem matching the snake_case name",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 161,
+            "path": "src\\api\\types.rs",
+            "message": "api/ file 'src/api/types.rs' has no pub type/trait declarations",
+            "severity": "warning",
+            "rule_type": "builtin:api_filename_matches_type",
+            "expected": "a single pub item named 'Types'",
+            "actual": "no pub items",
+            "fix_hint": "Add a pub type/trait whose name matches the filename, or delete the file.",
+            "remediation_strategy": "imperative",
+            "principles": [
+              "screaming_architecture",
+              "locality_of_reference"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 162,
+      "category": "code_organization",
+      "description": "lib.rs must contain only module declarations and re-exports — no struct/impl/fn/const definitions",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 163,
+      "category": "code_organization",
+      "description": "main.rs may contain only module declarations, re-exports, and exactly one fn main — no other logic",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 163,
+            "path": "llmmodel\\cli\\src\\main.rs",
+            "message": "main.rs contains forbidden items: type/impl declarations (struct/enum/trait/impl/union), function definitions [build_downloader, dispatch] — this file is the package's access point, not a 'lost and found' for logic",
+            "severity": "warning",
+            "rule_type": "builtin:binary_entry_minimal",
+            "expected": "Only mod declarations, use/pub use re-exports, attributes, doc comments, and exactly one `fn main`",
+            "actual": "type/impl declarations (struct/enum/trait/impl/union), function definitions [build_downloader, dispatch]",
+            "fix_hint": "Move declarations out of main.rs: pub types → api/, pub functions → saf/ (factory), implementations → core/. main.rs should only wire up modules and re-exports.",
+            "remediation_strategy": "manual"
+          }
+        ]
+      }
+    },
+    {
+      "id": 164,
+      "category": "structure",
+      "description": "Declared workspaces in main/config/architecture.toml [project].workspaces must exist on disk with Cargo.toml",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: requires Project project layout (detected Library)"
+      }
+    },
+    {
+      "id": 165,
+      "category": "structure",
+      "description": "Every directory at the project root with a Cargo.toml must be declared in main/config/architecture.toml [project].workspaces",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: requires Project project layout (detected Library)"
+      }
+    },
+    {
+      "id": 166,
+      "category": "workspace",
+      "description": "Every crate directory with a Cargo.toml under the workspace root must be listed in [workspace].members",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: requires Workspace project layout (detected Library)"
+      }
+    }
+  ],
+  "summary": {
+    "total": 157,
+    "passed": 96,
+    "failed": 15,
+    "skipped": 45,
+    "dormant": 1,
+    "duration_ms": 319.5776
+  },
+  "project_layout": "library",
+  "application_type": "binary"
+}

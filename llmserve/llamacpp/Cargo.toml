@@ -17,12 +17,12 @@ default = []
 llama-cpp = ["dep:llama-cpp-2", "dep:encoding_rs"]
 
 [dependencies]
-swe-inference-backend-api.workspace = true
-swe-inference-generation.workspace = true
-swe-llmmodel-tokenizer.workspace = true
-swe-llmmodel-layers.workspace = true
-swe-llmmodel-model.workspace = true
-swe-ml-tensor.workspace = true
+swe-inference-backend-api = { path = "../llminference/main/features/inference/backend-api" }
+swe-inference-generation = { path = "../llminference/main/features/inference/generation" }
+swe-llmmodel-tokenizer = { path = "../llmmodel/tokenizer" }
+swe-llmmodel-layers = { path = "../llmmodel/layers" }
+swe-llmmodel-model = { path = "../llmmodel/model" }
+swe-ml-tensor = { path = "../main/features/tensor" }
 anyhow.workspace = true
 log.workspace = true
 llama-cpp-2 = { workspace = true, optional = true }

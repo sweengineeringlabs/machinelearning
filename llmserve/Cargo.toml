@@ -1,0 +1,14 @@
+[package]
+name = "llminference"
+version = "0.1.0"
+edition = "2021"
+description = "Inference serving workspace for RustML."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/sweengineeringlabs/machinelearning"
+authors = ["phdsystems <developer@phdsystems.com>"]
+rust-version = "1.75"
+keywords = ["ml", "inference", "llm"]
+categories = ["science::ai"]
+
+[package.metadata.struct-engine]
+application_type = "binary"

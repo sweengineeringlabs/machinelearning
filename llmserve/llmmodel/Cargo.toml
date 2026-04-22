@@ -85,3 +85,4 @@ swe-llmmodel-arch-gemma4     = { path = "arch/gemma4" }
 swe-llmmodel-arch-bert       = { path = "arch/bert" }
 swe-llmmodel-arch-nomic-bert = { path = "arch/nomic_bert" }
 swe-llmmodel-loader   = { path = "loader" }
+swe-inference-backend-api = { path = "../../llminference/main/features/inference/backend-api" }
