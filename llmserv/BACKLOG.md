@@ -697,7 +697,7 @@ submodule without changing the `LlamaCppBackend` trait surface.
      `NativeRustBackend` so daemon SSE behavior is identical
 
 6. **Correctness harness (~1 day).**
-   - New test `llmserv/main/features/backend-llama-cpp/tests/parity.rs`
+   - New test `llamacpp/tests/parity.rs`
    - Load same GGUF with both backends, generate 32 tokens at
      temperature=0, assert token sequences match for
      gemma-3-1b-it and qwen2.5-0.5b

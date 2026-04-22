@@ -147,7 +147,7 @@ The project is licensed under MIT OR Apache-2.0.
 *   **High-Level Responsibility:** The `llmserv` workspace is dedicated to serving LLMs, providing the inference-server stack. It encapsulates the compute library necessary for inference and various frontends for exposing LLM capabilities via APIs.
 
 *   **Internal Organization:**
-    *   **Inference Compute Stack:** This is the heart of `llmserv`, located under `main/features/inference/`. It includes crates for `generation` (text generation), `prefill` (initial token processing), `compute` (inference computations), `thread-config` (thread management for inference), `backend-api`, and `backend-llama-cpp` (potential integration with `llama.cpp` for specialized inference).
+    *   **Inference Compute Stack:** This is the heart of `llmserv`, located under `main/features/inference/`. It includes crates for `generation` (text generation), `prefill` (initial token processing), `compute` (inference computations), `thread-config` (thread management for inference), `backend-api`, and `swe-llmserver-llamacpp` (located at `llamacpp/`, providing integration with `llama.cpp` for specialized inference).
     *   **Serving Frontends:**
         *   `main/features/inference/systemd`: Likely the LLM daemon (`swellmd`) responsible for handling chat completions.
         *   `main/features/embedding/systemd`: The embedding HTTP server (`swe-ml-embed`).

@@ -1,5 +1,5 @@
 [package]
-name = "swe-inference-backend-llama-cpp"
+name = "swe-llmserver-llamacpp"
 description = "llama.cpp-backed ModelBackendLoader — architectural skeleton; llama-cpp-2 integration is a separate follow-up"
 version.workspace = true
 edition.workspace = true

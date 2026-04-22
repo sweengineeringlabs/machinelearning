@@ -9,13 +9,14 @@ members = [
     "main/features/cli",
     "main/features/architectures",
     "main/features/training",
+    "llamacpp",
     # Developer tools — build-time utilities, not runtime.
     # Note: devtools/quantize depends on llmserv crates (quantizer, gguf, model)
     # via cross-workspace path deps. This is the single backward arrow we
     # accept, because it's a tool, not a library.
     "devtools/quantize",
 ]
-exclude = ["llmserv", "llmmodel"]
+exclude = ["llmserv", "llmmodel", "llamacpp"]
 
 [workspace.package]
 version = "0.1.0"
@@ -61,6 +62,7 @@ smallvec = { version = "1.11", features = ["const_generics"] }
 safetensors = "0.3"
 tokenizers = "0.21"
 swe-readline = { path = "../swebash/swe-readline" }
+llama-cpp-2 = "0.1.143"
 
 # Foundation crates (in this workspace)
 swe-ml-tensor        = { path = "main/features/tensor" }
@@ -85,6 +87,9 @@ swe-llmmodel-quantizer = { path = "llmmodel/quantizer" }
 # Cross-workspace deps to llmserv — used only by devtools/quantize.
 # devtools is a tool, so the backward arrow is acceptable.
 swe-inference-thread-config = { path = "llmserv/main/features/inference/thread-config" }
+swe-inference-backend-api = { path = "llmserv/main/features/inference/backend-api" }
+swe-inference-generation = { path = "llmserv/main/features/inference/generation" }
+swe-llmserver-llamacpp = { path = "llamacpp" }
 
 [profile.release]
 lto = "thin"

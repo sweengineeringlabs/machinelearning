@@ -30,12 +30,12 @@ path = "main/tests/content_correctness.rs"
 [features]
 default = []
 # Enables the llama.cpp-backed model backend. Pulls in the
-# `swe-inference-backend-llama-cpp` crate with its own `llama-cpp` feature active,
+# `swe-llmserver-llamacpp` crate with its own `llama-cpp` feature active,
 # which in turn requires a C++ toolchain (cmake + MSVC/g++/clang) once the
 # `llama-cpp-2` integration lands. Default builds stay pure-Rust.
 backend-llama-cpp = [
-    "dep:swe-inference-backend-llama-cpp",
-    "swe-inference-backend-llama-cpp/llama-cpp",
+    "dep:swe-llmserver-llamacpp",
+    "swe-llmserver-llamacpp/llama-cpp",
 ]
 
 [dependencies]
@@ -61,7 +61,7 @@ swe-inference-prefill.workspace = true
 swe-inference-thread-config.workspace = true
 swe-inference-generation.workspace = true
 swe-inference-backend-api.workspace = true
-swe-inference-backend-llama-cpp = { workspace = true, optional = true }
+swe-llmserver-llamacpp = { workspace = true, optional = true }
 tokio-stream = "0.1"
 futures-util.workspace = true
 swe-systemd.workspace = true

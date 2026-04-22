@@ -19,7 +19,6 @@ members = [
     "main/features/inference/thread-config",
     "main/features/inference/compute",
     "main/features/inference/backend-api",
-    "main/features/inference/backend-llama-cpp",
     # Shared daemon infrastructure (XDG config overlay, logging, serve loop).
     "main/features/systemd",
     # Serving frontends (leaves — each removable without breaking the stack).
@@ -116,6 +115,7 @@ swe-llmmodel-arch-gemma4     = { path = "../llmmodel/arch/gemma4" }
 swe-llmmodel-arch-bert       = { path = "../llmmodel/arch/bert" }
 swe-llmmodel-arch-nomic-bert = { path = "../llmmodel/arch/nomic_bert" }
 swe-llmmodel-loader          = { path = "../llmmodel/loader" }
+swe-llmserver-llamacpp = { path = "../llamacpp" }
 
 # ──────────────────────────────────────────────────────────────────────
 # Inference library (internal to this workspace).
@@ -125,7 +125,6 @@ swe-inference-prefill          = { path = "main/features/inference/prefill" }
 swe-inference-thread-config    = { path = "main/features/inference/thread-config" }
 swe-inference-compute              = { path = "main/features/inference/compute" }
 swe-inference-backend-api              = { path = "main/features/inference/backend-api" }
-swe-inference-backend-llama-cpp = { path = "main/features/inference/backend-llama-cpp" }
 swe-systemd                    = { path = "main/features/systemd" }
 swe-embedding-systemd     = { path = "main/features/embedding/systemd" }
 swe-inference-systemd                 = { path = "main/features/inference/systemd" }

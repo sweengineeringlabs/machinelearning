@@ -177,7 +177,7 @@ fn build_backend_registry() -> BackendRegistry {
     #[cfg(feature = "backend-llama-cpp")]
     reg.insert(
         ModelBackend::LlamaCpp,
-        Box::new(swe_inference_backend_llama_cpp::LlamaCppBackendLoader),
+        Box::new(swe_llmserver_llamacpp::LlamaCppBackendLoader),
     );
 
     reg

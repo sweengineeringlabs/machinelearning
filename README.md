@@ -32,13 +32,18 @@ machinelearning/
 │       ├── embedding/server/     swe-ml-embed — embedding HTTP server
 │       └── experimentation/llmforge/   archived prototype (read-only)
 │
+├── llamacpp/               — llama.cpp integration (root workspace)
+│                           architectural skeleton for C++ backed inference
+│
 └── devtools/
     └── quantize/           rustml-quantize — offline SafeTensors → GGUF CLI tool
 ```
 
-Cross-workspace dependency rule: **llmserv → llmmodel → main (foundations)**, **llmmodel → main**.
-Root workspace never depends on llmserv. `devtools/quantize` reaches into llmserv for its
-quantizer library — the single backward arrow, accepted because quantize is a tool, not a library.
+Cross-workspace dependency rule: **llmserv → llamacpp → llmserv**, **llmserv → llmmodel → main (foundations)**, **llmmodel → main**.
+Root workspace never depends on llmserv (except for llamacpp, which acts as a bridge).
+
+`devtools/quantize` reaches into llmserv for its quantizer library — the single backward arrow,
+accepted because quantize is a tool, not a library.
 
 ## Quick start
 

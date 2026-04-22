@@ -133,7 +133,7 @@ fn llama_cpp_chat_completes_correctly_on_known_prompts() {
         path: Some(gguf_path.to_string_lossy().into_owned()),
     };
     let model =
-        swe_inference_backend_llama_cpp::load_llama_cpp_model(&spec, OptProfile::Optimized, "")
+        swe_llmserver_llamacpp::load_llama_cpp_model(&spec, OptProfile::Optimized, "")
             .expect("load gguf via llama_cpp");
 
     let params = CompletionParams::new(0.0, MAX_TOKENS);
