@@ -1,0 +1,4128 @@
+{
+  "timestamp": "2026-04-23T01:54:05.132764300+00:00",
+  "results": [
+    {
+      "id": 1,
+      "category": "structure",
+      "description": "Cargo.toml exists at root",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 0.1729
+    },
+    {
+      "id": 2,
+      "category": "structure",
+      "description": "src/ directory exists",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: not applicable for Workspace projects"
+      }
+    },
+    {
+      "id": 3,
+      "category": "structure",
+      "description": "src/lib.rs or src/main.rs exists",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: not applicable for Workspace projects"
+      }
+    },
+    {
+      "id": 6,
+      "category": "structure",
+      "description": "bootstrap.sh or build.sh exists at root",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 6,
+            "path": "bootstrap.sh",
+            "message": "Neither bootstrap.sh nor build.sh exists at project root",
+            "severity": "error",
+            "rule_type": "builtin:bootstrap_sh_exists",
+            "expected": "bootstrap.sh or build.sh",
+            "actual": "missing",
+            "fix_hint": "Create bootstrap.sh (preferred) or build.sh for project setup",
+            "remediation_strategy": "declarative"
+          }
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "category": "structure",
+      "description": "No nested src/ dirs (src/src/)",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 0.2379
+    },
+    {
+      "id": 8,
+      "category": "structure",
+      "description": "benches/ directory exists (if benchmarks declared)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 9,
+      "category": "cargo_metadata",
+      "description": "package.name exists",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: not applicable for Workspace projects"
+      }
+    },
+    {
+      "id": 10,
+      "category": "cargo_metadata",
+      "description": "package.version exists",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: not applicable for Workspace projects"
+      }
+    },
+    {
+      "id": 11,
+      "category": "cargo_metadata",
+      "description": "package.edition exists",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: not applicable for Workspace projects"
+      }
+    },
+    {
+      "id": 12,
+      "category": "cargo_metadata",
+      "description": "package.description exists",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: not applicable for Workspace projects"
+      }
+    },
+    {
+      "id": 13,
+      "category": "cargo_metadata",
+      "description": "package.license or package.license-file exists",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: not applicable for Workspace projects"
+      }
+    },
+    {
+      "id": 14,
+      "category": "cargo_metadata",
+      "description": "package.repository exists",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: not applicable for Workspace projects"
+      }
+    },
+    {
+      "id": 15,
+      "category": "cargo_metadata",
+      "description": "package.authors exists",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: not applicable for Workspace projects"
+      }
+    },
+    {
+      "id": 16,
+      "category": "cargo_metadata",
+      "description": "package.rust-version exists",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: not applicable for Workspace projects"
+      }
+    },
+    {
+      "id": 17,
+      "category": "cargo_metadata",
+      "description": "package.keywords exists (libraries)",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: requires Library project layout (detected Workspace)"
+      }
+    },
+    {
+      "id": 18,
+      "category": "cargo_metadata",
+      "description": "package.categories exists (libraries)",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: requires Library project layout (detected Workspace)"
+      }
+    },
+    {
+      "id": 19,
+      "category": "cargo_targets",
+      "description": "[lib] path matches existing file",
+      "result": {
+        "status": "skip",
+        "reason": "No [lib] section in Cargo.toml"
+      }
+    },
+    {
+      "id": 20,
+      "category": "cargo_targets",
+      "description": "[[bin]] path matches existing file",
+      "result": {
+        "status": "skip",
+        "reason": "No [[bin]] targets in Cargo.toml"
+      }
+    },
+    {
+      "id": 21,
+      "category": "cargo_targets",
+      "description": "[[test]] targets declared for tests/ files",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 22,
+      "category": "cargo_targets",
+      "description": "[[bench]] targets have harness = false",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 23,
+      "category": "cargo_targets",
+      "description": "No undeclared test files",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 24,
+      "category": "cargo_targets",
+      "description": "No undeclared bench files",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 25,
+      "category": "cargo_targets",
+      "description": "[[example]] targets exist if examples/ present",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 26,
+      "category": "cargo_targets",
+      "description": "[[test]] paths resolve to existing files",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 27,
+      "category": "naming",
+      "description": "Package name uses kebab-case",
+      "result": {
+        "status": "skip",
+        "reason": "Key 'package.name' not found in Cargo.toml"
+      },
+      "duration_ms": 0.0052
+    },
+    {
+      "id": 28,
+      "category": "naming",
+      "description": "Package name has rustboot_ prefix (rustboot)",
+      "result": {
+        "status": "skip",
+        "reason": "Key 'package.name' not found in Cargo.toml"
+      },
+      "duration_ms": 0.0108
+    },
+    {
+      "id": 29,
+      "category": "naming",
+      "description": "Source files use snake_case naming",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 2.4781
+    },
+    {
+      "id": 30,
+      "category": "naming",
+      "description": "No uppercase in source file names",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 1.1862000000000001
+    },
+    {
+      "id": 31,
+      "category": "naming",
+      "description": "Module file names match mod declarations",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 32,
+      "category": "naming",
+      "description": "Binary names use hyphens or underscores",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 33,
+      "category": "test_org",
+      "description": "Test files use correct suffixes (_test.rs, _int_test.rs, _e2e_test.rs, etc.)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 34,
+      "category": "test_org",
+      "description": "Test function name prefix follows location-aware convention: <feature>_<type_kind>_<fn>_<suffix> for tests/<file>.rs; <type_kind>_<fn>_<suffix> for tests/<feature>/<file>.rs (type_kind ∈ {trait,struct,type,enum})",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 35,
+      "category": "test_org",
+      "description": "Test function name uses either the conventional test_ prefix or a recognised test-category suffix (_test, _int_test, _e2e_test, _perf_test, _security_test, _stress_test, _load_test, _unit_test, _smoke_test, _contract_test)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 36,
+      "category": "test_org",
+      "description": "Integration tests in tests/src/ (rustboot)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 37,
+      "category": "test_org",
+      "description": "Unit tests colocated in source files",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 38,
+      "category": "test_org",
+      "description": "No test code in src/ (non-#[cfg(test)])",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 39,
+      "category": "documentation",
+      "description": "README.md exists",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 0.1403
+    },
+    {
+      "id": 40,
+      "category": "documentation",
+      "description": "doc/ or docs/ directory exists (if library)",
+      "result": {
+        "status": "skip",
+        "reason": "Only applicable to library projects"
+      }
+    },
+    {
+      "id": 41,
+      "category": "documentation",
+      "description": "examples/ directory exists (if library)",
+      "result": {
+        "status": "skip",
+        "reason": "Only applicable to library projects"
+      }
+    },
+    {
+      "id": 42,
+      "category": "documentation",
+      "description": "CHANGELOG.md exists",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 42,
+            "path": "CHANGELOG.md",
+            "message": "File 'CHANGELOG.md' does not exist",
+            "severity": "warning",
+            "rule_type": "file_exists",
+            "expected": "CHANGELOG.md",
+            "actual": "missing",
+            "fix_hint": "Create the file 'CHANGELOG.md'",
+            "remediation_strategy": "declarative"
+          }
+        ]
+      },
+      "duration_ms": 0.0455
+    },
+    {
+      "id": 43,
+      "category": "hygiene",
+      "description": ".gitignore exists with target/",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 14.7192
+    },
+    {
+      "id": 44,
+      "category": "hygiene",
+      "description": "No generated files committed (target/)",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 227.0181
+    },
+    {
+      "id": 46,
+      "category": "interface",
+      "description": "api/ layer must not import from core/ (L2 must not depend on L3)",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 2.0341
+    },
+    {
+      "id": 47,
+      "category": "interface",
+      "description": "saf/ must not re-export from core/ (SAF re-exports from api/ and spi/ only)",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 0.1583
+    },
+    {
+      "id": 48,
+      "category": "interface",
+      "description": "api/traits.rs must exist (SEA interface contract)",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: application_type-scoped rule does not apply to workspace roots. Use --recursive to scan members."
+      }
+    },
+    {
+      "id": 49,
+      "category": "interface",
+      "description": "Core modules must implement their api traits (impl <Trait> for)",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 49,
+            "path": "main/features/cli/src/api/traits.rs",
+            "message": "Trait 'Cli' declared in 'main/features/cli/src/api/traits.rs' has no `impl Cli for` in core/",
+            "severity": "error",
+            "rule_type": "builtin:core_implements_api_traits",
+            "expected": "impl Cli for <Type> somewhere in core/",
+            "actual": "not found",
+            "fix_hint": "Add `impl Cli for <YourType>` in a core/ module",
+            "remediation_strategy": "imperative"
+          }
+        ]
+      }
+    },
+    {
+      "id": 50,
+      "category": "interface",
+      "description": "Core items (struct, enum, type, trait, fn, const, static) must use pub(crate) visibility, not bare pub",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 50,
+            "path": "main\\features\\tensor\\src\\core\\runtime\\opt_profile.rs",
+            "message": "core fn uses bare `pub` in 'main\\features\\tensor\\src\\core\\runtime\\opt_profile.rs': `pub fn apply(&self) -> Result<(), crate::api::error::TensorError> {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) fn",
+            "actual": "pub fn apply(&self) -> Result<(), crate::api::error::TensorError> {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\tensor\\src\\core\\runtime\\quant\\strategy_builder.rs",
+            "message": "core fn uses bare `pub` in 'main\\features\\tensor\\src\\core\\runtime\\quant\\strategy_builder.rs': `pub fn new() -> Self {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) fn",
+            "actual": "pub fn new() -> Self {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\tensor\\src\\core\\tensor\\math.rs",
+            "message": "core fn uses bare `pub` in 'main\\features\\tensor\\src\\core\\tensor\\math.rs': `pub fn add(&self, other: &Tensor) -> TensorResult<Tensor> {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) fn",
+            "actual": "pub fn add(&self, other: &Tensor) -> TensorResult<Tensor> {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\tensor\\src\\core\\tensor\\tensor.rs",
+            "message": "core fn uses bare `pub` in 'main\\features\\tensor\\src\\core\\tensor\\tensor.rs': `pub fn new(data: Vec<u8>, shape: impl Into<SmallVec<[usize; 4]>>, dtype: DType) -> Self {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) fn",
+            "actual": "pub fn new(data: Vec<u8>, shape: impl Into<SmallVec<[usize; 4]>>, dtype: DType) -> Self {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\tensor\\src\\core\\tensor\\tensor_builder.rs",
+            "message": "core fn uses bare `pub` in 'main\\features\\tensor\\src\\core\\tensor\\tensor_builder.rs': `pub fn new() -> Self {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) fn",
+            "actual": "pub fn new() -> Self {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\tensor\\src\\core\\tensor\\views.rs",
+            "message": "core fn uses bare `pub` in 'main\\features\\tensor\\src\\core\\tensor\\views.rs': `pub fn reshape(&self, shape: &[usize]) -> TensorResult<Tensor> {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) fn",
+            "actual": "pub fn reshape(&self, shape: &[usize]) -> TensorResult<Tensor> {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\normalization\\src\\core\\layer_norm.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\normalization\\src\\core\\layer_norm.rs': `pub struct DefaultLayerNorm {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct DefaultLayerNorm {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\normalization\\src\\core\\rms_norm.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\normalization\\src\\core\\rms_norm.rs': `pub struct DefaultRmsNorm {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct DefaultRmsNorm {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\activation\\src\\core\\activations.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\activation\\src\\core\\activations.rs': `pub struct Gelu;`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct Gelu;",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\embedding\\conversion\\src\\core\\embedding.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\embedding\\conversion\\src\\core\\embedding.rs': `pub struct DefaultEmbedding {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct DefaultEmbedding {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\embedding\\conversion\\src\\core\\normalize.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\embedding\\conversion\\src\\core\\normalize.rs': `pub struct L2Normalize;`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct L2Normalize;",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\cli\\src\\core\\logging.rs",
+            "message": "core fn uses bare `pub` in 'main\\features\\cli\\src\\core\\logging.rs': `pub fn apply_logging_filter(level: &str) {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) fn",
+            "actual": "pub fn apply_logging_filter(level: &str) {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\cli\\src\\core\\panic_hook.rs",
+            "message": "core fn uses bare `pub` in 'main\\features\\cli\\src\\core\\panic_hook.rs': `pub fn install_panic_hook() {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) fn",
+            "actual": "pub fn install_panic_hook() {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\architectures\\src\\core\\models\\lstm\\builder.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\architectures\\src\\core\\models\\lstm\\builder.rs': `pub struct LSTMBuilder {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct LSTMBuilder {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\architectures\\src\\core\\models\\lstm\\forecast.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\architectures\\src\\core\\models\\lstm\\forecast.rs': `pub struct LSTMForecast {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct LSTMForecast {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\architectures\\src\\core\\models\\lstm\\layer.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\architectures\\src\\core\\models\\lstm\\layer.rs': `pub struct LSTM {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct LSTM {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\architectures\\src\\core\\models\\nbeats.rs",
+            "message": "core fn uses bare `pub` in 'main\\features\\architectures\\src\\core\\models\\nbeats.rs': `pub fn new(`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) fn",
+            "actual": "pub fn new(",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\architectures\\src\\core\\models\\tcn.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\architectures\\src\\core\\models\\tcn.rs': `pub struct TCN {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct TCN {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\architectures\\src\\core\\models\\transformer.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\architectures\\src\\core\\models\\transformer.rs': `pub struct TimeSeriesTransformer {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct TimeSeriesTransformer {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\architectures\\src\\core\\pipeline\\dataloader.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\architectures\\src\\core\\pipeline\\dataloader.rs': `pub struct DataLoader {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct DataLoader {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\architectures\\src\\core\\pipeline\\dataset.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\architectures\\src\\core\\pipeline\\dataset.rs': `pub struct TimeSeriesDataset {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct TimeSeriesDataset {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\architectures\\src\\core\\pipeline\\features\\feature_engineer.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\architectures\\src\\core\\pipeline\\features\\feature_engineer.rs': `pub struct FeatureEngineer {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct FeatureEngineer {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\architectures\\src\\core\\pipeline\\features\\moving_average.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\architectures\\src\\core\\pipeline\\features\\moving_average.rs': `pub struct MovingAverage {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct MovingAverage {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\architectures\\src\\core\\pipeline\\features\\returns.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\architectures\\src\\core\\pipeline\\features\\returns.rs': `pub struct Returns;`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct Returns;",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\architectures\\src\\core\\pipeline\\features\\rsi.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\architectures\\src\\core\\pipeline\\features\\rsi.rs': `pub struct RSI {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct RSI {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\architectures\\src\\core\\pipeline\\features\\volatility.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\architectures\\src\\core\\pipeline\\features\\volatility.rs': `pub struct Volatility {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct Volatility {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\architectures\\src\\core\\pipeline\\scaler.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\architectures\\src\\core\\pipeline\\scaler.rs': `pub struct Scaler {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct Scaler {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\architectures\\src\\core\\pipeline\\scaler_type.rs",
+            "message": "core enum uses bare `pub` in 'main\\features\\architectures\\src\\core\\pipeline\\scaler_type.rs': `pub enum ScalerType {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) enum",
+            "actual": "pub enum ScalerType {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\architectures\\src\\core\\pipeline\\target_column.rs",
+            "message": "core enum uses bare `pub` in 'main\\features\\architectures\\src\\core\\pipeline\\target_column.rs': `pub enum TargetColumn {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) enum",
+            "actual": "pub enum TargetColumn {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\checkpoint\\mod.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\checkpoint\\mod.rs': `pub struct Checkpoint {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct Checkpoint {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\gradient\\add.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\gradient\\add.rs': `pub struct AddBackward {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct AddBackward {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\gradient\\matmul.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\gradient\\matmul.rs': `pub struct MatMulBackward;`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct MatMulBackward;",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\gradient\\mul.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\gradient\\mul.rs': `pub struct MulBackward;`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct MulBackward;",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\gradient\\relu.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\gradient\\relu.rs': `pub struct ReLUBackward;`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct ReLUBackward;",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\layers\\activations\\gelu.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\layers\\activations\\gelu.rs': `pub struct GELU;`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct GELU;",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\layers\\activations\\gelu_backward.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\layers\\activations\\gelu_backward.rs': `pub struct GELUBackward;`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct GELUBackward;",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\layers\\activations\\relu.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\layers\\activations\\relu.rs': `pub struct ReLU;`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct ReLU;",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\layers\\activations\\sigmoid.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\layers\\activations\\sigmoid.rs': `pub struct Sigmoid;`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct Sigmoid;",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\layers\\activations\\silu.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\layers\\activations\\silu.rs': `pub struct SiLU;`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct SiLU;",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\layers\\activations\\silu_backward.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\layers\\activations\\silu_backward.rs': `pub struct SiLUBackward;`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct SiLUBackward;",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\layers\\activations\\tanh.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\layers\\activations\\tanh.rs': `pub struct Tanh;`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct Tanh;",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\layers\\batch_norm.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\layers\\batch_norm.rs': `pub struct BatchNorm1d {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct BatchNorm1d {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\layers\\batch_norm_builder.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\layers\\batch_norm_builder.rs': `pub struct BatchNorm1dBuilder {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct BatchNorm1dBuilder {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\layers\\conv1d.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\layers\\conv1d.rs': `pub struct Conv1d {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct Conv1d {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\layers\\conv1d_builder.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\layers\\conv1d_builder.rs': `pub struct Conv1dBuilder {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct Conv1dBuilder {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\layers\\dropout.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\layers\\dropout.rs': `pub struct Dropout {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct Dropout {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\layers\\layer_norm.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\layers\\layer_norm.rs': `pub struct LayerNorm {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct LayerNorm {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\layers\\linear.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\layers\\linear.rs': `pub struct Linear {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct Linear {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\lossfunction\\cross_entropy.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\lossfunction\\cross_entropy.rs': `pub struct CrossEntropyLoss;`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct CrossEntropyLoss;",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\lossfunction\\huber.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\lossfunction\\huber.rs': `pub struct HuberLoss {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct HuberLoss {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\lossfunction\\mae_loss.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\lossfunction\\mae_loss.rs': `pub struct MAELoss;`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct MAELoss;",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\lossfunction\\mse_loss.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\lossfunction\\mse_loss.rs': `pub struct MSELoss;`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct MSELoss;",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\lossfunction\\quantile.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\lossfunction\\quantile.rs': `pub struct QuantileLoss {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct QuantileLoss {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\optimizer\\adam.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\optimizer\\adam.rs': `pub struct Adam {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct Adam {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\optimizer\\adamw.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\optimizer\\adamw.rs': `pub struct AdamW {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct AdamW {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\optimizer\\grad_clip.rs",
+            "message": "core fn uses bare `pub` in 'main\\features\\training\\src\\core\\optimizer\\grad_clip.rs': `pub fn clip_grad_norm(params: &[&Tensor], max_norm: f32) -> f32 {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) fn",
+            "actual": "pub fn clip_grad_norm(params: &[&Tensor], max_norm: f32) -> f32 {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\optimizer\\schedulers\\cosine_annealing_lr.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\optimizer\\schedulers\\cosine_annealing_lr.rs': `pub struct CosineAnnealingLR {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct CosineAnnealingLR {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\optimizer\\schedulers\\step_lr.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\optimizer\\schedulers\\step_lr.rs': `pub struct StepLR {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct StepLR {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\optimizer\\schedulers\\warmup_cosine_scheduler.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\optimizer\\schedulers\\warmup_cosine_scheduler.rs': `pub struct WarmupCosineScheduler {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct WarmupCosineScheduler {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\optimizer\\sgd.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\optimizer\\sgd.rs': `pub struct SGD {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct SGD {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\pipeline\\dataloader.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\pipeline\\dataloader.rs': `pub struct DataLoader<D: Dataset> {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct DataLoader<D: Dataset> {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\pipeline\\scaler.rs",
+            "message": "core enum uses bare `pub` in 'main\\features\\training\\src\\core\\pipeline\\scaler.rs': `pub enum ScalerType {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) enum",
+            "actual": "pub enum ScalerType {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\runner\\metrics.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\runner\\metrics.rs': `pub struct Metrics {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct Metrics {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\runner\\summary.rs",
+            "message": "core fn uses bare `pub` in 'main\\features\\training\\src\\core\\runner\\summary.rs': `pub fn model_summary(model: &dyn Layer) -> String {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) fn",
+            "actual": "pub fn model_summary(model: &dyn Layer) -> String {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          },
+          {
+            "check_id": 50,
+            "path": "main\\features\\training\\src\\core\\runner\\trainer.rs",
+            "message": "core struct uses bare `pub` in 'main\\features\\training\\src\\core\\runner\\trainer.rs': `pub struct Trainer<M, O, L> {`",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_not_pub",
+            "expected": "pub(crate) struct",
+            "actual": "pub struct Trainer<M, O, L> {",
+            "fix_hint": "Change `pub` to `pub(crate)` to enforce SEA L0 encapsulation, or move the item to api/ if it is part of the public contract",
+            "depends_on": [
+              47
+            ],
+            "remediation_strategy": "imperative",
+            "principles": [
+              "encapsulation",
+              "information_hiding"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 52,
+      "category": "interface",
+      "description": "saf/mod.rs must exist (SAF facade entry point)",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: application_type-scoped rule does not apply to workspace roots. Use --recursive to scan members."
+      }
+    },
+    {
+      "id": 53,
+      "category": "interface",
+      "description": "saf/ must not define new pub structs (facade layer only re-exports and wires)",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 1.77
+    },
+    {
+      "id": 54,
+      "category": "interface",
+      "description": "lib.rs must delegate public surface to saf/ via pub use",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: application_type-scoped rule does not apply to workspace roots. Use --recursive to scan members."
+      }
+    },
+    {
+      "id": 55,
+      "category": "interface",
+      "description": "lib.rs must not declare core as public (pub mod core is forbidden)",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 0.1374
+    },
+    {
+      "id": 56,
+      "category": "interface",
+      "description": "lib.rs must not declare api as public (pub mod api is forbidden — all layers must be private)",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 0.09459999999999999
+    },
+    {
+      "id": 57,
+      "category": "interface",
+      "description": "spi/ must not import from core/ (L2 peers must not depend on each other)",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 2.1638
+    },
+    {
+      "id": 58,
+      "category": "interface",
+      "description": "When spi/ exists, lib.rs must declare `mod spi` (private, not pub mod)",
+      "result": {
+        "status": "skip",
+        "reason": "No spi/ directory found — spi layer is not in use"
+      }
+    },
+    {
+      "id": 60,
+      "category": "interface",
+      "description": "spi/ must not import from saf/ (L2 must not depend on L3)",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 3.4743999999999997
+    },
+    {
+      "id": 61,
+      "category": "interface",
+      "description": "core/ must not import from spi/ (L2 peers must not depend on each other)",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 2.3985
+    },
+    {
+      "id": 62,
+      "category": "workspace",
+      "description": "main/{subdir}/ directory exists (workspace projects)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 63,
+      "category": "workspace",
+      "description": "Each workspace member has Cargo.toml",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 64,
+      "category": "workspace",
+      "description": "Each workspace member has src/ directory",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 64,
+            "path": "devtools/quantize",
+            "message": "Workspace member 'devtools/quantize' missing src/ directory",
+            "severity": "error",
+            "rule_type": "builtin:workspace_members_have_src",
+            "expected": "devtools/quantize/src/",
+            "actual": "missing",
+            "fix_hint": "Create src/ directory in devtools/quantize/",
+            "remediation_strategy": "declarative"
+          }
+        ]
+      }
+    },
+    {
+      "id": 65,
+      "category": "workspace",
+      "description": "Each workspace member has src/lib.rs or src/main.rs",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 65,
+            "path": "devtools/quantize",
+            "message": "Workspace member 'devtools/quantize' missing src/lib.rs or src/main.rs",
+            "severity": "error",
+            "rule_type": "builtin:workspace_members_have_crate_root",
+            "expected": "devtools/quantize/src/lib.rs or devtools/quantize/src/main.rs",
+            "actual": "missing",
+            "fix_hint": "Create src/lib.rs or src/main.rs in devtools/quantize/",
+            "remediation_strategy": "declarative"
+          }
+        ]
+      }
+    },
+    {
+      "id": 66,
+      "category": "scripts",
+      "description": "scripts/ci/ directory exists (if scripts/ present)",
+      "result": {
+        "status": "skip",
+        "reason": "No scripts/ directory"
+      }
+    },
+    {
+      "id": 67,
+      "category": "scripts",
+      "description": "scripts/ci/build.sh exists (if scripts/ci/ present)",
+      "result": {
+        "status": "skip",
+        "reason": "No scripts/ci/ directory"
+      }
+    },
+    {
+      "id": 68,
+      "category": "scripts",
+      "description": "scripts/ci/test.sh exists (if scripts/ci/ present)",
+      "result": {
+        "status": "skip",
+        "reason": "No scripts/ci/ directory"
+      }
+    },
+    {
+      "id": 69,
+      "category": "scripts",
+      "description": "scripts/ci/lint.sh exists (if scripts/ci/ present)",
+      "result": {
+        "status": "skip",
+        "reason": "No scripts/ci/ directory"
+      }
+    },
+    {
+      "id": 70,
+      "category": "workspace",
+      "description": "Multi-feature workspace must not have [package] at root",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 71,
+      "category": "structure",
+      "description": "Root contains only allowed entries (whitelist enforcement)",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 71,
+            "path": ".claude",
+            "message": "Unexpected entry '.claude' at workspace level (not in workspace whitelist)",
+            "severity": "error",
+            "rule_type": "builtin:root_whitelist",
+            "expected": "Only entries from the workspace whitelist",
+            "actual": ".claude",
+            "fix_hint": "Fix the issue detected by builtin check 'root_whitelist'",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 71,
+            "path": ".clippy.toml",
+            "message": "Unexpected entry '.clippy.toml' at workspace level (not in workspace whitelist)",
+            "severity": "error",
+            "rule_type": "builtin:root_whitelist",
+            "expected": "Only entries from the workspace whitelist",
+            "actual": ".clippy.toml",
+            "fix_hint": "Fix the issue detected by builtin check 'root_whitelist'",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 71,
+            "path": ".github",
+            "message": "Unexpected entry '.github' at workspace level (not in workspace whitelist)",
+            "severity": "error",
+            "rule_type": "builtin:root_whitelist",
+            "expected": "Only entries from the workspace whitelist",
+            "actual": ".github",
+            "fix_hint": "Fix the issue detected by builtin check 'root_whitelist'",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 71,
+            "path": ".typos.toml",
+            "message": "Unexpected entry '.typos.toml' at workspace level (not in workspace whitelist)",
+            "severity": "error",
+            "rule_type": "builtin:root_whitelist",
+            "expected": "Only entries from the workspace whitelist",
+            "actual": ".typos.toml",
+            "fix_hint": "Fix the issue detected by builtin check 'root_whitelist'",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 71,
+            "path": "GEMINI.md",
+            "message": "Unexpected entry 'GEMINI.md' at workspace level (not in workspace whitelist)",
+            "severity": "error",
+            "rule_type": "builtin:root_whitelist",
+            "expected": "Only entries from the workspace whitelist",
+            "actual": "GEMINI.md",
+            "fix_hint": "Fix the issue detected by builtin check 'root_whitelist'",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 71,
+            "path": "llminference",
+            "message": "Unexpected entry 'llminference' at workspace level (not in workspace whitelist)",
+            "severity": "error",
+            "rule_type": "builtin:root_whitelist",
+            "expected": "Only entries from the workspace whitelist",
+            "actual": "llminference",
+            "fix_hint": "Fix the issue detected by builtin check 'root_whitelist'",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 71,
+            "path": "llmserve",
+            "message": "Unexpected entry 'llmserve' at workspace level (not in workspace whitelist)",
+            "severity": "error",
+            "rule_type": "builtin:root_whitelist",
+            "expected": "Only entries from the workspace whitelist",
+            "actual": "llmserve",
+            "fix_hint": "Fix the issue detected by builtin check 'root_whitelist'",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 71,
+            "path": "quantization",
+            "message": "Unexpected entry 'quantization' at workspace level (not in workspace whitelist)",
+            "severity": "error",
+            "rule_type": "builtin:root_whitelist",
+            "expected": "Only entries from the workspace whitelist",
+            "actual": "quantization",
+            "fix_hint": "Fix the issue detected by builtin check 'root_whitelist'",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 71,
+            "path": "rdl",
+            "message": "Unexpected entry 'rdl' at workspace level (not in workspace whitelist)",
+            "severity": "error",
+            "rule_type": "builtin:root_whitelist",
+            "expected": "Only entries from the workspace whitelist",
+            "actual": "rdl",
+            "fix_hint": "Fix the issue detected by builtin check 'root_whitelist'",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 71,
+            "path": "rust-toolchain.toml",
+            "message": "Unexpected entry 'rust-toolchain.toml' at workspace level (not in workspace whitelist)",
+            "severity": "error",
+            "rule_type": "builtin:root_whitelist",
+            "expected": "Only entries from the workspace whitelist",
+            "actual": "rust-toolchain.toml",
+            "fix_hint": "Fix the issue detected by builtin check 'root_whitelist'",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 71,
+            "path": "struct.toml",
+            "message": "Unexpected entry 'struct.toml' at workspace level (not in workspace whitelist)",
+            "severity": "error",
+            "rule_type": "builtin:root_whitelist",
+            "expected": "Only entries from the workspace whitelist",
+            "actual": "struct.toml",
+            "fix_hint": "Fix the issue detected by builtin check 'root_whitelist'",
+            "remediation_strategy": "manual"
+          }
+        ]
+      }
+    },
+    {
+      "id": 75,
+      "category": "structure",
+      "description": "bootstrap.ps1 or build.ps1 exists at root (Windows)",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 75,
+            "path": "bootstrap.ps1",
+            "message": "Neither bootstrap.ps1 nor build.ps1 exists at project root",
+            "severity": "error",
+            "rule_type": "builtin:bootstrap_ps1_exists",
+            "expected": "bootstrap.ps1 or build.ps1",
+            "actual": "missing",
+            "fix_hint": "Create bootstrap.ps1 (preferred) or build.ps1 for Windows setup",
+            "remediation_strategy": "declarative"
+          }
+        ]
+      }
+    },
+    {
+      "id": 76,
+      "category": "structure",
+      "description": "docs/ directory exists at root",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 0.0823
+    },
+    {
+      "id": 77,
+      "category": "test_org",
+      "description": "All public functions have corresponding tests (name-based)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 78,
+      "category": "test_org",
+      "description": "Tests use @covers: annotation for explicit 1:1 function linking",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 79,
+      "category": "naming",
+      "description": "Trait names must be singular (not plural)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 80,
+      "category": "test_org",
+      "description": "tests/ directory exists at same level as src/",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: not applicable for Workspace projects"
+      }
+    },
+    {
+      "id": 81,
+      "category": "interface",
+      "description": "Reports deprecated trait definitions in api/traits.rs for tracking",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 82,
+      "category": "workspace",
+      "description": "Workspace members with SEA layers (api/ or spi/) must have tests/ directory",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 82,
+            "path": "main/features/normalization",
+            "message": "Workspace member 'main/features/normalization' has api/ but missing tests/ directory",
+            "severity": "error",
+            "rule_type": "builtin:workspace_members_have_tests",
+            "expected": "main/features/normalization/tests/",
+            "actual": "missing",
+            "fix_hint": "Create tests/ directory in main/features/normalization/ — SEA layers require integration tests",
+            "remediation_strategy": "declarative"
+          },
+          {
+            "check_id": 82,
+            "path": "main/features/activation",
+            "message": "Workspace member 'main/features/activation' has api/ but missing tests/ directory",
+            "severity": "error",
+            "rule_type": "builtin:workspace_members_have_tests",
+            "expected": "main/features/activation/tests/",
+            "actual": "missing",
+            "fix_hint": "Create tests/ directory in main/features/activation/ — SEA layers require integration tests",
+            "remediation_strategy": "declarative"
+          },
+          {
+            "check_id": 82,
+            "path": "main/features/embedding/conversion",
+            "message": "Workspace member 'main/features/embedding/conversion' has api/ but missing tests/ directory",
+            "severity": "error",
+            "rule_type": "builtin:workspace_members_have_tests",
+            "expected": "main/features/embedding/conversion/tests/",
+            "actual": "missing",
+            "fix_hint": "Create tests/ directory in main/features/embedding/conversion/ — SEA layers require integration tests",
+            "remediation_strategy": "declarative"
+          },
+          {
+            "check_id": 82,
+            "path": "main/features/cli",
+            "message": "Workspace member 'main/features/cli' has api/ but missing tests/ directory",
+            "severity": "error",
+            "rule_type": "builtin:workspace_members_have_tests",
+            "expected": "main/features/cli/tests/",
+            "actual": "missing",
+            "fix_hint": "Create tests/ directory in main/features/cli/ — SEA layers require integration tests",
+            "remediation_strategy": "declarative"
+          }
+        ]
+      }
+    },
+    {
+      "id": 83,
+      "category": "workspace",
+      "description": "Workspace members with spi/ must have *_int_test.rs and *_security_test.rs files",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 84,
+      "category": "workspace",
+      "description": "Tests must only import external crates via saf/ (test domain isolation)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 85,
+      "category": "workspace",
+      "description": "Workspace root should not have tests/ directory (tests belong in member crates)",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 0.08399999999999999
+    },
+    {
+      "id": 86,
+      "category": "interface",
+      "description": "core/ must not define traits (L3 contains implementations only)",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 1.1495
+    },
+    {
+      "id": 87,
+      "category": "interface",
+      "description": "SEA layer directories must not contain crates (no Cargo.toml inside api/, core/, saf/, spi/)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 89,
+      "category": "naming",
+      "description": "Core module filenames must match their primary struct/trait name (with suffix tolerance)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 90,
+      "category": "naming",
+      "description": "Types in core modules must be name-cohesive (SRP enforcement)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 91,
+      "category": "naming",
+      "description": "Suggest Builder pattern for complex structs (advisory)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 92,
+      "category": "application_type",
+      "description": "application_type must be defined in project metadata",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: not applicable for Workspace projects"
+      }
+    },
+    {
+      "id": 93,
+      "category": "application_type",
+      "description": "Project structure must match declared application_type",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: not applicable for Workspace projects"
+      }
+    },
+    {
+      "id": 94,
+      "category": "test_org",
+      "description": "Integration tests must not use mocking libraries or mock types",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 95,
+      "category": "test_org",
+      "description": "Dependencies used in src/ must have integration or e2e test coverage",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 96,
+      "category": "hygiene",
+      "description": "Dependencies declared in Cargo.toml must be used in src/",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 97,
+      "category": "hygiene",
+      "description": "CLI projects should use dirs/directories crate for XDG-compliant paths",
+      "result": {
+        "status": "skip",
+        "reason": "Workspace root detected; XDG dependency rule applies to member CLI crates"
+      }
+    },
+    {
+      "id": 98,
+      "category": "hygiene",
+      "description": "No hardcoded home directory paths in source code",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 99,
+      "category": "test_org",
+      "description": "Test files use suffixes consistent with dependency scope (allowing integration-style *_int_test.rs / *_e2e_test.rs in tests/)",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 99,
+            "path": "llminference\\main\\features\\experimentation\\llmforge\\tests\\arena_test.rs",
+            "message": "Test file 'arena_test.rs' has dependency scope 'e2e test (imports from other modules in same crate)' but uses suffix '_test.rs'",
+            "severity": "warning",
+            "rule_type": "builtin:test_location_by_deps",
+            "expected": "_e2e_test.rs",
+            "actual": "_test.rs",
+            "fix_hint": "Rename to use '_e2e_test.rs' suffix, or adjust imports to match current suffix",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 99,
+            "path": "llminference\\main\\features\\experimentation\\llmforge\\tests\\attention_test.rs",
+            "message": "Test file 'attention_test.rs' has dependency scope 'e2e test (imports from other modules in same crate)' but uses suffix '_test.rs'",
+            "severity": "warning",
+            "rule_type": "builtin:test_location_by_deps",
+            "expected": "_e2e_test.rs",
+            "actual": "_test.rs",
+            "fix_hint": "Rename to use '_e2e_test.rs' suffix, or adjust imports to match current suffix",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 99,
+            "path": "llminference\\main\\features\\experimentation\\llmforge\\tests\\cache_layout_test.rs",
+            "message": "Test file 'cache_layout_test.rs' has dependency scope 'e2e test (imports from other modules in same crate)' but uses suffix '_test.rs'",
+            "severity": "warning",
+            "rule_type": "builtin:test_location_by_deps",
+            "expected": "_e2e_test.rs",
+            "actual": "_test.rs",
+            "fix_hint": "Rename to use '_e2e_test.rs' suffix, or adjust imports to match current suffix",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 99,
+            "path": "llminference\\main\\features\\experimentation\\llmforge\\tests\\dtype_conversion_test.rs",
+            "message": "Test file 'dtype_conversion_test.rs' has dependency scope 'integration test (imports from external crates)' but uses suffix '_test.rs'",
+            "severity": "warning",
+            "rule_type": "builtin:test_location_by_deps",
+            "expected": "_int_test.rs",
+            "actual": "_test.rs",
+            "fix_hint": "Rename to use '_int_test.rs' suffix, or adjust imports to match current suffix",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 99,
+            "path": "llminference\\main\\features\\experimentation\\llmforge\\tests\\generation_test.rs",
+            "message": "Test file 'generation_test.rs' has dependency scope 'e2e test (imports from other modules in same crate)' but uses suffix '_test.rs'",
+            "severity": "warning",
+            "rule_type": "builtin:test_location_by_deps",
+            "expected": "_e2e_test.rs",
+            "actual": "_test.rs",
+            "fix_hint": "Rename to use '_e2e_test.rs' suffix, or adjust imports to match current suffix",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 99,
+            "path": "llminference\\main\\features\\experimentation\\llmforge\\tests\\inference_test.rs",
+            "message": "Test file 'inference_test.rs' has dependency scope 'integration test (imports from external crates)' but uses suffix '_test.rs'",
+            "severity": "warning",
+            "rule_type": "builtin:test_location_by_deps",
+            "expected": "_int_test.rs",
+            "actual": "_test.rs",
+            "fix_hint": "Rename to use '_int_test.rs' suffix, or adjust imports to match current suffix",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 99,
+            "path": "llminference\\main\\features\\experimentation\\llmforge\\tests\\integration_test.rs",
+            "message": "Test file 'integration_test.rs' has dependency scope 'e2e test (imports from other modules in same crate)' but uses suffix '_test.rs'",
+            "severity": "warning",
+            "rule_type": "builtin:test_location_by_deps",
+            "expected": "_e2e_test.rs",
+            "actual": "_test.rs",
+            "fix_hint": "Rename to use '_e2e_test.rs' suffix, or adjust imports to match current suffix",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 99,
+            "path": "llminference\\main\\features\\experimentation\\llmforge\\tests\\loader_test.rs",
+            "message": "Test file 'loader_test.rs' has dependency scope 'integration test (imports from external crates)' but uses suffix '_test.rs'",
+            "severity": "warning",
+            "rule_type": "builtin:test_location_by_deps",
+            "expected": "_int_test.rs",
+            "actual": "_test.rs",
+            "fix_hint": "Rename to use '_int_test.rs' suffix, or adjust imports to match current suffix",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 99,
+            "path": "llminference\\main\\features\\experimentation\\llmforge\\tests\\model_arch_test.rs",
+            "message": "Test file 'model_arch_test.rs' has dependency scope 'e2e test (imports from other modules in same crate)' but uses suffix '_test.rs'",
+            "severity": "warning",
+            "rule_type": "builtin:test_location_by_deps",
+            "expected": "_e2e_test.rs",
+            "actual": "_test.rs",
+            "fix_hint": "Rename to use '_e2e_test.rs' suffix, or adjust imports to match current suffix",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 99,
+            "path": "llminference\\main\\features\\experimentation\\llmforge\\tests\\model_compat_test.rs",
+            "message": "Test file 'model_compat_test.rs' has dependency scope 'integration test (imports from external crates)' but uses suffix '_test.rs'",
+            "severity": "warning",
+            "rule_type": "builtin:test_location_by_deps",
+            "expected": "_int_test.rs",
+            "actual": "_test.rs",
+            "fix_hint": "Rename to use '_int_test.rs' suffix, or adjust imports to match current suffix",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 99,
+            "path": "llminference\\main\\features\\experimentation\\llmforge\\tests\\model_test.rs",
+            "message": "Test file 'model_test.rs' has dependency scope 'e2e test (imports from other modules in same crate)' but uses suffix '_test.rs'",
+            "severity": "warning",
+            "rule_type": "builtin:test_location_by_deps",
+            "expected": "_e2e_test.rs",
+            "actual": "_test.rs",
+            "fix_hint": "Rename to use '_e2e_test.rs' suffix, or adjust imports to match current suffix",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 99,
+            "path": "llminference\\main\\features\\experimentation\\llmforge\\tests\\nn_layers_test.rs",
+            "message": "Test file 'nn_layers_test.rs' has dependency scope 'integration test (imports from external crates)' but uses suffix '_test.rs'",
+            "severity": "warning",
+            "rule_type": "builtin:test_location_by_deps",
+            "expected": "_int_test.rs",
+            "actual": "_test.rs",
+            "fix_hint": "Rename to use '_int_test.rs' suffix, or adjust imports to match current suffix",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 99,
+            "path": "llminference\\main\\features\\experimentation\\llmforge\\tests\\parallelism_test.rs",
+            "message": "Test file 'parallelism_test.rs' has dependency scope 'e2e test (imports from other modules in same crate)' but uses suffix '_test.rs'",
+            "severity": "warning",
+            "rule_type": "builtin:test_location_by_deps",
+            "expected": "_e2e_test.rs",
+            "actual": "_test.rs",
+            "fix_hint": "Rename to use '_e2e_test.rs' suffix, or adjust imports to match current suffix",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 99,
+            "path": "llminference\\main\\features\\experimentation\\llmforge\\tests\\quantization_q4_test.rs",
+            "message": "Test file 'quantization_q4_test.rs' has dependency scope 'e2e test (imports from other modules in same crate)' but uses suffix '_test.rs'",
+            "severity": "warning",
+            "rule_type": "builtin:test_location_by_deps",
+            "expected": "_e2e_test.rs",
+            "actual": "_test.rs",
+            "fix_hint": "Rename to use '_e2e_test.rs' suffix, or adjust imports to match current suffix",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 99,
+            "path": "llminference\\main\\features\\experimentation\\llmforge\\tests\\quantization_test.rs",
+            "message": "Test file 'quantization_test.rs' has dependency scope 'e2e test (imports from other modules in same crate)' but uses suffix '_test.rs'",
+            "severity": "warning",
+            "rule_type": "builtin:test_location_by_deps",
+            "expected": "_e2e_test.rs",
+            "actual": "_test.rs",
+            "fix_hint": "Rename to use '_e2e_test.rs' suffix, or adjust imports to match current suffix",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 99,
+            "path": "llminference\\main\\features\\experimentation\\llmforge\\tests\\safetensors_test.rs",
+            "message": "Test file 'safetensors_test.rs' has dependency scope 'integration test (imports from external crates)' but uses suffix '_test.rs'",
+            "severity": "warning",
+            "rule_type": "builtin:test_location_by_deps",
+            "expected": "_int_test.rs",
+            "actual": "_test.rs",
+            "fix_hint": "Rename to use '_int_test.rs' suffix, or adjust imports to match current suffix",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 99,
+            "path": "llminference\\main\\features\\experimentation\\llmforge\\tests\\safety_test.rs",
+            "message": "Test file 'safety_test.rs' has dependency scope 'e2e test (imports from other modules in same crate)' but uses suffix '_test.rs'",
+            "severity": "warning",
+            "rule_type": "builtin:test_location_by_deps",
+            "expected": "_e2e_test.rs",
+            "actual": "_test.rs",
+            "fix_hint": "Rename to use '_e2e_test.rs' suffix, or adjust imports to match current suffix",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 99,
+            "path": "llminference\\main\\features\\experimentation\\llmforge\\tests\\simd_test.rs",
+            "message": "Test file 'simd_test.rs' has dependency scope 'e2e test (imports from other modules in same crate)' but uses suffix '_test.rs'",
+            "severity": "warning",
+            "rule_type": "builtin:test_location_by_deps",
+            "expected": "_e2e_test.rs",
+            "actual": "_test.rs",
+            "fix_hint": "Rename to use '_e2e_test.rs' suffix, or adjust imports to match current suffix",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 99,
+            "path": "llminference\\main\\features\\experimentation\\llmforge\\tests\\tensor_ops_extended_test.rs",
+            "message": "Test file 'tensor_ops_extended_test.rs' has dependency scope 'e2e test (imports from other modules in same crate)' but uses suffix '_test.rs'",
+            "severity": "warning",
+            "rule_type": "builtin:test_location_by_deps",
+            "expected": "_e2e_test.rs",
+            "actual": "_test.rs",
+            "fix_hint": "Rename to use '_e2e_test.rs' suffix, or adjust imports to match current suffix",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 99,
+            "path": "llminference\\main\\features\\experimentation\\llmforge\\tests\\tensor_ops_test.rs",
+            "message": "Test file 'tensor_ops_test.rs' has dependency scope 'integration test (imports from external crates)' but uses suffix '_test.rs'",
+            "severity": "warning",
+            "rule_type": "builtin:test_location_by_deps",
+            "expected": "_int_test.rs",
+            "actual": "_test.rs",
+            "fix_hint": "Rename to use '_int_test.rs' suffix, or adjust imports to match current suffix",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 99,
+            "path": "llminference\\main\\features\\experimentation\\llmforge\\tests\\tensor_views_test.rs",
+            "message": "Test file 'tensor_views_test.rs' has dependency scope 'integration test (imports from external crates)' but uses suffix '_test.rs'",
+            "severity": "warning",
+            "rule_type": "builtin:test_location_by_deps",
+            "expected": "_int_test.rs",
+            "actual": "_test.rs",
+            "fix_hint": "Rename to use '_int_test.rs' suffix, or adjust imports to match current suffix",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 99,
+            "path": "llminference\\main\\features\\experimentation\\llmforge\\tests\\transformer_test.rs",
+            "message": "Test file 'transformer_test.rs' has dependency scope 'e2e test (imports from other modules in same crate)' but uses suffix '_test.rs'",
+            "severity": "warning",
+            "rule_type": "builtin:test_location_by_deps",
+            "expected": "_e2e_test.rs",
+            "actual": "_test.rs",
+            "fix_hint": "Rename to use '_e2e_test.rs' suffix, or adjust imports to match current suffix",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 99,
+            "path": "llminference\\main\\features\\experimentation\\llmforge\\tests\\weight_loading_test.rs",
+            "message": "Test file 'weight_loading_test.rs' has dependency scope 'e2e test (imports from other modules in same crate)' but uses suffix '_test.rs'",
+            "severity": "warning",
+            "rule_type": "builtin:test_location_by_deps",
+            "expected": "_e2e_test.rs",
+            "actual": "_test.rs",
+            "fix_hint": "Rename to use '_e2e_test.rs' suffix, or adjust imports to match current suffix",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 99,
+            "path": "llminference\\main\\features\\inference\\systemd\\main\\tests\\content_correctness.rs",
+            "message": "Test file 'content_correctness.rs' has dependency scope 'integration test (imports from external crates)' but uses suffix '(no valid suffix)'",
+            "severity": "warning",
+            "rule_type": "builtin:test_location_by_deps",
+            "expected": "_int_test.rs",
+            "fix_hint": "Rename to use '_int_test.rs' suffix, or adjust imports to match current suffix",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 99,
+            "path": "main\\features\\tensor\\tests\\randn_bench_test.rs",
+            "message": "Test file 'randn_bench_test.rs' has dependency scope 'integration test (imports from external crates)' but uses suffix '_test.rs'",
+            "severity": "warning",
+            "rule_type": "builtin:test_location_by_deps",
+            "expected": "_int_test.rs",
+            "actual": "_test.rs",
+            "fix_hint": "Rename to use '_int_test.rs' suffix, or adjust imports to match current suffix",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 99,
+            "path": "main\\features\\tensor\\tests\\randn_isolate_test.rs",
+            "message": "Test file 'randn_isolate_test.rs' has dependency scope 'integration test (imports from external crates)' but uses suffix '_test.rs'",
+            "severity": "warning",
+            "rule_type": "builtin:test_location_by_deps",
+            "expected": "_int_test.rs",
+            "actual": "_test.rs",
+            "fix_hint": "Rename to use '_int_test.rs' suffix, or adjust imports to match current suffix",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 99,
+            "path": "quantization\\quant-rs\\main\\quant-cli\\tests\\cli_verify_e2e.rs",
+            "message": "Test file 'cli_verify_e2e.rs' has dependency scope 'integration test (imports from external crates)' but uses suffix '(no valid suffix)'",
+            "severity": "warning",
+            "rule_type": "builtin:test_location_by_deps",
+            "expected": "_int_test.rs",
+            "fix_hint": "Rename to use '_int_test.rs' suffix, or adjust imports to match current suffix",
+            "remediation_strategy": "manual"
+          }
+        ]
+      }
+    },
+    {
+      "id": 100,
+      "category": "workspace",
+      "description": "Workspace members under gateway/output/ must have *_int_test.rs files",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 101,
+      "category": "shell_structure",
+      "description": "bin/main.sh must exist for shell_binary projects",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: application_type-scoped rule does not apply to workspace roots. Use --recursive to scan members."
+      }
+    },
+    {
+      "id": 102,
+      "category": "shell_structure",
+      "description": "src/lib.sh must exist for shell_lib projects",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: application_type-scoped rule does not apply to workspace roots. Use --recursive to scan members."
+      }
+    },
+    {
+      "id": 103,
+      "category": "gateway_isolation",
+      "description": "lib.rs must declare gateway as a private module — pub mod and pub(crate) mod are forbidden",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 0.0263
+    },
+    {
+      "id": 104,
+      "category": "gateway_isolation",
+      "description": "src/gateway/ must not exist in binary/gateway crates — only lib app types may have a gateway module",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: not applicable for Lib application type"
+      }
+    },
+    {
+      "id": 105,
+      "category": "test_org",
+      "description": "Each api/ trait has a corresponding test file in tests/",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: application_type-scoped rule does not apply to workspace roots. Use --recursive to scan members."
+      }
+    },
+    {
+      "id": 106,
+      "category": "interface",
+      "description": "saf/ must wrap all non-deprecated api/ traits as standalone public functions",
+      "result": {
+        "status": "dormant",
+        "waiting_on": [
+          48,
+          52
+        ],
+        "reason": "Dormant: would fire when prerequisite rule(s) 48, 52 pass"
+      }
+    },
+    {
+      "id": 107,
+      "category": "workspace",
+      "description": "In dual workspace layouts, innermost crates must be members of the root workspace (not the inner workspace as a member)",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 107,
+            "path": "llminference/main/features/inference/generation",
+            "message": "Inner workspace crate 'llminference/main/features/inference/generation' is not a member of the root workspace",
+            "severity": "error",
+            "rule_type": "builtin:dual_workspace_root_members",
+            "expected": "'llminference/main/features/inference/generation' in root workspace members",
+            "actual": "only in 'llminference/Cargo.toml' workspace",
+            "fix_hint": "Register each crate individually in the root workspace members (or use glob patterns like 'sub-workspace/*'); Cargo does not support workspace-as-member — inner workspace Cargo.toml is only a standalone fallback",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 107,
+            "path": "llminference/main/features/inference/prefill",
+            "message": "Inner workspace crate 'llminference/main/features/inference/prefill' is not a member of the root workspace",
+            "severity": "error",
+            "rule_type": "builtin:dual_workspace_root_members",
+            "expected": "'llminference/main/features/inference/prefill' in root workspace members",
+            "actual": "only in 'llminference/Cargo.toml' workspace",
+            "fix_hint": "Register each crate individually in the root workspace members (or use glob patterns like 'sub-workspace/*'); Cargo does not support workspace-as-member — inner workspace Cargo.toml is only a standalone fallback",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 107,
+            "path": "llminference/main/features/inference/thread-config",
+            "message": "Inner workspace crate 'llminference/main/features/inference/thread-config' is not a member of the root workspace",
+            "severity": "error",
+            "rule_type": "builtin:dual_workspace_root_members",
+            "expected": "'llminference/main/features/inference/thread-config' in root workspace members",
+            "actual": "only in 'llminference/Cargo.toml' workspace",
+            "fix_hint": "Register each crate individually in the root workspace members (or use glob patterns like 'sub-workspace/*'); Cargo does not support workspace-as-member — inner workspace Cargo.toml is only a standalone fallback",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 107,
+            "path": "llminference/main/features/inference/compute",
+            "message": "Inner workspace crate 'llminference/main/features/inference/compute' is not a member of the root workspace",
+            "severity": "error",
+            "rule_type": "builtin:dual_workspace_root_members",
+            "expected": "'llminference/main/features/inference/compute' in root workspace members",
+            "actual": "only in 'llminference/Cargo.toml' workspace",
+            "fix_hint": "Register each crate individually in the root workspace members (or use glob patterns like 'sub-workspace/*'); Cargo does not support workspace-as-member — inner workspace Cargo.toml is only a standalone fallback",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 107,
+            "path": "llminference/main/features/inference/backend-api",
+            "message": "Inner workspace crate 'llminference/main/features/inference/backend-api' is not a member of the root workspace",
+            "severity": "error",
+            "rule_type": "builtin:dual_workspace_root_members",
+            "expected": "'llminference/main/features/inference/backend-api' in root workspace members",
+            "actual": "only in 'llminference/Cargo.toml' workspace",
+            "fix_hint": "Register each crate individually in the root workspace members (or use glob patterns like 'sub-workspace/*'); Cargo does not support workspace-as-member — inner workspace Cargo.toml is only a standalone fallback",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 107,
+            "path": "llminference/main/features/systemd",
+            "message": "Inner workspace crate 'llminference/main/features/systemd' is not a member of the root workspace",
+            "severity": "error",
+            "rule_type": "builtin:dual_workspace_root_members",
+            "expected": "'llminference/main/features/systemd' in root workspace members",
+            "actual": "only in 'llminference/Cargo.toml' workspace",
+            "fix_hint": "Register each crate individually in the root workspace members (or use glob patterns like 'sub-workspace/*'); Cargo does not support workspace-as-member — inner workspace Cargo.toml is only a standalone fallback",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 107,
+            "path": "llminference/main/features/inference/systemd",
+            "message": "Inner workspace crate 'llminference/main/features/inference/systemd' is not a member of the root workspace",
+            "severity": "error",
+            "rule_type": "builtin:dual_workspace_root_members",
+            "expected": "'llminference/main/features/inference/systemd' in root workspace members",
+            "actual": "only in 'llminference/Cargo.toml' workspace",
+            "fix_hint": "Register each crate individually in the root workspace members (or use glob patterns like 'sub-workspace/*'); Cargo does not support workspace-as-member — inner workspace Cargo.toml is only a standalone fallback",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 107,
+            "path": "llminference/main/features/inference/cli",
+            "message": "Inner workspace crate 'llminference/main/features/inference/cli' is not a member of the root workspace",
+            "severity": "error",
+            "rule_type": "builtin:dual_workspace_root_members",
+            "expected": "'llminference/main/features/inference/cli' in root workspace members",
+            "actual": "only in 'llminference/Cargo.toml' workspace",
+            "fix_hint": "Register each crate individually in the root workspace members (or use glob patterns like 'sub-workspace/*'); Cargo does not support workspace-as-member — inner workspace Cargo.toml is only a standalone fallback",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 107,
+            "path": "llminference/main/features/embedding/systemd",
+            "message": "Inner workspace crate 'llminference/main/features/embedding/systemd' is not a member of the root workspace",
+            "severity": "error",
+            "rule_type": "builtin:dual_workspace_root_members",
+            "expected": "'llminference/main/features/embedding/systemd' in root workspace members",
+            "actual": "only in 'llminference/Cargo.toml' workspace",
+            "fix_hint": "Register each crate individually in the root workspace members (or use glob patterns like 'sub-workspace/*'); Cargo does not support workspace-as-member — inner workspace Cargo.toml is only a standalone fallback",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 107,
+            "path": "llminference/main/features/inference/ffi",
+            "message": "Inner workspace crate 'llminference/main/features/inference/ffi' is not a member of the root workspace",
+            "severity": "error",
+            "rule_type": "builtin:dual_workspace_root_members",
+            "expected": "'llminference/main/features/inference/ffi' in root workspace members",
+            "actual": "only in 'llminference/Cargo.toml' workspace",
+            "fix_hint": "Register each crate individually in the root workspace members (or use glob patterns like 'sub-workspace/*'); Cargo does not support workspace-as-member — inner workspace Cargo.toml is only a standalone fallback",
+            "remediation_strategy": "manual"
+          }
+        ]
+      }
+    },
+    {
+      "id": 108,
+      "category": "code_organization",
+      "description": "Each public struct/trait/enum must have its own .rs file (one primary type per file)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 109,
+      "category": "code_organization",
+      "description": "Rust source file names must be nouns (no verb or assertion names like check_exists.rs)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 110,
+      "category": "code_organization",
+      "description": "mod.rs must contain only module declarations and re-exports — no struct/impl/fn logic",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 111,
+      "category": "code_organization",
+      "description": "No loose .rs files directly under src/core/ — all code must live in subfolders",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 112,
+      "category": "code_organization",
+      "description": "Sibling files sharing a common prefix must be grouped into a subdirectory module (e.g., check_runner.rs + check_result.rs → check/runner.rs + check/result.rs)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 113,
+      "category": "interface",
+      "description": "Every core/ struct with pub/pub(crate) methods must implement a trait defined in api/ (program to the interface)",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 113,
+            "path": "main\\features\\architectures\\src\\core\\models\\lstm\\forecast.rs",
+            "message": "Struct 'LSTMForecast' in main\\features\\architectures\\src\\core\\models\\lstm\\forecast.rs has pub methods but implements no api/ trait",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_have_trait",
+            "expected": "impl <Trait> for LSTMForecast where Trait is defined in api/",
+            "actual": "LSTMForecast (bare pub methods, no trait)",
+            "fix_hint": "Define a trait in api/ describing this public behavior, then `impl Trait for LSTMForecast` in core/",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 113,
+            "path": "main\\features\\architectures\\src\\core\\models\\lstm\\layer.rs",
+            "message": "Struct 'LSTM' in main\\features\\architectures\\src\\core\\models\\lstm\\layer.rs has pub methods but implements no api/ trait",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_have_trait",
+            "expected": "impl <Trait> for LSTM where Trait is defined in api/",
+            "actual": "LSTM (bare pub methods, no trait)",
+            "fix_hint": "Define a trait in api/ describing this public behavior, then `impl Trait for LSTM` in core/",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 113,
+            "path": "main\\features\\architectures\\src\\core\\models\\tcn.rs",
+            "message": "Struct 'TCN' in main\\features\\architectures\\src\\core\\models\\tcn.rs has pub methods but implements no api/ trait",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_have_trait",
+            "expected": "impl <Trait> for TCN where Trait is defined in api/",
+            "actual": "TCN (bare pub methods, no trait)",
+            "fix_hint": "Define a trait in api/ describing this public behavior, then `impl Trait for TCN` in core/",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 113,
+            "path": "main\\features\\architectures\\src\\core\\models\\transformer.rs",
+            "message": "Struct 'TimeSeriesTransformer' in main\\features\\architectures\\src\\core\\models\\transformer.rs has pub methods but implements no api/ trait",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_have_trait",
+            "expected": "impl <Trait> for TimeSeriesTransformer where Trait is defined in api/",
+            "actual": "TimeSeriesTransformer (bare pub methods, no trait)",
+            "fix_hint": "Define a trait in api/ describing this public behavior, then `impl Trait for TimeSeriesTransformer` in core/",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 113,
+            "path": "main\\features\\architectures\\src\\core\\pipeline\\dataloader.rs",
+            "message": "Struct 'DataLoader' in main\\features\\architectures\\src\\core\\pipeline\\dataloader.rs has pub methods but implements no api/ trait",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_have_trait",
+            "expected": "impl <Trait> for DataLoader where Trait is defined in api/",
+            "actual": "DataLoader (bare pub methods, no trait)",
+            "fix_hint": "Define a trait in api/ describing this public behavior, then `impl Trait for DataLoader` in core/",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 113,
+            "path": "main\\features\\architectures\\src\\core\\pipeline\\dataset.rs",
+            "message": "Struct 'TimeSeriesDataset' in main\\features\\architectures\\src\\core\\pipeline\\dataset.rs has pub methods but implements no api/ trait",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_have_trait",
+            "expected": "impl <Trait> for TimeSeriesDataset where Trait is defined in api/",
+            "actual": "TimeSeriesDataset (bare pub methods, no trait)",
+            "fix_hint": "Define a trait in api/ describing this public behavior, then `impl Trait for TimeSeriesDataset` in core/",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 113,
+            "path": "main\\features\\architectures\\src\\core\\pipeline\\features\\feature_engineer.rs",
+            "message": "Struct 'FeatureEngineer' in main\\features\\architectures\\src\\core\\pipeline\\features\\feature_engineer.rs has pub methods but implements no api/ trait",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_have_trait",
+            "expected": "impl <Trait> for FeatureEngineer where Trait is defined in api/",
+            "actual": "FeatureEngineer (bare pub methods, no trait)",
+            "fix_hint": "Define a trait in api/ describing this public behavior, then `impl Trait for FeatureEngineer` in core/",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 113,
+            "path": "main\\features\\architectures\\src\\core\\pipeline\\scaler.rs",
+            "message": "Struct 'Scaler' in main\\features\\architectures\\src\\core\\pipeline\\scaler.rs has pub methods but implements no api/ trait",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_have_trait",
+            "expected": "impl <Trait> for Scaler where Trait is defined in api/",
+            "actual": "Scaler (bare pub methods, no trait)",
+            "fix_hint": "Define a trait in api/ describing this public behavior, then `impl Trait for Scaler` in core/",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 113,
+            "path": "main\\features\\training\\src\\core\\checkpoint\\mod.rs",
+            "message": "Struct 'Checkpoint' in main\\features\\training\\src\\core\\checkpoint\\mod.rs has pub methods but implements no api/ trait",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_have_trait",
+            "expected": "impl <Trait> for Checkpoint where Trait is defined in api/",
+            "actual": "Checkpoint (bare pub methods, no trait)",
+            "fix_hint": "Define a trait in api/ describing this public behavior, then `impl Trait for Checkpoint` in core/",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 113,
+            "path": "main\\features\\training\\src\\core\\pipeline\\scaler.rs",
+            "message": "Struct 'Scaler' in main\\features\\training\\src\\core\\pipeline\\scaler.rs has pub methods but implements no api/ trait",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_have_trait",
+            "expected": "impl <Trait> for Scaler where Trait is defined in api/",
+            "actual": "Scaler (bare pub methods, no trait)",
+            "fix_hint": "Define a trait in api/ describing this public behavior, then `impl Trait for Scaler` in core/",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 113,
+            "path": "main\\features\\training\\src\\core\\runner\\metrics.rs",
+            "message": "Struct 'Metrics' in main\\features\\training\\src\\core\\runner\\metrics.rs has pub methods but implements no api/ trait",
+            "severity": "warning",
+            "rule_type": "builtin:core_structs_have_trait",
+            "expected": "impl <Trait> for Metrics where Trait is defined in api/",
+            "actual": "Metrics (bare pub methods, no trait)",
+            "fix_hint": "Define a trait in api/ describing this public behavior, then `impl Trait for Metrics` in core/",
+            "remediation_strategy": "manual"
+          }
+        ]
+      }
+    },
+    {
+      "id": 114,
+      "category": "interface",
+      "description": "core/ must not import from spi/ — depend on api/ traits, receive implementations via DI from saf/",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 1.3972
+    },
+    {
+      "id": 115,
+      "category": "interface",
+      "description": "core/ must not import from gateway/ — depend on api/ traits, receive implementations via DI from saf/",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 1.5479
+    },
+    {
+      "id": 116,
+      "category": "interface",
+      "description": "api/ must not import from core/ — api/ defines abstractions, it must not depend on implementations",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 2.4795
+    },
+    {
+      "id": 117,
+      "category": "interface",
+      "description": "api/ must not import from spi/ — api/ defines abstractions, it must not depend on implementations",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 1.6399
+    },
+    {
+      "id": 118,
+      "category": "interface",
+      "description": "api/ must not import from gateway/ — api/ defines abstractions, it must not depend on implementations",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 1.7601
+    },
+    {
+      "id": 119,
+      "category": "interface",
+      "description": "gateway/ must not import from spi/ — gateway/ depends on saf/ only, not on SPI implementations",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 1.1891
+    },
+    {
+      "id": 120,
+      "category": "test_org",
+      "description": "Each source file in SEA layers has coverage via inline tests, a matching test file, or a layer-level test file in tests/ — reports per-layer coverage",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 120,
+            "path": "main/features/normalization/src/api/error.rs",
+            "message": "[api] Source file 'main/features/normalization/src/api/error.rs' has no corresponding test file in main/features/normalization/tests",
+            "severity": "warning",
+            "rule_type": "builtin:sea_layer_test_coverage",
+            "expected": "error_test.rs or error_int_test.rs",
+            "actual": "no matching test file found",
+            "fix_hint": "Create a test file like `main/features/normalization/tests/error_test.rs`",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 120,
+            "path": "main/features/normalization/src/api/traits.rs",
+            "message": "[api] Source file 'main/features/normalization/src/api/traits.rs' has no corresponding test file in main/features/normalization/tests",
+            "severity": "warning",
+            "rule_type": "builtin:sea_layer_test_coverage",
+            "expected": "traits_test.rs or traits_int_test.rs",
+            "actual": "no matching test file found",
+            "fix_hint": "Create a test file like `main/features/normalization/tests/traits_test.rs`",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 120,
+            "path": "main/features/normalization/src/api/types.rs",
+            "message": "[api] Source file 'main/features/normalization/src/api/types.rs' has no corresponding test file in main/features/normalization/tests",
+            "severity": "warning",
+            "rule_type": "builtin:sea_layer_test_coverage",
+            "expected": "types_test.rs or types_int_test.rs",
+            "actual": "no matching test file found",
+            "fix_hint": "Create a test file like `main/features/normalization/tests/types_test.rs`",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 120,
+            "path": "main/features/activation/src/api/error.rs",
+            "message": "[api] Source file 'main/features/activation/src/api/error.rs' has no corresponding test file in main/features/activation/tests",
+            "severity": "warning",
+            "rule_type": "builtin:sea_layer_test_coverage",
+            "expected": "error_test.rs or error_int_test.rs",
+            "actual": "no matching test file found",
+            "fix_hint": "Create a test file like `main/features/activation/tests/error_test.rs`",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 120,
+            "path": "main/features/activation/src/api/traits.rs",
+            "message": "[api] Source file 'main/features/activation/src/api/traits.rs' has no corresponding test file in main/features/activation/tests",
+            "severity": "warning",
+            "rule_type": "builtin:sea_layer_test_coverage",
+            "expected": "traits_test.rs or traits_int_test.rs",
+            "actual": "no matching test file found",
+            "fix_hint": "Create a test file like `main/features/activation/tests/traits_test.rs`",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 120,
+            "path": "main/features/embedding/conversion/src/api/error.rs",
+            "message": "[api] Source file 'main/features/embedding/conversion/src/api/error.rs' has no corresponding test file in main/features/embedding/conversion/tests",
+            "severity": "warning",
+            "rule_type": "builtin:sea_layer_test_coverage",
+            "expected": "error_test.rs or error_int_test.rs",
+            "actual": "no matching test file found",
+            "fix_hint": "Create a test file like `main/features/embedding/conversion/tests/error_test.rs`",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 120,
+            "path": "main/features/embedding/conversion/src/api/traits.rs",
+            "message": "[api] Source file 'main/features/embedding/conversion/src/api/traits.rs' has no corresponding test file in main/features/embedding/conversion/tests",
+            "severity": "warning",
+            "rule_type": "builtin:sea_layer_test_coverage",
+            "expected": "traits_test.rs or traits_int_test.rs",
+            "actual": "no matching test file found",
+            "fix_hint": "Create a test file like `main/features/embedding/conversion/tests/traits_test.rs`",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 120,
+            "path": "main/features/embedding/conversion/src/api/types.rs",
+            "message": "[api] Source file 'main/features/embedding/conversion/src/api/types.rs' has no corresponding test file in main/features/embedding/conversion/tests",
+            "severity": "warning",
+            "rule_type": "builtin:sea_layer_test_coverage",
+            "expected": "types_test.rs or types_int_test.rs",
+            "actual": "no matching test file found",
+            "fix_hint": "Create a test file like `main/features/embedding/conversion/tests/types_test.rs`",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 120,
+            "path": "main/features/cli/src/api/traits.rs",
+            "message": "[api] Source file 'main/features/cli/src/api/traits.rs' has no corresponding test file in main/features/cli/tests",
+            "severity": "warning",
+            "rule_type": "builtin:sea_layer_test_coverage",
+            "expected": "traits_test.rs or traits_int_test.rs",
+            "actual": "no matching test file found",
+            "fix_hint": "Create a test file like `main/features/cli/tests/traits_test.rs`",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 120,
+            "path": "main/features/cli/src/core/logging.rs",
+            "message": "[core] Source file 'main/features/cli/src/core/logging.rs' has no corresponding test file in main/features/cli/tests",
+            "severity": "warning",
+            "rule_type": "builtin:sea_layer_test_coverage",
+            "expected": "logging_test.rs or logging_int_test.rs",
+            "actual": "no matching test file found",
+            "fix_hint": "Create a test file like `main/features/cli/tests/logging_test.rs`",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 120,
+            "path": "main/features/cli/src/core/panic_hook.rs",
+            "message": "[core] Source file 'main/features/cli/src/core/panic_hook.rs' has no corresponding test file in main/features/cli/tests",
+            "severity": "warning",
+            "rule_type": "builtin:sea_layer_test_coverage",
+            "expected": "panic_hook_test.rs or panic_hook_int_test.rs",
+            "actual": "no matching test file found",
+            "fix_hint": "Create a test file like `main/features/cli/tests/panic_hook_test.rs`",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 120,
+            "path": "main/features/training/src/core/runner/metrics.rs",
+            "message": "[core] Source file 'main/features/training/src/core/runner/metrics.rs' has no corresponding test file in main/features/training/tests",
+            "severity": "warning",
+            "rule_type": "builtin:sea_layer_test_coverage",
+            "expected": "metrics_test.rs or metrics_int_test.rs",
+            "actual": "no matching test file found",
+            "fix_hint": "Create a test file like `main/features/training/tests/metrics_test.rs`",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 120,
+            "path": "main/features/training/src/core/runner/trainer.rs",
+            "message": "[core] Source file 'main/features/training/src/core/runner/trainer.rs' has no corresponding test file in main/features/training/tests",
+            "severity": "warning",
+            "rule_type": "builtin:sea_layer_test_coverage",
+            "expected": "trainer_test.rs or trainer_int_test.rs",
+            "actual": "no matching test file found",
+            "fix_hint": "Create a test file like `main/features/training/tests/trainer_test.rs`",
+            "remediation_strategy": "manual"
+          }
+        ]
+      }
+    },
+    {
+      "id": 121,
+      "category": "interface",
+      "description": "Every {implementation_layer}/ submodule must have a corresponding {interface_layer}/ submodule defining its types or traits",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: builtin handler 'core_api_module_correspondence' not implemented"
+      }
+    },
+    {
+      "id": 122,
+      "category": "interface",
+      "description": "Config struct methods must be pub(crate), not pub — configs are not for public consumption",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 123,
+      "category": "naming",
+      "description": "Module name must not prefix the struct/trait name (e.g., config::Config not config::ConfigConfig)",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: builtin handler 'module_name_not_prefix_type' not implemented"
+      }
+    },
+    {
+      "id": 124,
+      "category": "test_org",
+      "description": "Every pub/pub(crate) fn in core/ must have an inline unit test (#[cfg(test)] block with #[test])",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 124,
+            "path": null,
+            "message": "core unit test coverage: 82% (236/285 functions have inline tests)",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "100% of core/ functions with inline unit tests",
+            "actual": "82% coverage",
+            "fix_hint": "Add #[cfg(test)] mod tests { #[test] fn test_<name>() { ... } } to each core/ source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/tensor/src/core/runtime/quant/config.rs",
+            "message": "Function 'from_toml_str' in 'main/features/tensor/src/core/runtime/quant/config.rs' has no corresponding inline unit test",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_from_toml_str()",
+            "actual": "no matching test function found",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/tensor/src/core/tensor/tensor.rs",
+            "message": "Function 'view' in 'main/features/tensor/src/core/tensor/tensor.rs' has no corresponding inline unit test",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_view()",
+            "actual": "no matching test function found",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/tensor/src/core/tensor/tensor.rs",
+            "message": "Function 'contiguous_slice_f32' in 'main/features/tensor/src/core/tensor/tensor.rs' has no corresponding inline unit test",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_contiguous_slice_f32()",
+            "actual": "no matching test function found",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/tensor/src/core/tensor/tensor.rs",
+            "message": "Function 'compute_strides_sv' in 'main/features/tensor/src/core/tensor/tensor.rs' has no corresponding inline unit test",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_compute_strides_sv()",
+            "actual": "no matching test function found",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/tensor/src/core/tensor/tensor.rs",
+            "message": "Function 'normalize_dim' in 'main/features/tensor/src/core/tensor/tensor.rs' has no corresponding inline unit test",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_normalize_dim()",
+            "actual": "no matching test function found",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/normalization/src/core/layer_norm.rs",
+            "message": "Function 'new' in 'main/features/normalization/src/core/layer_norm.rs' has no corresponding inline unit test",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_new()",
+            "actual": "no matching test function found",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/normalization/src/core/layer_norm.rs",
+            "message": "Function 'gamma' in 'main/features/normalization/src/core/layer_norm.rs' has no corresponding inline unit test",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_gamma()",
+            "actual": "no matching test function found",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/normalization/src/core/layer_norm.rs",
+            "message": "Function 'beta' in 'main/features/normalization/src/core/layer_norm.rs' has no corresponding inline unit test",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_beta()",
+            "actual": "no matching test function found",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/normalization/src/core/layer_norm.rs",
+            "message": "Function 'normalized_shape' in 'main/features/normalization/src/core/layer_norm.rs' has no corresponding inline unit test",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_normalized_shape()",
+            "actual": "no matching test function found",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/normalization/src/core/rms_norm.rs",
+            "message": "Function 'new' in 'main/features/normalization/src/core/rms_norm.rs' has no corresponding inline unit test",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_new()",
+            "actual": "no matching test function found",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/normalization/src/core/rms_norm.rs",
+            "message": "Function 'from_weight' in 'main/features/normalization/src/core/rms_norm.rs' has no corresponding inline unit test",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_from_weight()",
+            "actual": "no matching test function found",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/normalization/src/core/rms_norm.rs",
+            "message": "Function 'from_weight_with_offset' in 'main/features/normalization/src/core/rms_norm.rs' has no corresponding inline unit test",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_from_weight_with_offset()",
+            "actual": "no matching test function found",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/normalization/src/core/rms_norm.rs",
+            "message": "Function 'weight' in 'main/features/normalization/src/core/rms_norm.rs' has no corresponding inline unit test",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_weight()",
+            "actual": "no matching test function found",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/normalization/src/core/rms_norm.rs",
+            "message": "Function 'eps' in 'main/features/normalization/src/core/rms_norm.rs' has no corresponding inline unit test",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_eps()",
+            "actual": "no matching test function found",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/embedding/conversion/src/core/embedding.rs",
+            "message": "Function 'new' in 'main/features/embedding/conversion/src/core/embedding.rs' has no corresponding inline unit test",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_new()",
+            "actual": "no matching test function found",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/cli/src/core/logging.rs",
+            "message": "Function 'apply_logging_filter' in 'main/features/cli/src/core/logging.rs' has no inline unit test — file has no #[cfg(test)] block",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_apply_logging_filter()",
+            "actual": "no #[cfg(test)] block",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/cli/src/core/logging.rs",
+            "message": "Function 'init_env_logger' in 'main/features/cli/src/core/logging.rs' has no inline unit test — file has no #[cfg(test)] block",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_init_env_logger()",
+            "actual": "no #[cfg(test)] block",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/cli/src/core/panic_hook.rs",
+            "message": "Function 'install_panic_hook' in 'main/features/cli/src/core/panic_hook.rs' has no inline unit test — file has no #[cfg(test)] block",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_install_panic_hook()",
+            "actual": "no #[cfg(test)] block",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/architectures/src/core/models/lstm/forecast.rs",
+            "message": "Function 'new' in 'main/features/architectures/src/core/models/lstm/forecast.rs' has no corresponding inline unit test",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_new()",
+            "actual": "no matching test function found",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/architectures/src/core/models/lstm/layer.rs",
+            "message": "Function 'new' in 'main/features/architectures/src/core/models/lstm/layer.rs' has no corresponding inline unit test",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_new()",
+            "actual": "no matching test function found",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/architectures/src/core/models/nbeats.rs",
+            "message": "Function 'new' in 'main/features/architectures/src/core/models/nbeats.rs' has no corresponding inline unit test",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_new()",
+            "actual": "no matching test function found",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/architectures/src/core/models/tcn.rs",
+            "message": "Function 'new' in 'main/features/architectures/src/core/models/tcn.rs' has no corresponding inline unit test",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_new()",
+            "actual": "no matching test function found",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/architectures/src/core/models/transformer.rs",
+            "message": "Function 'new' in 'main/features/architectures/src/core/models/transformer.rs' has no corresponding inline unit test",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_new()",
+            "actual": "no matching test function found",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/architectures/src/core/pipeline/dataloader.rs",
+            "message": "Function 'new' in 'main/features/architectures/src/core/pipeline/dataloader.rs' has no corresponding inline unit test",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_new()",
+            "actual": "no matching test function found",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/architectures/src/core/pipeline/features/moving_average.rs",
+            "message": "Function 'new' in 'main/features/architectures/src/core/pipeline/features/moving_average.rs' has no corresponding inline unit test",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_new()",
+            "actual": "no matching test function found",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/architectures/src/core/pipeline/features/rsi.rs",
+            "message": "Function 'new' in 'main/features/architectures/src/core/pipeline/features/rsi.rs' has no corresponding inline unit test",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_new()",
+            "actual": "no matching test function found",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/architectures/src/core/pipeline/features/volatility.rs",
+            "message": "Function 'new' in 'main/features/architectures/src/core/pipeline/features/volatility.rs' has no corresponding inline unit test",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_new()",
+            "actual": "no matching test function found",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/training/src/core/layers/conv1d_builder.rs",
+            "message": "Function 'new' in 'main/features/training/src/core/layers/conv1d_builder.rs' has no corresponding inline unit test",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_new()",
+            "actual": "no matching test function found",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/training/src/core/pipeline/dataloader.rs",
+            "message": "Function 'new' in 'main/features/training/src/core/pipeline/dataloader.rs' has no corresponding inline unit test",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_new()",
+            "actual": "no matching test function found",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/training/src/core/pipeline/scaler.rs",
+            "message": "Function 'params' in 'main/features/training/src/core/pipeline/scaler.rs' has no corresponding inline unit test",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_params()",
+            "actual": "no matching test function found",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/training/src/core/runner/metrics.rs",
+            "message": "Function 'new' in 'main/features/training/src/core/runner/metrics.rs' has no inline unit test — file has no #[cfg(test)] block",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_new()",
+            "actual": "no #[cfg(test)] block",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/training/src/core/runner/metrics.rs",
+            "message": "Function 'update' in 'main/features/training/src/core/runner/metrics.rs' has no inline unit test — file has no #[cfg(test)] block",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_update()",
+            "actual": "no #[cfg(test)] block",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/training/src/core/runner/metrics.rs",
+            "message": "Function 'mse' in 'main/features/training/src/core/runner/metrics.rs' has no inline unit test — file has no #[cfg(test)] block",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_mse()",
+            "actual": "no #[cfg(test)] block",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/training/src/core/runner/metrics.rs",
+            "message": "Function 'mae' in 'main/features/training/src/core/runner/metrics.rs' has no inline unit test — file has no #[cfg(test)] block",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_mae()",
+            "actual": "no #[cfg(test)] block",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/training/src/core/runner/metrics.rs",
+            "message": "Function 'rmse' in 'main/features/training/src/core/runner/metrics.rs' has no inline unit test — file has no #[cfg(test)] block",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_rmse()",
+            "actual": "no #[cfg(test)] block",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/training/src/core/runner/metrics.rs",
+            "message": "Function 'reset' in 'main/features/training/src/core/runner/metrics.rs' has no inline unit test — file has no #[cfg(test)] block",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_reset()",
+            "actual": "no #[cfg(test)] block",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/training/src/core/runner/metrics.rs",
+            "message": "Function 'r_squared' in 'main/features/training/src/core/runner/metrics.rs' has no inline unit test — file has no #[cfg(test)] block",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_r_squared()",
+            "actual": "no #[cfg(test)] block",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/training/src/core/runner/metrics.rs",
+            "message": "Function 'mape' in 'main/features/training/src/core/runner/metrics.rs' has no inline unit test — file has no #[cfg(test)] block",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_mape()",
+            "actual": "no #[cfg(test)] block",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/training/src/core/runner/metrics.rs",
+            "message": "Function 'smape' in 'main/features/training/src/core/runner/metrics.rs' has no inline unit test — file has no #[cfg(test)] block",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_smape()",
+            "actual": "no #[cfg(test)] block",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/training/src/core/runner/summary.rs",
+            "message": "Function 'model_summary' in 'main/features/training/src/core/runner/summary.rs' has no corresponding inline unit test",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_model_summary()",
+            "actual": "no matching test function found",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/training/src/core/runner/trainer.rs",
+            "message": "Function 'new' in 'main/features/training/src/core/runner/trainer.rs' has no inline unit test — file has no #[cfg(test)] block",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_new()",
+            "actual": "no #[cfg(test)] block",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/training/src/core/runner/trainer.rs",
+            "message": "Function 'with_grad_clip' in 'main/features/training/src/core/runner/trainer.rs' has no inline unit test — file has no #[cfg(test)] block",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_with_grad_clip()",
+            "actual": "no #[cfg(test)] block",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/training/src/core/runner/trainer.rs",
+            "message": "Function 'with_early_stopping' in 'main/features/training/src/core/runner/trainer.rs' has no inline unit test — file has no #[cfg(test)] block",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_with_early_stopping()",
+            "actual": "no #[cfg(test)] block",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/training/src/core/runner/trainer.rs",
+            "message": "Function 'with_scheduler' in 'main/features/training/src/core/runner/trainer.rs' has no inline unit test — file has no #[cfg(test)] block",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_with_scheduler()",
+            "actual": "no #[cfg(test)] block",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/training/src/core/runner/trainer.rs",
+            "message": "Function 'with_checkpoint_dir' in 'main/features/training/src/core/runner/trainer.rs' has no inline unit test — file has no #[cfg(test)] block",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_with_checkpoint_dir()",
+            "actual": "no #[cfg(test)] block",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/training/src/core/runner/trainer.rs",
+            "message": "Function 'train_epoch' in 'main/features/training/src/core/runner/trainer.rs' has no inline unit test — file has no #[cfg(test)] block",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_train_epoch()",
+            "actual": "no #[cfg(test)] block",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/training/src/core/runner/trainer.rs",
+            "message": "Function 'validate' in 'main/features/training/src/core/runner/trainer.rs' has no inline unit test — file has no #[cfg(test)] block",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_validate()",
+            "actual": "no #[cfg(test)] block",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/training/src/core/runner/trainer.rs",
+            "message": "Function 'fit' in 'main/features/training/src/core/runner/trainer.rs' has no inline unit test — file has no #[cfg(test)] block",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_fit()",
+            "actual": "no #[cfg(test)] block",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          },
+          {
+            "check_id": 124,
+            "path": "main/features/training/src/core/runner/trainer.rs",
+            "message": "Function 'predict' in 'main/features/training/src/core/runner/trainer.rs' has no inline unit test — file has no #[cfg(test)] block",
+            "severity": "warning",
+            "rule_type": "builtin:core_fns_have_unit_tests",
+            "expected": "#[test] fn test_predict()",
+            "actual": "no #[cfg(test)] block",
+            "fix_hint": "Add a `#[cfg(test)] mod tests { #[test] fn test_<fn_name>() { ... } }` block to the source file",
+            "remediation_strategy": "manual"
+          }
+        ]
+      }
+    },
+    {
+      "id": 125,
+      "category": "test_org",
+      "description": "Every pub fn in saf/ must have corresponding public-API test coverage (_e2e_test.rs, _int_test.rs, or a layer-level saf_* test)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 126,
+      "category": "interface",
+      "description": "saf/ must not re-export traits via pub use — wrap trait methods as standalone functions instead",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 2.7349
+    },
+    {
+      "id": 127,
+      "category": "workspace",
+      "description": "Workspace root should not have config/ directory (config belongs under main/)",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 0.0223
+    },
+    {
+      "id": 128,
+      "category": "workspace",
+      "description": "Workspace root should not have scripts/ directory (scripts belongs under main/)",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 0.0159
+    },
+    {
+      "id": 129,
+      "category": "workspace",
+      "description": "Workspace root should not have examples/ directory (examples belongs under main/)",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 0.016399999999999998
+    },
+    {
+      "id": 130,
+      "category": "structure",
+      "description": "Root must not have both build and bootstrap scripts",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 131,
+      "category": "gateway_isolation",
+      "description": "src/gateway/ must exist (prerequisite gate for rules 132-133)",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: application_type-scoped rule does not apply to workspace roots. Use --recursive to scan members."
+      }
+    },
+    {
+      "id": 132,
+      "category": "gateway_isolation",
+      "description": "gateway/mod.rs must declare pub(crate) mod input",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: application_type-scoped rule does not apply to workspace roots. Use --recursive to scan members."
+      }
+    },
+    {
+      "id": 133,
+      "category": "gateway_isolation",
+      "description": "gateway/mod.rs must declare pub(crate) mod output",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: application_type-scoped rule does not apply to workspace roots. Use --recursive to scan members."
+      }
+    },
+    {
+      "id": 134,
+      "category": "interface",
+      "description": "core/ must not import from saf/ — core/ depends only on api/ traits",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 1.3557000000000001
+    },
+    {
+      "id": 135,
+      "category": "interface",
+      "description": "spi/ must not import from gateway/ — spi/ implements api/ traits only",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 1.7599
+    },
+    {
+      "id": 136,
+      "category": "interface",
+      "description": "gateway/ must not import from core/ — gateway/ calls saf/, not core/ directly",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 1.2812
+    },
+    {
+      "id": 137,
+      "category": "interface",
+      "description": "saf/ must not import from gateway/ — gateway/ calls saf/, not the reverse",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 4.5374
+    },
+    {
+      "id": 138,
+      "category": "naming",
+      "description": "Directory names under src/ must use snake_case",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 139,
+      "category": "shim_detection",
+      "description": "SEA layer files must contain substantive code (not just comments or empty re-exports)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 140,
+      "category": "shim_detection",
+      "description": "lib.rs must be a real entry point, not a shim with only re-exports",
+      "result": {
+        "status": "skip",
+        "reason": "'src/lib.rs' does not exist"
+      }
+    },
+    {
+      "id": 141,
+      "category": "shim_detection",
+      "description": "SEA layer mod.rs must not be a crate-level re-export shim",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 142,
+      "category": "shim_detection",
+      "description": "SEA layer directories must meet minimum LOC threshold (api/>10, core/>20, saf/>5)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 143,
+      "category": "shim_detection",
+      "description": "[lib] and [[bin]] paths must point inside src/",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 144,
+      "category": "shim_detection",
+      "description": "Non-standard [lib] path with src/ present suggests shim directory",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 145,
+      "category": "interface",
+      "description": "Free functions in saf/ or core/ taking an api-defined type as parameter should be methods on that type",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 146,
+      "category": "naming",
+      "description": "Package name must not use SEA layer suffixes as defined in sea_layers config",
+      "result": {
+        "status": "skip",
+        "reason": "No package name"
+      }
+    },
+    {
+      "id": 147,
+      "category": "workspace",
+      "description": "Workspace root Cargo.toml must not contain [package] — workspace roots must be virtual",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 148,
+      "category": "workspace",
+      "description": "Crate name must not duplicate any other crate name or module name in the same workspace",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 149,
+      "category": "test_org",
+      "description": "Test file prefix must match a source module name, optionally followed by a pub fn name",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 150,
+      "category": "hygiene",
+      "description": "Weak filesystem patterns — code that produces host-dependent paths (MAIN_SEPARATOR, hardcoded \\\\, replace-hacks, literal backslashes)",
+      "result": {
+        "status": "pass"
+      },
+      "duration_ms": 2.6067
+    },
+    {
+      "id": 151,
+      "category": "structure",
+      "description": "Feature crate must have config/application.toml for runtime configuration",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: not applicable for Workspace projects"
+      }
+    },
+    {
+      "id": 152,
+      "category": "service_type",
+      "description": "service_type must be defined in project metadata",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: not applicable for Workspace projects"
+      }
+    },
+    {
+      "id": 153,
+      "category": "service_type",
+      "description": "api/traits.rs must contain the primary trait matching service_type",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: not applicable for Workspace projects"
+      }
+    },
+    {
+      "id": 154,
+      "category": "service_type",
+      "description": "core/ must implement the primary api trait (impl <PrimaryTrait> for)",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: not applicable for Workspace projects"
+      }
+    },
+    {
+      "id": 155,
+      "category": "service_type",
+      "description": "Every non-orchestrator crate must have a Validator trait in api/traits.rs",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: not applicable for Workspace projects"
+      }
+    },
+    {
+      "id": 156,
+      "category": "workspace",
+      "description": "Workspace member paths and crate names must not contain duplicate segments (design smell)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 157,
+      "category": "workspace",
+      "description": "Same directory basename must not appear at multiple paths under workspace_layout (detects orphaned legacy duplication)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 158,
+      "category": "test_org",
+      "description": "Test functions must not be placeholders (panic!/todo!/unimplemented!/unreachable!/empty body)",
+      "result": {
+        "status": "pass"
+      }
+    },
+    {
+      "id": 159,
+      "category": "interface",
+      "description": "saf/ public function signatures must not name types from core/ (signature leak)",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 159,
+            "path": "main\\features\\tensor\\src\\saf\\wrappers.rs",
+            "message": "saf/ pub fn 'apply_runtime_config' in 'main\\features\\tensor\\src\\saf\\wrappers.rs' leaks a core type via its signature: crate::core::runtime::runtime_config::RuntimeConfig",
+            "severity": "warning",
+            "rule_type": "builtin:saf_signature_no_core_types",
+            "expected": "signature free of crate::core::... types (return `impl Trait` from api/, or move the type to api/)",
+            "actual": "pub fn apply_runtime_config(config: &crate::core::runtime::runtime_config::RuntimeConfig) -> TensorResult<()> {",
+            "fix_hint": "Either move the leaked type to api/ (if it is part of the public contract) or change the return/parameter type to an `impl Trait` from api/ or a saf-owned wrapper. saf/ is the transformation boundary — core/ types must not appear in saf's public signatures.",
+            "remediation_strategy": "manual"
+          }
+        ]
+      }
+    },
+    {
+      "id": 160,
+      "category": "interface",
+      "description": "All public types (struct, enum, trait, type alias) must be declared under api/ — no other layer is a legal declaration site",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: application_type-scoped rule does not apply to workspace roots. Use --recursive to scan members."
+      }
+    },
+    {
+      "id": 161,
+      "category": "naming",
+      "description": "Each pub type/trait in api/ must be in its own standalone file with the file stem matching the snake_case name",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: application_type-scoped rule does not apply to workspace roots. Use --recursive to scan members."
+      }
+    },
+    {
+      "id": 162,
+      "category": "code_organization",
+      "description": "lib.rs must contain only module declarations and re-exports — no struct/impl/fn/const definitions",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 162,
+            "path": "llminference\\main\\features\\inference\\ffi\\main\\src\\lib.rs",
+            "message": "lib.rs contains forbidden items: type/impl declarations (struct/enum/trait/impl/union), type aliases, function definitions [wrap] — this file is the package's access point, not a 'lost and found' for logic",
+            "severity": "warning",
+            "rule_type": "builtin:library_entry_declarations_only",
+            "expected": "Only mod declarations, use/pub use re-exports, attributes, and doc comments",
+            "actual": "type/impl declarations (struct/enum/trait/impl/union), type aliases, function definitions [wrap]",
+            "fix_hint": "Move declarations out of lib.rs: pub types → api/, pub functions → saf/ (factory), implementations → core/. lib.rs should only wire up modules and re-exports.",
+            "remediation_strategy": "manual"
+          }
+        ]
+      }
+    },
+    {
+      "id": 163,
+      "category": "code_organization",
+      "description": "main.rs may contain only module declarations, re-exports, and exactly one fn main — no other logic",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: application_type-scoped rule does not apply to workspace roots. Use --recursive to scan members."
+      }
+    },
+    {
+      "id": 164,
+      "category": "structure",
+      "description": "Declared workspaces in main/config/architecture.toml [project].workspaces must exist on disk with Cargo.toml",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: requires Project project layout (detected Workspace)"
+      }
+    },
+    {
+      "id": 165,
+      "category": "structure",
+      "description": "Every directory at the project root with a Cargo.toml must be declared in main/config/architecture.toml [project].workspaces",
+      "result": {
+        "status": "skip",
+        "reason": "Skipped: requires Project project layout (detected Workspace)"
+      }
+    },
+    {
+      "id": 166,
+      "category": "workspace",
+      "description": "Every crate directory with a Cargo.toml under the workspace root must be listed in [workspace].members",
+      "result": {
+        "status": "fail",
+        "violations": [
+          {
+            "check_id": 166,
+            "path": "quantization/quant-rs",
+            "message": "Crate 'quantization/quant-rs' has Cargo.toml but is not listed in workspace.members",
+            "severity": "error",
+            "rule_type": "builtin:workspace_members_all_registered",
+            "expected": "'quantization/quant-rs' listed in [workspace].members",
+            "actual": "unregistered crate",
+            "fix_hint": "Add 'quantization/quant-rs' to [workspace].members in the workspace Cargo.toml, or delete the orphaned crate directory",
+            "remediation_strategy": "declarative"
+          },
+          {
+            "check_id": 166,
+            "path": "quantization/quant-rs/main/quant-api",
+            "message": "Crate 'quantization/quant-rs/main/quant-api' has Cargo.toml but is not listed in workspace.members",
+            "severity": "error",
+            "rule_type": "builtin:workspace_members_all_registered",
+            "expected": "'quantization/quant-rs/main/quant-api' listed in [workspace].members",
+            "actual": "unregistered crate",
+            "fix_hint": "Add 'quantization/quant-rs/main/quant-api' to [workspace].members in the workspace Cargo.toml, or delete the orphaned crate directory",
+            "remediation_strategy": "declarative"
+          },
+          {
+            "check_id": 166,
+            "path": "quantization/quant-rs/main/quant-cli",
+            "message": "Crate 'quantization/quant-rs/main/quant-cli' has Cargo.toml but is not listed in workspace.members",
+            "severity": "error",
+            "rule_type": "builtin:workspace_members_all_registered",
+            "expected": "'quantization/quant-rs/main/quant-cli' listed in [workspace].members",
+            "actual": "unregistered crate",
+            "fix_hint": "Add 'quantization/quant-rs/main/quant-cli' to [workspace].members in the workspace Cargo.toml, or delete the orphaned crate directory",
+            "remediation_strategy": "declarative"
+          },
+          {
+            "check_id": 166,
+            "path": "quantization/quant-rs/main/quant-engine",
+            "message": "Crate 'quantization/quant-rs/main/quant-engine' has Cargo.toml but is not listed in workspace.members",
+            "severity": "error",
+            "rule_type": "builtin:workspace_members_all_registered",
+            "expected": "'quantization/quant-rs/main/quant-engine' listed in [workspace].members",
+            "actual": "unregistered crate",
+            "fix_hint": "Add 'quantization/quant-rs/main/quant-engine' to [workspace].members in the workspace Cargo.toml, or delete the orphaned crate directory",
+            "remediation_strategy": "declarative"
+          },
+          {
+            "check_id": 166,
+            "path": "quantization/quant-rs/main/quant-eval",
+            "message": "Crate 'quantization/quant-rs/main/quant-eval' has Cargo.toml but is not listed in workspace.members",
+            "severity": "error",
+            "rule_type": "builtin:workspace_members_all_registered",
+            "expected": "'quantization/quant-rs/main/quant-eval' listed in [workspace].members",
+            "actual": "unregistered crate",
+            "fix_hint": "Add 'quantization/quant-rs/main/quant-eval' to [workspace].members in the workspace Cargo.toml, or delete the orphaned crate directory",
+            "remediation_strategy": "declarative"
+          },
+          {
+            "check_id": 166,
+            "path": "quantization/quant-rs/main/quant-io",
+            "message": "Crate 'quantization/quant-rs/main/quant-io' has Cargo.toml but is not listed in workspace.members",
+            "severity": "error",
+            "rule_type": "builtin:workspace_members_all_registered",
+            "expected": "'quantization/quant-rs/main/quant-io' listed in [workspace].members",
+            "actual": "unregistered crate",
+            "fix_hint": "Add 'quantization/quant-rs/main/quant-io' to [workspace].members in the workspace Cargo.toml, or delete the orphaned crate directory",
+            "remediation_strategy": "declarative"
+          },
+          {
+            "check_id": 166,
+            "path": "quantization/quant-rs/main/quant-packer",
+            "message": "Crate 'quantization/quant-rs/main/quant-packer' has Cargo.toml but is not listed in workspace.members",
+            "severity": "error",
+            "rule_type": "builtin:workspace_members_all_registered",
+            "expected": "'quantization/quant-rs/main/quant-packer' listed in [workspace].members",
+            "actual": "unregistered crate",
+            "fix_hint": "Add 'quantization/quant-rs/main/quant-packer' to [workspace].members in the workspace Cargo.toml, or delete the orphaned crate directory",
+            "remediation_strategy": "declarative"
+          },
+          {
+            "check_id": 166,
+            "path": "quantization/quant-rs/main/sweetspot-finder",
+            "message": "Crate 'quantization/quant-rs/main/sweetspot-finder' has Cargo.toml but is not listed in workspace.members",
+            "severity": "error",
+            "rule_type": "builtin:workspace_members_all_registered",
+            "expected": "'quantization/quant-rs/main/sweetspot-finder' listed in [workspace].members",
+            "actual": "unregistered crate",
+            "fix_hint": "Add 'quantization/quant-rs/main/sweetspot-finder' to [workspace].members in the workspace Cargo.toml, or delete the orphaned crate directory",
+            "remediation_strategy": "declarative"
+          }
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "total": 157,
+    "passed": 88,
+    "failed": 17,
+    "skipped": 51,
+    "dormant": 1,
+    "duration_ms": 5078.8801
+  },
+  "project_layout": "workspace",
+  "application_type": "lib"
+}
