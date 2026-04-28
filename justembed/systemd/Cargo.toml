@@ -19,7 +19,7 @@ swe-llmmodel-arch-nomic-bert.workspace = true
 swe-llmmodel-gguf.workspace = true
 swe-llmmodel-tokenizer.workspace = true
 swe-llmmodel-layers.workspace = true
-axum = { version = "0.8", features = ["json"] }
+axum.workspace = true
 tokio.workspace = true
 clap.workspace = true
 anyhow.workspace = true

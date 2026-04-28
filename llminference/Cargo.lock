@@ -2864,29 +2864,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "swe-embedding-systemd"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "axum",
- "clap",
- "env_logger",
- "log",
- "serde",
- "serde_json",
- "swe-cli",
- "swe-llmmodel-arch-nomic-bert",
- "swe-llmmodel-gguf",
- "swe-llmmodel-layers",
- "swe-llmmodel-model",
- "swe-llmmodel-tokenizer",
- "swe-ml-embedding",
- "swe-ml-tensor",
- "swe-systemd",
- "tokio",
-]
-
-[[package]]
 name = "swe-inference-backend-api"
 version = "0.1.0"
 dependencies = [

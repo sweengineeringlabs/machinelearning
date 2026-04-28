@@ -1,11 +1,11 @@
 [package]
 name = "swe-llmserver-llamacpp"
 description = "llama.cpp-backed ModelBackendLoader — architectural skeleton; llama-cpp-2 integration is a separate follow-up"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
-authors.workspace = true
-repository.workspace = true
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+authors = ["phdsystems <developer@phdsystems.com>"]
+repository = "https://github.com/sweengineeringlabs/machinelearning"
 
 # When `llama-cpp` is off (default), the crate compiles to an empty
 # shell — workspace builds stay fast and toolchain-free. When on, it
@@ -17,14 +17,14 @@ default = []
 llama-cpp = ["dep:llama-cpp-2", "dep:encoding_rs"]
 
 [dependencies]
-swe-inference-backend-api = { path = "../llminference/main/features/inference/backend-api" }
-swe-inference-generation = { path = "../llminference/main/features/inference/generation" }
+swe-inference-backend-api = { path = "../../llminference/main/features/inference/backend-api" }
+swe-inference-generation = { path = "../../llminference/main/features/inference/generation" }
 swe-llmmodel-tokenizer = { path = "../llmmodel/tokenizer" }
 swe-llmmodel-layers = { path = "../llmmodel/layers" }
 swe-llmmodel-model = { path = "../llmmodel/model" }
-swe-ml-tensor = { path = "../main/features/tensor" }
-anyhow.workspace = true
-log.workspace = true
-llama-cpp-2 = { workspace = true, optional = true }
+swe-ml-tensor = { path = "../../main/features/tensor" }
+anyhow = "1"
+log = "0.4"
+llama-cpp-2 = { version = "0.1.143", optional = true }
 # Used by token_to_piece — llama-cpp-2 takes an encoding_rs Decoder.
 encoding_rs = { version = "0.8", optional = true }

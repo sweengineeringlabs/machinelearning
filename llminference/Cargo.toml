@@ -24,7 +24,6 @@ members = [
     # Serving frontends (leaves — each removable without breaking the stack).
     "main/features/inference/systemd",
     "main/features/inference/cli",
-    "main/features/embedding/systemd",
     # Foreign-function interface — cdylib for desktop/IDE integration.
     "main/features/inference/ffi",
     # Note: experimentation/llmforge has its own nested workspace; excluded below.
@@ -91,31 +90,31 @@ llama-cpp-2 = "0.1.143"
 swe-ml-tensor        = { path = "../main/features/tensor" }
 swe-ml-normalization = { path = "../main/features/normalization" }
 swe-ml-activation    = { path = "../main/features/activation" }
-swe-ml-embedding     = { path = "../main/features/embedding/conversion" }
+swe-ml-embedding     = { path = "../justembed/conversion" }
 swe-cli              = { path = "../main/features/cli" }
 swe-ml-architectures = { path = "../main/features/architectures" }
 swe-ml-training      = { path = "../main/features/training" }
 
 # llmmodel workspace — download, io, weights.
-swe-llmmodel-download = { path = "../llmmodel/download" }
-swe-llmmodel-io       = { path = "../llmmodel/io" }
-swe-llmmodel-weights  = { path = "../llmmodel/weights" }
-swe-llmmodel-kernel   = { path = "../llmmodel/kernel" }
-swe-llmmodel-layers   = { path = "../llmmodel/layers" }
-swe-llmmodel-gguf     = { path = "../llmmodel/gguf" }
-swe-llmmodel-model    = { path = "../llmmodel/model" }
-swe-llmmodel-tokenizer = { path = "../llmmodel/tokenizer" }
-swe-llmmodel-quantizer = { path = "../llmmodel/quantizer" }
-swe-llmmodel-arch-llama      = { path = "../llmmodel/arch/llama" }
-swe-llmmodel-arch-gpt2       = { path = "../llmmodel/arch/gpt2" }
-swe-llmmodel-arch-falcon     = { path = "../llmmodel/arch/falcon" }
-swe-llmmodel-arch-mixtral    = { path = "../llmmodel/arch/mixtral" }
-swe-llmmodel-arch-gemma3     = { path = "../llmmodel/arch/gemma3" }
-swe-llmmodel-arch-gemma4     = { path = "../llmmodel/arch/gemma4" }
-swe-llmmodel-arch-bert       = { path = "../llmmodel/arch/bert" }
-swe-llmmodel-arch-nomic-bert = { path = "../llmmodel/arch/nomic_bert" }
-swe-llmmodel-loader          = { path = "../llmmodel/loader" }
-swe-llmserver-llamacpp = { path = "../llamacpp" }
+swe-llmmodel-download = { path = "../llmserve/llmmodel/download" }
+swe-llmmodel-io       = { path = "../llmserve/llmmodel/io" }
+swe-llmmodel-weights  = { path = "../llmserve/llmmodel/weights" }
+swe-llmmodel-kernel   = { path = "../llmserve/llmmodel/kernel" }
+swe-llmmodel-layers   = { path = "../llmserve/llmmodel/layers" }
+swe-llmmodel-gguf     = { path = "../llmserve/llmmodel/gguf" }
+swe-llmmodel-model    = { path = "../llmserve/llmmodel/model" }
+swe-llmmodel-tokenizer = { path = "../llmserve/llmmodel/tokenizer" }
+swe-llmmodel-quantizer = { path = "../llmserve/llmmodel/quantizer" }
+swe-llmmodel-arch-llama      = { path = "../llmserve/llmmodel/arch/llama" }
+swe-llmmodel-arch-gpt2       = { path = "../llmserve/llmmodel/arch/gpt2" }
+swe-llmmodel-arch-falcon     = { path = "../llmserve/llmmodel/arch/falcon" }
+swe-llmmodel-arch-mixtral    = { path = "../llmserve/llmmodel/arch/mixtral" }
+swe-llmmodel-arch-gemma3     = { path = "../llmserve/llmmodel/arch/gemma3" }
+swe-llmmodel-arch-gemma4     = { path = "../llmserve/llmmodel/arch/gemma4" }
+swe-llmmodel-arch-bert       = { path = "../llmserve/llmmodel/arch/bert" }
+swe-llmmodel-arch-nomic-bert = { path = "../llmserve/llmmodel/arch/nomic_bert" }
+swe-llmmodel-loader          = { path = "../llmserve/llmmodel/loader" }
+swe-llmserver-llamacpp = { path = "../llmserve/llamacpp" }
 
 # ──────────────────────────────────────────────────────────────────────
 # Inference library (internal to this workspace).
@@ -126,5 +125,5 @@ swe-inference-thread-config    = { path = "main/features/inference/thread-config
 swe-inference-compute              = { path = "main/features/inference/compute" }
 swe-inference-backend-api              = { path = "main/features/inference/backend-api" }
 swe-systemd                    = { path = "main/features/systemd" }
-swe-embedding-systemd     = { path = "main/features/embedding/systemd" }
+swe-embedding-systemd     = { path = "../justembed/systemd" }
 swe-inference-systemd                 = { path = "main/features/inference/systemd" }

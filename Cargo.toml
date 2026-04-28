@@ -5,7 +5,6 @@ members = [
     "main/features/tensor",
     "main/features/normalization",
     "main/features/activation",
-    "main/features/embedding/conversion",
     "main/features/cli",
     "main/features/architectures",
     "main/features/training",
@@ -68,7 +67,7 @@ llama-cpp-2 = "0.1.143"
 swe-ml-tensor        = { path = "main/features/tensor" }
 swe-ml-normalization = { path = "main/features/normalization" }
 swe-ml-activation    = { path = "main/features/activation" }
-swe-ml-embedding     = { path = "main/features/embedding/conversion" }
+swe-ml-embedding     = { path = "justembed/conversion" }
 swe-cli              = { path = "main/features/cli" }
 swe-ml-architectures = { path = "main/features/architectures" }
 swe-ml-training      = { path = "main/features/training" }
