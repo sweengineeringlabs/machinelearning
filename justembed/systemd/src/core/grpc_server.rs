@@ -1,19 +1,39 @@
 //! gRPC server orchestration — wires the upstream
-//! [`HandlerRegistryDispatcher`] to the edge gRPC ingress and runs the
-//! tonic listener.
+//! [`HandlerRegistryDispatcher`] and [`HealthService`] to the edge gRPC
+//! ingress and runs the tonic listener.
 //!
 //! Returns the bound address and a shutdown channel so callers (the
 //! `embed` binary, integration tests) can manage lifecycle.
+//!
+//! ## Wiring overview
+//!
+//! ```text
+//!   TonicGrpcServer
+//!         │
+//!         ▼
+//!   MethodPathRouter
+//!     ├── /justembed.EmbedService/*  ──► HandlerRegistryDispatcher
+//!     │                                    └── GrpcHandlerAdapter ──► EmbedHandler
+//!     └── /grpc.health.v1.Health/*   ──► HealthService
+//! ```
+//!
+//! At startup, the embed service is registered as `SERVING` in the
+//! shared `HealthService`.  The dispatcher's aggregate health is what
+//! we trust as the source of truth for the overall service status —
+//! when `EmbedHandler::health_check` flips to `false` the next refresh
+//! tick will mark the overall service `NOT_SERVING` and the named
+//! `justembed.EmbedService` slot as well.
 
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::time::Duration;
 
 use anyhow::{Context, Result};
 use edge_domain::HandlerRegistry;
 use prost::Message;
 use swe_edge_ingress_grpc::{
-    GrpcHandlerAdapter, GrpcInboundError, HandlerRegistryDispatcher, IngressTlsConfig,
-    TonicGrpcServer,
+    GrpcHandlerAdapter, GrpcInboundError, HandlerRegistryDispatcher, HealthService,
+    IngressTlsConfig, ServingStatus, TonicGrpcServer,
 };
 use tokio::net::TcpListener;
 use tokio::sync::oneshot;
@@ -21,19 +41,37 @@ use tokio::task::JoinHandle;
 
 use crate::api::config::EmbeddingGrpcConfig;
 use crate::api::proto::{EmbedRequest, EmbedResponse};
+use crate::core::grpc_dispatch::MethodPathRouter;
 use crate::core::grpc_handler::EmbedHandler;
 use crate::core::state::EmbeddingState;
 
+/// Cadence at which the health refresh task polls the dispatcher and
+/// pushes the aggregated status into the [`HealthService`].
+///
+/// Two seconds is short enough that a stuck embed handler is reflected
+/// in `Health/Check` within one client retry budget, and long enough
+/// that the model-load `health_check()` (which is currently O(1) but
+/// could grow) does not dominate the runtime.
+const HEALTH_REFRESH_INTERVAL: Duration = Duration::from_secs(2);
+
+/// Service name reported by the standard `grpc.health.v1.Health.Check`
+/// for the embed RPC service.  Convention is the fully-qualified proto
+/// service name (no leading slash, no method).
+pub const EMBED_HEALTH_SERVICE_NAME: &str = "justembed.EmbedService";
+
 /// Running gRPC server: bound address + shutdown channel + serve task.
 ///
-/// Drop the [`shutdown`](Self::shutdown) sender (or `send(())`) to stop the
-/// server gracefully and await [`task`](Self::task) to observe the result.
+/// Drop the [`shutdown`](Self::shutdown) sender (or `send(())`) to stop
+/// the server gracefully and await [`task`](Self::task) to observe the
+/// result.  The dedicated health-refresh task is cancelled when the
+/// shutdown trigger fires.
 pub struct EmbedGrpcServer {
     /// Address actually bound (matters when `port = 0` was used).
     pub addr:     SocketAddr,
     /// Closes the listener when triggered or dropped.
     pub shutdown: oneshot::Sender<()>,
-    /// Serving task — `await` to observe a clean exit or surface a bind/TLS error.
+    /// Serving task — `await` to observe a clean exit or surface a
+    /// bind/TLS error.
     pub task:     JoinHandle<Result<()>>,
 }
 
@@ -59,7 +97,8 @@ fn encode_embed_response(resp: &EmbedResponse) -> Vec<u8> {
     buf
 }
 
-/// Spawn a gRPC server that exposes the registered embed handler.
+/// Spawn a gRPC server that exposes the registered embed handler and
+/// the standard `grpc.health.v1.Health` service.
 ///
 /// `cfg` controls bind, TLS, message-size cap, and the
 /// `allow_unauthenticated` knob.  For now `allow_unauthenticated = true`
@@ -94,7 +133,20 @@ pub async fn start_grpc_server(
     registry.register(Arc::new(adapter));
 
     let dispatcher: Arc<HandlerRegistryDispatcher> =
-        Arc::new(HandlerRegistryDispatcher::new(registry));
+        Arc::new(HandlerRegistryDispatcher::new(Arc::clone(&registry)));
+
+    // Health service — overall + per-service slot.  Both start SERVING
+    // because the model is fully loaded before we reach this code path
+    // (`load_gguf` returns the populated state synchronously).
+    let health = Arc::new(HealthService::new());
+    health.set_overall_status(ServingStatus::Serving);
+    health.set_status(EMBED_HEALTH_SERVICE_NAME, ServingStatus::Serving);
+
+    // Wire the router that fans out by method-path prefix.
+    let router = Arc::new(MethodPathRouter::new(
+        dispatcher.clone() as Arc<dyn swe_edge_ingress_grpc::GrpcInbound>,
+        health.clone()     as Arc<dyn swe_edge_ingress_grpc::GrpcInbound>,
+    ));
 
     let bind = format!("{}:{}", cfg.host, cfg.port);
     let listener = TcpListener::bind(&bind)
@@ -102,7 +154,7 @@ pub async fn start_grpc_server(
         .with_context(|| format!("gRPC bind {bind}"))?;
     let addr = listener.local_addr().context("gRPC local_addr")?;
 
-    let mut server = TonicGrpcServer::new(bind.clone(), dispatcher)
+    let mut server = TonicGrpcServer::new(bind.clone(), router)
         .with_max_message_size(cfg.max_message_bytes)
         .allow_unauthenticated(cfg.allow_unauthenticated);
 
@@ -111,17 +163,49 @@ pub async fn start_grpc_server(
     }
 
     let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
+
+    // Health refresh task — every `HEALTH_REFRESH_INTERVAL` we ask the
+    // dispatcher for an aggregated health status and propagate it to
+    // both the overall slot and the per-service slot.  Stops when the
+    // shutdown signal fires.
+    let refresh_health     = Arc::clone(&health);
+    let refresh_dispatcher = Arc::clone(&dispatcher) as Arc<dyn swe_edge_ingress_grpc::GrpcInbound>;
+    let (refresh_stop_tx, mut refresh_stop_rx) = oneshot::channel::<()>();
+    let refresh_task = tokio::spawn(async move {
+        let mut tick = tokio::time::interval(HEALTH_REFRESH_INTERVAL);
+        // Skip the immediate first tick — startup status is already SERVING.
+        tick.tick().await;
+        loop {
+            tokio::select! {
+                _ = tick.tick() => {
+                    let status = match refresh_dispatcher.health_check().await {
+                        Ok(c) if c.healthy => ServingStatus::Serving,
+                        _                  => ServingStatus::NotServing,
+                    };
+                    refresh_health.set_overall_status(status);
+                    refresh_health.set_status(EMBED_HEALTH_SERVICE_NAME, status);
+                }
+                _ = &mut refresh_stop_rx => break,
+            }
+        }
+    });
+
     let task = tokio::spawn(async move {
-        server
+        let serve_result = server
             .serve_with_listener(listener, async move {
                 let _ = shutdown_rx.await;
             })
             .await
-            .map_err(|e| anyhow::anyhow!("gRPC server: {e}"))
+            .map_err(|e| anyhow::anyhow!("gRPC server: {e}"));
+        // Stop the refresh task before returning so its handle does
+        // not leak past the server shutdown.
+        let _ = refresh_stop_tx.send(());
+        let _ = refresh_task.await;
+        serve_result
     });
 
     log::info!(
-        "embed: gRPC EmbedService on {}{}",
+        "embed: gRPC EmbedService on {}{} (health: grpc.health.v1.Health/Check)",
         addr,
         if cfg.tls.is_some() { " (TLS)" } else { "" }
     );
