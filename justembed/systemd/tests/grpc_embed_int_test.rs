@@ -7,13 +7,14 @@
 //! deterministic stub `Handler<EmbedRequest, EmbedResponse>` and
 //! exercise the full wire path through `TonicGrpcServer`:
 //!
-//!   client → http2 → ingress → RegistryGrpcInbound → stub handler
+//!   client → http2 → ingress → HandlerRegistryDispatcher → adapter → stub handler
 //!
 //! This proves:
 //!   * proto round-trips preserve f32 vectors bit-for-bit
-//!   * the registry bridge dispatches to the right handler by URI path
+//!   * the upstream dispatcher routes to the right handler by URI path
 //!   * `HandlerError::InvalidRequest` surfaces as gRPC `InvalidArgument`
 //!   * mismatched URIs surface as gRPC `Unimplemented`
+//!   * malformed request bytes surface as gRPC `InvalidArgument`
 
 use std::any::Any;
 use std::collections::HashMap;
@@ -30,9 +31,11 @@ use prost::Message;
 use tokio::net::TcpListener;
 use tokio::sync::oneshot;
 
-use swe_edge_ingress_grpc::TonicGrpcServer;
+use swe_edge_ingress_grpc::{
+    GrpcHandlerAdapter, GrpcInboundError, HandlerRegistryDispatcher, TonicGrpcServer,
+};
 use swe_embedding_systemd::{
-    EmbedRequest, EmbedResponse, EMBED_METHOD_PATH, FloatVector, RegistryGrpcInbound,
+    EmbedRequest, EmbedResponse, EMBED_METHOD_PATH, FloatVector,
 };
 
 // ── Deterministic stub handler ────────────────────────────────────────────────
@@ -106,15 +109,35 @@ fn parse_grpc_frames(data: &Bytes) -> Vec<Bytes> {
     out
 }
 
+// ── Codec helpers — must match the daemon's proto wire codecs ────────────────
+
+fn decode_embed_request(bytes: &[u8]) -> Result<EmbedRequest, GrpcInboundError> {
+    EmbedRequest::decode(bytes).map_err(|e| {
+        GrpcInboundError::InvalidArgument(format!("decode EmbedRequest: {e}"))
+    })
+}
+
+fn encode_embed_response(resp: &EmbedResponse) -> Vec<u8> {
+    let mut buf = Vec::with_capacity(resp.encoded_len());
+    resp.encode(&mut buf).expect("EmbedResponse encode into Vec<u8> is infallible");
+    buf
+}
+
 async fn start_test_server() -> (SocketAddr, oneshot::Sender<()>) {
-    let registry: Arc<HandlerRegistry<EmbedRequest, EmbedResponse>> =
+    let registry: Arc<HandlerRegistry<Vec<u8>, Vec<u8>>> =
         Arc::new(HandlerRegistry::new());
-    registry.register(Arc::new(StubEmbedHandler));
-    let inbound = Arc::new(RegistryGrpcInbound::new(registry));
+    let adapter = GrpcHandlerAdapter::new(
+        Arc::new(StubEmbedHandler) as Arc<dyn Handler<EmbedRequest, EmbedResponse>>,
+        decode_embed_request,
+        encode_embed_response,
+    );
+    registry.register(Arc::new(adapter));
+    let dispatcher = Arc::new(HandlerRegistryDispatcher::new(registry));
 
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr     = listener.local_addr().unwrap();
-    let server   = TonicGrpcServer::new("127.0.0.1:0", inbound);
+    let server   = TonicGrpcServer::new("127.0.0.1:0", dispatcher)
+        .allow_unauthenticated(true);
 
     let (tx, rx) = oneshot::channel::<()>();
     tokio::spawn(async move {
