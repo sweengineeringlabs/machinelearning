@@ -1,5 +1,5 @@
-# Configuration for cbindgen: generate include/llmserv.h from the Rust source.
-# Usage: `cbindgen --config cbindgen.toml --crate swe-inference-ffi --output include/llmserv.h`
+# Configuration for cbindgen: generate include/llminference.h from the Rust source.
+# Usage: `cbindgen --config cbindgen.toml --crate swe-inference-ffi --output include/llminference.h`
 # Or run `cargo build -p swe-inference-ffi` to regenerate via build.rs.
 
 language = "C"

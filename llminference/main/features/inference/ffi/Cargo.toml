@@ -4,10 +4,10 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "C-ABI cdylib for llmserv — desktop / IDE integration, no HTTP"
+description = "C-ABI cdylib for llminference — desktop / IDE integration, no HTTP"
 
 [lib]
-name = "llmserv"
+name = "llminference"
 crate-type = ["cdylib", "rlib"]
 path = "main/src/lib.rs"
 
