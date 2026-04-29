@@ -132,7 +132,7 @@ memory. That removes the per-request variance, hence the tight
 p50/p99 envelope (158 ms span vs our 3487 ms span).
 
 This is exactly the context-lifecycle question flagged in
-`llmserv/BACKLOG.md` under P7.B audit finding #3. We shipped the
+`llminference/BACKLOG.md` under P7.B audit finding #3. We shipped the
 simplest strategy ("fresh-per-call") deliberately — correctness
 first. Now we have a measured cost for it.
 
@@ -155,8 +155,8 @@ Where the gap comes from, ranked by expected contribution:
 ## How to reproduce
 
 Both daemons served on `127.0.0.1`. Config switch is the `[model].backend`
-key in `%APPDATA%\llmserv\application.toml` (Windows) or
-`$XDG_CONFIG_HOME/llmserv/application.toml` (Linux/macOS):
+key in `%APPDATA%\llminference\application.toml` (Windows) or
+`$XDG_CONFIG_HOME/llminference/application.toml` (Linux/macOS):
 
 ```toml
 # llama.cpp path
@@ -171,10 +171,10 @@ port = 8089
 ```
 
 Build (Windows needs the three CRT env vars — see
-`llmserv/.cargo/config.toml`):
+`llminference/.cargo/config.toml`):
 
 ```bash
-cd llmserv
+cd llminference
 export CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL CFLAGS=-MD CXXFLAGS=-MD  # Windows only
 cargo build-llama     # daemon with backend-llama-cpp feature
 cargo build --release -p llm_cli

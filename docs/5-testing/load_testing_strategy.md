@@ -13,7 +13,7 @@
 
 ## What this replaces
 
-`llmserv/main/features/daemon/scripts/load_test.sh` is a 50-line bash + curl burst driver. It proves "the server survives a synchronous burst" and nothing else — no percentiles, capped at ~20 concurrent by Cygwin fork limits, one workload, one endpoint.
+`llminference/main/features/inference/systemd/scripts/load_test.sh` is a 50-line bash + curl burst driver. It proves "the server survives a synchronous burst" and nothing else — no percentiles, capped at ~20 concurrent by Cygwin fork limits, one workload, one endpoint.
 
 That script stays as a fast smoke check. Everything below is the actual strategy.
 
@@ -89,7 +89,7 @@ Captured per scenario, written to `scripts/loadtest/results/<ts>/<scenario>.<wor
 ## Directory layout
 
 ```
-llmserv/main/features/daemon/scripts/
+llminference/main/features/inference/systemd/scripts/
 ├── load_test.sh                    # keep: fast smoke (existing)
 └── loadtest/
     ├── run.sh                      # entrypoint: run.sh <scenario> <workload>
@@ -140,11 +140,11 @@ Phase 3 goal. Approximate shape:
 load-smoke:
   needs: [build-release]
   steps:
-    - run: ./llmserv/main/features/daemon/scripts/loadtest/run.sh baseline chat_short
-    - run: ./llmserv/main/features/daemon/scripts/loadtest/compare.sh latest
+    - run: ./llminference/main/features/inference/systemd/scripts/loadtest/run.sh baseline chat_short
+    - run: ./llminference/main/features/inference/systemd/scripts/loadtest/compare.sh latest
 ```
 
-Runs only when `llmserv/main/features/daemon/`, `llmserv/main/features/inference/layers/`, `llmserv/main/features/inference/model/`, or `main/features/tensor/` change, since those are the hot paths. Full matrix runs nightly on a dedicated runner, results published as a build artifact.
+Runs only when `llminference/main/features/inference/systemd/`, `llminference/main/features/inference/layers/`, `llminference/main/features/inference/model/`, or `main/features/tensor/` change, since those are the hot paths. Full matrix runs nightly on a dedicated runner, results published as a build artifact.
 
 ## Non-goals
 
