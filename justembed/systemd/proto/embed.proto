@@ -1,0 +1,48 @@
+// justembed embed.proto — gRPC schema for the embedding service.
+//
+// Mirrors the OpenAI-compatible REST shape so a single embedding loop
+// serves both transports without semantic drift.  The REST endpoint
+// remains the primary surface for external/ecosystem clients; this
+// service is the primary surface for intra-cluster RPC.
+
+syntax = "proto3";
+
+package justembed;
+
+// Single-call unary embedding service.
+service EmbedService {
+    // Embed one or more input strings and return one float vector per input.
+    //
+    // Errors map to gRPC status codes via the edge ingress:
+    //   - InvalidArgument when `input` is empty or tokenisation rejects an entry
+    //   - Internal        for model / tensor failures (sanitised on the wire)
+    rpc Embed(EmbedRequest) returns (EmbedResponse);
+}
+
+// Embedding request.  Field numbers are stable — never reuse, never renumber.
+message EmbedRequest {
+    // Model identifier (informational).  The server loads exactly one model
+    // at startup; mismatches are echoed back, not rejected.
+    string model = 1;
+
+    // One or more input strings to embed.  Empty list is rejected with
+    // InvalidArgument before any tokenisation work runs.
+    repeated string input = 2;
+}
+
+// Embedding response.  One `FloatVector` per input, in the same order.
+message EmbedResponse {
+    // Echoes the loaded model id so the caller can confirm what produced
+    // these vectors.
+    string model = 1;
+
+    // L2-normalised embedding vectors — `embeddings[i]` corresponds to
+    // `EmbedRequest.input[i]`.
+    repeated FloatVector embeddings = 2;
+}
+
+// A single embedding vector.
+message FloatVector {
+    // L2-normalised float components — length is the model's embedding dim.
+    repeated float values = 1;
+}

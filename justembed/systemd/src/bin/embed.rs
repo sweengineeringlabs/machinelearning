@@ -14,6 +14,7 @@ use clap::{Parser, Subcommand};
 use swe_cli::{Cli as SweCli, VerbosityArgs, install_panic_hook};
 use swe_embedding_systemd::{
     AppConfig, apply_logging_filter, build_embedding_router, load_config, load_gguf, serve_http,
+    start_grpc_server,
 };
 
 /// `embed` — embedding HTTP daemon.
@@ -103,6 +104,11 @@ async fn run_serve(verbosity: VerbosityArgs) -> Result<()> {
     let model_id = embedding_state.model_id.clone();
 
     let state = Arc::new(embedding_state);
+
+    // Start the gRPC server first — it binds before accepting REST traffic so
+    // a misconfigured TLS / port surfaces before the HTTP listener accepts work.
+    let grpc = start_grpc_server(Arc::clone(&state), &loaded.app.embedding.grpc).await?;
+
     let app = build_embedding_router(state);
 
     let addr: SocketAddr = format!(
@@ -110,9 +116,17 @@ async fn run_serve(verbosity: VerbosityArgs) -> Result<()> {
         loaded.app.embedding.server.host, loaded.app.embedding.server.port
     )
     .parse()?;
-    log::info!("embed: serving '{}' on http://{}", model_id, addr);
+    log::info!("embed: serving '{}' on http://{} (REST)", model_id, addr);
 
-    serve_http(addr, app).await
+    let serve_result = serve_http(addr, app).await;
+
+    // REST exited — shut the gRPC server down too so the process really stops.
+    let _ = grpc.shutdown.send(());
+    if let Err(e) = grpc.task.await {
+        log::warn!("gRPC server task join error: {e}");
+    }
+
+    serve_result
 }
 
 fn resolve_model_path(cfg: &AppConfig) -> Result<PathBuf> {

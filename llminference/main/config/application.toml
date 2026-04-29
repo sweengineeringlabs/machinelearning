@@ -33,6 +33,34 @@ port = 8081
 gguf_path = ""
 
 # ──────────────────────────────────────────────────────────────────────
+# [embedding.grpc] — gRPC EmbedService server
+#
+# Runs alongside the OpenAI REST endpoint on a separate port. gRPC is
+# the primary protocol for intra-cluster service-to-service calls; the
+# REST endpoint is kept for ecosystem compatibility.
+#
+# Security defaults assume a development workstation:
+#   * loopback-only bind
+#   * plaintext (TLS not configured)
+#   * allow_unauthenticated = true
+#
+# Production deployments MUST set [embedding.grpc.tls] paths and flip
+# allow_unauthenticated to false once an auth interceptor is wired.
+# ──────────────────────────────────────────────────────────────────────
+[embedding.grpc]
+host = "127.0.0.1"
+port = 8181
+max_message_bytes = 4194304          # 4 MiB
+allow_unauthenticated = true
+
+# Uncomment to enable TLS:
+# [embedding.grpc.tls]
+# cert_pem_path = "/etc/justembed/server.crt"
+# key_pem_path  = "/etc/justembed/server.key"
+# # Optional client-CA → enables mTLS:
+# # client_ca_pem_path = "/etc/justembed/client-ca.crt"
+
+# ──────────────────────────────────────────────────────────────────────
 # [model] — which model to load
 #
 # backend = "native_rust" → native Rust forward pass (default)
