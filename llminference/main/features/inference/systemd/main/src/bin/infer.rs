@@ -28,9 +28,9 @@ use swe_inference_thread_config::ThreadConfig;
 ///
 /// Config sources (later overrides earlier):
 ///   1. Bundled default (compiled into the binary)
-///   2. $XDG_CONFIG_DIRS/llmserv/application.toml
-///   3. $XDG_CONFIG_HOME/llmserv/application.toml
-///      (on Windows: %APPDATA%\llmserv\application.toml)
+///   2. $XDG_CONFIG_DIRS/llminference/application.toml
+///   3. $XDG_CONFIG_HOME/llminference/application.toml
+///      (on Windows: %APPDATA%\llminference\application.toml)
 ///
 /// EXAMPLES:
 ///
@@ -38,8 +38,8 @@ use swe_inference_thread_config::ThreadConfig;
 ///   infer serve
 ///
 ///   # Override the config via XDG:
-///   mkdir -p ~/.config/llmserv
-///   cat > ~/.config/llmserv/application.toml <<EOF
+///   mkdir -p ~/.config/llminference
+///   cat > ~/.config/llminference/application.toml <<EOF
 ///   [server]
 ///   host = "127.0.0.1"
 ///   port = 8080

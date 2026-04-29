@@ -47,7 +47,7 @@
 
 ## Starting the Daemon
 
-`swellmd` has no CLI flags. All behavior is driven by `llmserv/main/config/application.toml`, with optional overrides at `$XDG_CONFIG_HOME/llmserv/application.toml` and `$XDG_CONFIG_DIRS/llmserv/application.toml` (deep-merged, user config wins).
+`swellmd` has no CLI flags. All behavior is driven by `llminference/main/config/application.toml`, with optional overrides at `$XDG_CONFIG_HOME/llminference/application.toml` and `$XDG_CONFIG_DIRS/llminference/application.toml` (deep-merged, user config wins).
 
 Start it with no arguments:
 
@@ -60,8 +60,8 @@ swellmd
 Write an override TOML that sets only the keys you want to change, then point `XDG_CONFIG_HOME` at the directory containing it:
 
 ```bash
-mkdir -p /tmp/run1/llmserv
-cat > /tmp/run1/llmserv/application.toml <<'EOF'
+mkdir -p /tmp/run1/llminference
+cat > /tmp/run1/llminference/application.toml <<'EOF'
 [server]
 port = 8090
 
@@ -348,7 +348,7 @@ After=network.target
 
 [Service]
 Type=simple
-# application.toml lives at /etc/xdg/llmserv/application.toml (system-wide
+# application.toml lives at /etc/xdg/llminference/application.toml (system-wide
 # override) or the bundled default baked into the binary. Override a
 # single install's config by setting XDG_CONFIG_HOME:
 Environment="XDG_CONFIG_HOME=/etc/swellmd"
@@ -361,7 +361,7 @@ WantedBy=multi-user.target
 ```
 
 With the above `XDG_CONFIG_HOME`, put your overrides at
-`/etc/swellmd/llmserv/application.toml`.
+`/etc/swellmd/llminference/application.toml`.
 
 ---
 

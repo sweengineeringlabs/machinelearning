@@ -35,8 +35,13 @@ Thumbs.db
 nul
 
 # Load test run artifacts (keep the script, ignore output)
-llmserv/main/features/daemon/scripts/out/
+llminference/main/features/inference/systemd/scripts/out/
 
 # Transient build / debug logs
 *.log
 build_log*.txt
+
+# Auto-generated structural audit reports (arch-audit run artifacts).
+# Source-of-truth lives in policy files, not the per-run reports.
+docs/7-operations/compliance/structural_audit_report_*.json
+**/structural_audit_report_*.json

@@ -585,7 +585,7 @@ to llama.cpp, selected via `application.toml`.
 **Architecture decision — op-level vs model-level wrapping.**
 
 The existing `ComputeBackend` trait at
-`llmserv/main/features/inference/compute/src/api/traits.rs` exposes
+`llminference/main/features/inference/compute/src/api/traits.rs` exposes
 per-op methods (`matmul`, `softmax`, `gelu`, `silu`). Wrapping
 llama.cpp at that granularity defeats the point — llama.cpp's speed
 comes from **whole-graph ggml fusion**, per-CPU kernel dispatch, and
@@ -604,7 +604,7 @@ itself in before it could be swapped.
 Conclusion: `LlamaCppBackend` owns the **whole forward pass**, not
 individual ops. **The DI seam we need already exists** — it's the
 daemon-side `Model` trait at
-`llmserv/main/features/daemon/main/src/api/model.rs:8`:
+`llminference/main/features/daemon/main/src/api/model.rs:8`:
 
 ```rust
 pub trait Model: Send + Sync {
@@ -665,7 +665,7 @@ submodule without changing the `LlamaCppBackend` trait surface.
      builds don't require a C++ toolchain
 
 3. **Implement `LlamaCppModel: Model` (~2.5 days).**
-   - New crate `llmserv/main/features/inference/backend-llama-cpp/`
+   - New crate `llminference/main/features/inference/backend-llama-cpp/`
      following SEA layout (api/core/saf)
    - Wrap `LlamaModel` load, `LlamaContext` creation, `llama_decode`
      per-batch, logits extraction
@@ -880,7 +880,7 @@ implementation. None block starting; all need conscious handling.
 **What "ready to start" means after this audit.**
 
 - Completion path (`/v1/completions`, `/v1/chat/completions`,
-  streaming SSE, FFI `llmserv_complete*`): trait surface is clean,
+  streaming SSE, FFI `llminference_complete*`): trait surface is clean,
   implementable, no concrete types leak.
 - Embedding path (`/v1/embeddings`): still leaks `Tensor`. Defer
   llama.cpp support for this endpoint until #1 is resolved.
@@ -945,7 +945,7 @@ traffic) compounds with any future work.
 **Target trait surface.**
 
 ```rust
-// New module: llmserv/main/features/inference/generation/main/src/api/completer.rs
+// New module: llminference/main/features/inference/generation/main/src/api/completer.rs
 pub struct CompletionParams {
     pub temperature: f32,
     pub top_k: Option<usize>,
@@ -1070,7 +1070,7 @@ P7.B's 8–10 day llama.cpp work can start. Total stack: 10–13 days.
 
 **Validation after the refactor (before P7.B step 2 begins):**
 
-- [ ] `cargo build --release` clean across the entire `llmserv/` workspace
+- [ ] `cargo build --release` clean across the entire `llminference/` workspace
 - [ ] `cargo test --release` all green
 - [ ] Live smoke: `swellmd` serves a completion + streamed completion,
       byte-identical output vs pre-refactor for a fixed seed
@@ -1202,7 +1202,7 @@ warns that it returns raw storage and points to
 `contiguous_slice_f32` for kernels that assume row-major layout.
 
 Verified: full root workspace test suite (20 test groups) and
-llmserv workspace test suite all pass. Gemma3 chat completion
+llminference workspace test suite all pass. Gemma3 chat completion
 regression test still produces "13 times 17 is 221." on
 native_rust.
 
@@ -1221,7 +1221,7 @@ Found 2026-04-13 while trying to use gemma-4-e2b-it as a second
 content-correctness target for P10 regression coverage.
 
 **Symptom.** `cargo test -p swellmd --test content_correctness` with
-`LLMSERV_CC_HF_ID=google/gemma-4-e2b-it` aborts with:
+`LLMINFERENCE_CC_HF_ID=google/gemma-4-e2b-it` aborts with:
 
 ```
 memory allocation of 9395240960 bytes failed
@@ -1447,7 +1447,7 @@ quality lags. Investigation narrowed by retest on 2026-04-13:
       layer-0 RMSNorm, layer-0 attention, or layer-0 FFN.
 - [x] **Bisect by layer (native side only — llama.cpp doesn't
       need diff at this stage).** Done via the
-      `LLMSERV_DUMP_INTERMEDIATES=1` env-var-gated stats dump in
+      `LLMINFERENCE_DUMP_INTERMEDIATES=1` env-var-gated stats dump in
       `forward_pass`. Result on gemma3-1b for the same fixed
       tokens:
 
@@ -1649,7 +1649,7 @@ for online KV cache compression at 2.5–3.5 bits/coordinate.
 - Benchmarks on H100 GPU; CPU applicability plausible but unmeasured in
   the paper
 
-**Problems this would solve for llmserv:**
+**Problems this would solve for llminference:**
 
 1. **Concurrent-request OOM unlock.** v0.8.0 load testing recorded process
    death at 50 concurrent requests due to KV cache expansion (~416 MB/request
@@ -1758,14 +1758,14 @@ algorithm.
 
 ### T1: Bring `llmc load` toward oha parity — scoped by real need
 
-`llmc load` (commits `8a293ec` and `2d1bd2f`) is focused on llmserv
+`llmc load` (commits `8a293ec` and `2d1bd2f`) is focused on llminference
 testing: CO-correct open-loop via `--rate`, our JSON schema, no extra
 install. It is **not** a drop-in `oha` replacement. This item tracks
 closing the gap where it actually matters, and explicitly deferring the
 rest.
 
 For context on tradeoffs see the glossary's "Coordinated omission"
-entry and the `--rate` docs in `llmserv/main/features/cli/src/cmd/load.rs`.
+entry and the `--rate` docs in `llminference/main/features/cli/src/cmd/load.rs`.
 
 #### Priority 0 — add these (real scenarios need them)
 
@@ -1828,7 +1828,7 @@ under one or the other. Reqwest supports this behind a builder flag.
 ### T2: Ship an FFI / `cdylib` for desktop and IDE integration
 
 Motivated by **deployment ergonomics**, not performance. An IDE plugin
-that calls llmserv via HTTP has to manage port binding, process
+that calls llminference via HTTP has to manage port binding, process
 lifecycle, crash-restart, and firewall prompts on first run. An FFI
 path collapses all of that: the plugin process *is* the inference
 process, one binary ships, no server to manage.
@@ -1844,22 +1844,22 @@ So the motivation is: *make integrations feasible*, not *make them fast*.
 
 #### Scope
 
-New crate at `llmserv/main/features/ffi/`:
+New crate at `llminference/main/features/ffi/`:
 - `crate-type = ["cdylib"]` — C-compatible ABI, so Python/Go/C#/Java/
   Swift consumers can load it via `ctypes`/`cgo`/`P/Invoke`/`JNI`/
   bridging headers. `dylib` (Rust ABI) is *not* an option — unstable
   across compiler versions.
 - Narrow API surface. Don't expose the full inference library — expose
   what a desktop/IDE integration actually needs:
-    * `llmserv_init(config_toml_path)` → opaque handle (loads model,
+    * `llminference_init(config_toml_path)` → opaque handle (loads model,
       applies quantization, constructs runtime per application.toml)
-    * `llmserv_complete(handle, prompt, out_text)` → blocking completion
-    * `llmserv_embed(handle, text, out_vec)` → blocking embedding
-    * `llmserv_tokenize(handle, text, out_ids)` → tokenizer encode
-    * `llmserv_token_count(handle, text)` → just the count (most common
+    * `llminference_complete(handle, prompt, out_text)` → blocking completion
+    * `llminference_embed(handle, text, out_vec)` → blocking embedding
+    * `llminference_tokenize(handle, text, out_ids)` → tokenizer encode
+    * `llminference_token_count(handle, text)` → just the count (most common
       IDE call, every keystroke)
-    * `llmserv_destroy(handle)`
-    * `llmserv_free_*` — all Rust-allocated buffers freed via Rust
+    * `llminference_destroy(handle)`
+    * `llminference_free_*` — all Rust-allocated buffers freed via Rust
   Each function wrapped in `std::panic::catch_unwind`; panics never
   cross the FFI boundary.
 - `cbindgen` auto-generates the C header; commit it alongside the
@@ -1872,7 +1872,7 @@ New crate at `llmserv/main/features/ffi/`:
 **T2.2** — core functions (init, complete, embed, destroy) backed by the
 existing `rustml-model` / `rustml-generation` / `rustml-tokenizer`.
 Blocking only — own a single-threaded tokio runtime inside the handle.
-**T2.3** — `cbindgen.toml` and generated `include/llmserv.h`.
+**T2.3** — `cbindgen.toml` and generated `include/llminference.h`.
 **T2.4** — Python smoke test (`ctypes` binding) that loads a model,
 generates a few tokens, asserts the output is non-empty. Confirms the
 ABI works end-to-end.
@@ -1880,14 +1880,14 @@ ABI works end-to-end.
 #### Priority 1 — add when a scenario demands
 
 **T2.5** — streaming completion via a C callback:
-`llmserv_complete_stream(handle, prompt, cb, cb_ctx)` where `cb` is
+`llminference_complete_stream(handle, prompt, cb, cb_ctx)` where `cb` is
 called per token. Needed for interactive IDE completion UIs.
 **T2.6** — thread-safety contract documentation: can the same handle
 be called from multiple caller threads concurrently? (Answer depends on
 whether the inference stack allows re-entrant `generate`.)
 **T2.7** — prebuilt `.so`/`.dll`/`.dylib` artifacts attached to GitHub
 releases for each tagged version, so consumers don't need a Rust
-toolchain to build llmserv.
+toolchain to build llminference.
 
 #### Priority 2 — explicit non-goals (for now)
 
@@ -1904,11 +1904,11 @@ toolchain to build llmserv.
 
 #### Acceptance
 
-- T2.1–T2.4 shipped: `cargo build --release -p llmserv-ffi` produces a
+- T2.1–T2.4 shipped: `cargo build --release -p swe-inference-ffi` produces a
   `.dll` on Windows / `.so` on Linux / `.dylib` on macOS.
-- `include/llmserv.h` committed and kept in sync with the Rust source
+- `include/llminference.h` committed and kept in sync with the Rust source
   (ideally regenerated in CI and diffed).
-- Python smoke test script at `llmserv/main/features/ffi/examples/smoke.py`
+- Python smoke test script at `llminference/main/features/ffi/examples/smoke.py`
   runs green against the built `.so`.
 - An IDE integration or desktop consumer actually uses it — don't ship
   without a first consumer, it becomes dead code.
@@ -1950,7 +1950,7 @@ easier with structured data but possible either way.
 - Add workspace deps: `tracing`, `tracing-subscriber`,
   `swe-observ-subscriber` (via path or registry to the sibling workspace)
 - Wire up subscriber at daemon startup (~10 lines in
-  `llmserv/main/features/daemon/main/src/bin/serve.rs`):
+  `llminference/main/features/daemon/main/src/bin/serve.rs`):
   ```rust
   use tracing_subscriber::prelude::*;
   let observ = ObservabilityLayer::new(logging_backend, tracing_backend);
@@ -1973,8 +1973,8 @@ easier with structured data but possible either way.
 
 **Files touched (~12):**
 - `Cargo.toml` (workspace deps)
-- `llmserv/Cargo.toml` (workspace deps)
-- `llmserv/main/features/daemon/main/src/bin/serve.rs` (subscriber init)
+- `llminference/Cargo.toml` (workspace deps)
+- `llminference/main/features/daemon/main/src/bin/serve.rs` (subscriber init)
 - All files with current `[perf]` debug log calls (mechanical rewrite)
 
 **Explicit non-goals (for this T3):**
@@ -2040,7 +2040,7 @@ The code is consistent, but docs still reference the old names in **18 files**
 | `docs/5-testing/manual_infer_tests.md` | 7 |
 | `docs/4-development/developer_guide.md` | 6 |
 | `docs/6-deployment/deployment_guide.md` | 4 |
-| `llmserv/main/features/experimentation/llmforge/ARCHIVED.md` | 3 |
+| `llminference/main/features/experimentation/llmforge/ARCHIVED.md` | 3 |
 | `docs/3-design/adr/adr-001-unified-llmmodel-for-gpt2.md` | 2 |
 | `docs/3-design/adr/adr-002-retire-llmforge-prototype.md` | 2 |
 | `docs/3-design/inference_dataflow.md` | 2 |
@@ -2050,7 +2050,7 @@ The code is consistent, but docs still reference the old names in **18 files**
 | `docs/5-testing/manual_tokenizer_tests.md` | 2 |
 | `docs/7-operations/operations_guide.md` | 2 |
 | `docs/4-development/guides/model-verification.md` | 1 |
-| `llmserv/README.md` | 1 |
+| `llminference/README.md` | 1 |
 | `main/features/tensor/docs/0-ideation/growth-roadmap.md` | 1 |
 
 **Additional rename to apply at the same time:** `manual_sweai_tests.md` itself
@@ -2061,7 +2061,7 @@ or prefixing with a "nomenclature note" that says what the old names are now
 called, rather than rewriting history.
 
 **Acceptance:**
-- `grep -rn "sweai\|rustml-cli" docs/ llmserv/ main/ --include="*.md"` returns
+- `grep -rn "sweai\|rustml-cli" docs/ llminference/ main/ --include="*.md"` returns
   only historical ADR references (if any).
 - `manual_sweai_tests.md` renamed.
 - `git grep -n "\`sweai\`\|\`rustml-cli\`"` is clean in active docs.

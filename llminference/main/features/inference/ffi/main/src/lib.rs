@@ -1,4 +1,4 @@
-//! C-ABI bindings for llmserv — `libllmserv.{so,dll,dylib}`.
+//! C-ABI bindings for llminference — `libllminference.{so,dll,dylib}`.
 //!
 //! Consumers load the library via `ctypes` (Python), `cgo` (Go),
 //! `P/Invoke` (.NET), `JNI` (Java), bridging headers (Swift), etc.
@@ -6,7 +6,7 @@
 //! tokenize, token_count, destroy, and matching free-fns for Rust-
 //! allocated buffers that cross the boundary.
 //!
-//! Scope is documented in `llmserv/BACKLOG.md` (T2). Non-goals:
+//! Scope is documented in `llminference/BACKLOG.md` (T2). Non-goals:
 //! async FFI, shared-weight multi-handle, cross-version ABI stability.
 //!
 //! Safety / ownership:
@@ -14,7 +14,7 @@
 //!   responsibility to pass valid pointers; functions return an error code
 //!   if they see null).
 //! - Rust allocates every returned buffer. The caller MUST free it via
-//!   the matching `llmserv_free_*` function; never pass it to the
+//!   the matching `llminference_free_*` function; never pass it to the
 //!   caller's own `free`.
 //! - Every `extern "C"` function wraps its body in `catch_unwind`; a
 //!   Rust panic becomes `LlmError::Panic`, never unwinds across the FFI
@@ -23,10 +23,10 @@
 //!   code.
 //!
 //! Thread safety — strong contract:
-//! - `llmserv_complete`, `llmserv_embed`, `llmserv_tokenize`, and
-//!   `llmserv_token_count` ARE safe to call concurrently on the same
+//! - `llminference_complete`, `llminference_embed`, `llminference_tokenize`, and
+//!   `llminference_token_count` ARE safe to call concurrently on the same
 //!   handle from multiple threads.
-//! - `llmserv_destroy` IS safe to call concurrently with other ops on
+//! - `llminference_destroy` IS safe to call concurrently with other ops on
 //!   the same handle. If a call is in flight, destroy waits for it to
 //!   complete, then atomically transitions the handle to "destroyed."
 //! - After destroy, every subsequent call on the handle returns
@@ -67,13 +67,13 @@ pub enum LlmError {
     Panic = 4,
     /// Internal error (should not happen in normal operation).
     Internal = 5,
-    /// The handle was destroyed (via `llmserv_destroy`). Any call that
+    /// The handle was destroyed (via `llminference_destroy`). Any call that
     /// observes this should treat the handle as gone and not retry.
     Destroyed = 6,
 }
 
-/// Opaque session handle. Returned by `llmserv_init`, consumed by the
-/// other functions, freed by `llmserv_destroy`.
+/// Opaque session handle. Returned by `llminference_init`, consumed by the
+/// other functions, freed by `llminference_destroy`.
 ///
 /// The actual layout is private and may change between versions. The
 /// handle pointer remains valid for the lifetime of the process after
@@ -94,14 +94,14 @@ pub struct LlmHandle {
 /// # Safety
 /// `out_handle` must point to writable memory holding a pointer.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn llmserv_init(out_handle: *mut *mut LlmHandle) -> c_int {
+pub unsafe extern "C" fn llminference_init(out_handle: *mut *mut LlmHandle) -> c_int {
     wrap(|| {
         if out_handle.is_null() {
             return Err(LlmError::InvalidInput);
         }
 
         let loaded = swe_inference_systemd::load_config().map_err(|e| {
-            log::error!("llmserv_init: load_config failed: {}", e);
+            log::error!("llminference_init: load_config failed: {}", e);
             LlmError::LoadFailed
         })?;
 
@@ -111,12 +111,12 @@ pub unsafe extern "C" fn llmserv_init(out_handle: *mut *mut LlmHandle) -> c_int 
             "baseline" => OptProfile::Baseline,
             "aggressive" => OptProfile::Aggressive,
             other => {
-                log::error!("llmserv_init: unknown [runtime].opt_profile '{}'", other);
+                log::error!("llminference_init: unknown [runtime].opt_profile '{}'", other);
                 return Err(LlmError::InvalidInput);
             }
         };
         profile.apply().map_err(|e| {
-            log::error!("llmserv_init: profile.apply failed: {}", e);
+            log::error!("llminference_init: profile.apply failed: {}", e);
             LlmError::LoadFailed
         })?;
 
@@ -124,26 +124,26 @@ pub unsafe extern "C" fn llmserv_init(out_handle: *mut *mut LlmHandle) -> c_int 
         let model: Box<dyn Model> = match loaded.app.model.source {
             ModelSource::Safetensors => {
                 let id = loaded.app.model.id.as_deref().ok_or_else(|| {
-                    log::error!("llmserv_init: [model].source=safetensors requires [model].id");
+                    log::error!("llminference_init: [model].source=safetensors requires [model].id");
                     LlmError::InvalidInput
                 })?;
                 let m = loader
                     .load_safetensors(id, profile, &loaded.merged_toml)
                     .map_err(|e| {
-                        log::error!("llmserv_init: load_safetensors failed: {}", e);
+                        log::error!("llminference_init: load_safetensors failed: {}", e);
                         LlmError::LoadFailed
                     })?;
                 Box::new(DefaultModel::from(m))
             }
             ModelSource::Gguf => {
                 let path = loaded.app.model.path.as_deref().ok_or_else(|| {
-                    log::error!("llmserv_init: [model].source=gguf requires [model].path");
+                    log::error!("llminference_init: [model].source=gguf requires [model].path");
                     LlmError::InvalidInput
                 })?;
                 let m = loader
                     .load_gguf(std::path::Path::new(path), profile)
                     .map_err(|e| {
-                        log::error!("llmserv_init: load_gguf failed: {}", e);
+                        log::error!("llminference_init: load_gguf failed: {}", e);
                         LlmError::LoadFailed
                     })?;
                 Box::new(DefaultModel::from(m))
@@ -172,16 +172,16 @@ pub unsafe extern "C" fn llmserv_init(out_handle: *mut *mut LlmHandle) -> c_int 
 /// return `LlmError::Destroyed`.
 ///
 /// # Safety
-/// `handle` must be a pointer returned by `llmserv_init`. Passing null
+/// `handle` must be a pointer returned by `llminference_init`. Passing null
 /// is a safe no-op. The handle pointer itself remains valid after this
 /// call — only the inner model is released.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn llmserv_destroy(handle: *mut LlmHandle) {
+pub unsafe extern "C" fn llminference_destroy(handle: *mut LlmHandle) {
     if handle.is_null() {
         return;
     }
     let _ = catch_unwind(AssertUnwindSafe(|| {
-        // SAFETY: handle is a leaked LlmHandle from `llmserv_init`;
+        // SAFETY: handle is a leaked LlmHandle from `llminference_init`;
         // caller contract guarantees the pointer is valid.
         let h = unsafe { &*handle };
         if let Ok(mut guard) = h.inner.write() {
@@ -199,13 +199,13 @@ pub unsafe extern "C" fn llmserv_destroy(handle: *mut LlmHandle) {
 /// `temperature = 0.0` means greedy sampling.
 ///
 /// On success, writes a pointer to a NUL-terminated UTF-8 string to
-/// `*out_text`. The caller must free it via `llmserv_free_string`.
+/// `*out_text`. The caller must free it via `llminference_free_string`.
 ///
 /// # Safety
-/// `handle` is a valid handle from `llmserv_init`. `prompt` is a
+/// `handle` is a valid handle from `llminference_init`. `prompt` is a
 /// NUL-terminated UTF-8 string. `out_text` points to writable memory.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn llmserv_complete(
+pub unsafe extern "C" fn llminference_complete(
     handle: *const LlmHandle,
     prompt: *const c_char,
     max_tokens: u32,
@@ -223,7 +223,7 @@ pub unsafe extern "C" fn llmserv_complete(
         let max = if max_tokens == 0 { 256 } else { max_tokens as usize };
         let params = CompletionParams::new(temperature, max);
         let output = completer.complete(prompt_str, &params).map_err(|e| {
-            log::error!("llmserv_complete: generate failed: {}", e);
+            log::error!("llminference_complete: generate failed: {}", e);
             LlmError::Runtime
         })?;
 
@@ -242,15 +242,15 @@ pub unsafe extern "C" fn llmserv_complete(
 /// Wraps `prompt` as a user message and calls the generator's templated
 /// path — equivalent to the daemon's `/v1/chat/completions` endpoint.
 /// Use this when you want the model's chat-tuned behavior; use
-/// `llmserv_complete` when you want raw prefix continuation.
+/// `llminference_complete` when you want raw prefix continuation.
 ///
-/// Otherwise identical to `llmserv_complete`: blocking, returns full
-/// text, caller frees with `llmserv_free_string`.
+/// Otherwise identical to `llminference_complete`: blocking, returns full
+/// text, caller frees with `llminference_free_string`.
 ///
 /// # Safety
-/// Same as `llmserv_complete`.
+/// Same as `llminference_complete`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn llmserv_complete_chat(
+pub unsafe extern "C" fn llminference_complete_chat(
     handle: *const LlmHandle,
     prompt: *const c_char,
     max_tokens: u32,
@@ -272,7 +272,7 @@ pub unsafe extern "C" fn llmserv_complete_chat(
         let output = completer
             .complete_turn_stream(&messages, &params, &mut |_| true)
             .map_err(|e| {
-                log::error!("llmserv_complete_chat: generate_turn_stream failed: {}", e);
+                log::error!("llminference_complete_chat: generate_turn_stream failed: {}", e);
                 LlmError::Runtime
             })?;
 
@@ -291,7 +291,7 @@ pub unsafe extern "C" fn llmserv_complete_chat(
 /// - `piece`: NUL-terminated UTF-8 string, the decoded token text.
 ///   Valid ONLY for the duration of this callback — copy it if you need
 ///   to keep it.
-/// - `user_data`: the opaque pointer passed to `llmserv_complete_stream`.
+/// - `user_data`: the opaque pointer passed to `llminference_complete_stream`.
 ///
 /// Return `true` to keep generating, `false` to stop early. Panics in
 /// the callback are caught and converted to "stop generation."
@@ -306,12 +306,12 @@ pub type LlmTokenCallback =
 /// `temperature = 0.0` means greedy sampling.
 ///
 /// # Safety
-/// `handle` is a valid handle from `llmserv_init`. `prompt` is a
+/// `handle` is a valid handle from `llminference_init`. `prompt` is a
 /// NUL-terminated UTF-8 string. `callback` is a function pointer that
 /// remains valid for the duration of this call. `user_data` is opaque
 /// to this library and passed through unchanged.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn llmserv_complete_stream(
+pub unsafe extern "C" fn llminference_complete_stream(
     handle: *const LlmHandle,
     prompt: *const c_char,
     max_tokens: u32,
@@ -348,7 +348,7 @@ pub unsafe extern "C" fn llmserv_complete_stream(
                     Ok(s) => s,
                     Err(e) => {
                         log::warn!(
-                            "llmserv_complete_stream: decode failed for token {}: {}",
+                            "llminference_complete_stream: decode failed for token {}: {}",
                             token_id,
                             e
                         );
@@ -363,13 +363,13 @@ pub unsafe extern "C" fn llmserv_complete_stream(
                 match catch_unwind(AssertUnwindSafe(|| cb(cstr.as_ptr(), ctx.0))) {
                     Ok(continue_flag) => continue_flag,
                     Err(_) => {
-                        log::error!("llmserv_complete_stream: user callback panicked");
+                        log::error!("llminference_complete_stream: user callback panicked");
                         false
                     }
                 }
             })
             .map_err(|e| {
-                log::error!("llmserv_complete_stream: generate_stream failed: {}", e);
+                log::error!("llminference_complete_stream: generate_stream failed: {}", e);
                 LlmError::Runtime
             })?;
 
@@ -381,12 +381,12 @@ pub unsafe extern "C" fn llmserv_complete_stream(
 
 /// Compute a mean-pooled embedding for the given input text. On success,
 /// writes a pointer to an f32 array of length `*out_dim` to `*out_vec`.
-/// The caller must free it via `llmserv_free_floats`.
+/// The caller must free it via `llminference_free_floats`.
 ///
 /// # Safety
-/// See `llmserv_complete`.
+/// See `llminference_complete`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn llmserv_embed(
+pub unsafe extern "C" fn llminference_embed(
     handle: *const LlmHandle,
     text: *const c_char,
     out_vec: *mut *mut f32,
@@ -400,14 +400,14 @@ pub unsafe extern "C" fn llmserv_embed(
         let model = guard.as_ref().ok_or(LlmError::Destroyed)?;
 
         let ids = model.tokenizer().encode(text_str).map_err(|e| {
-            log::error!("llmserv_embed: tokenize failed: {}", e);
+            log::error!("llminference_embed: tokenize failed: {}", e);
             LlmError::Runtime
         })?;
 
         let vec = model
             .embed(&ids, PoolingStrategy::Mean)
             .map_err(|e| {
-                log::error!("llmserv_embed: embed failed: {}", e);
+                log::error!("llminference_embed: embed failed: {}", e);
                 LlmError::Runtime
             })?;
         let dim = vec.len();
@@ -425,12 +425,12 @@ pub unsafe extern "C" fn llmserv_embed(
 // ─── tokenize ────────────────────────────────────────────────────────
 
 /// Tokenize `text` and write the token ids to `*out_ids`, length in
-/// `*out_len`. The caller must free via `llmserv_free_u32s`.
+/// `*out_len`. The caller must free via `llminference_free_u32s`.
 ///
 /// # Safety
-/// See `llmserv_complete`.
+/// See `llminference_complete`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn llmserv_tokenize(
+pub unsafe extern "C" fn llminference_tokenize(
     handle: *const LlmHandle,
     text: *const c_char,
     out_ids: *mut *mut u32,
@@ -444,7 +444,7 @@ pub unsafe extern "C" fn llmserv_tokenize(
         let model = guard.as_ref().ok_or(LlmError::Destroyed)?;
 
         let ids = model.tokenizer().encode(text_str).map_err(|e| {
-            log::error!("llmserv_tokenize: tokenize failed: {}", e);
+            log::error!("llminference_tokenize: tokenize failed: {}", e);
             LlmError::Runtime
         })?;
 
@@ -464,9 +464,9 @@ pub unsafe extern "C" fn llmserv_tokenize(
 /// returned to the caller). IDE plugins call this on every keystroke.
 ///
 /// # Safety
-/// See `llmserv_complete`.
+/// See `llminference_complete`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn llmserv_token_count(
+pub unsafe extern "C" fn llminference_token_count(
     handle: *const LlmHandle,
     text: *const c_char,
     out_count: *mut usize,
@@ -477,7 +477,7 @@ pub unsafe extern "C" fn llmserv_token_count(
         let guard = h.inner.read().map_err(|_| LlmError::Internal)?;
         let model = guard.as_ref().ok_or(LlmError::Destroyed)?;
         let ids = model.tokenizer().encode(text_str).map_err(|e| {
-            log::error!("llmserv_token_count: tokenize failed: {}", e);
+            log::error!("llminference_token_count: tokenize failed: {}", e);
             LlmError::Runtime
         })?;
         unsafe {
@@ -489,12 +489,12 @@ pub unsafe extern "C" fn llmserv_token_count(
 
 // ─── free fns — Rust allocates, Rust frees ───────────────────────────
 
-/// Free a string returned by `llmserv_complete`. Passing null is a no-op.
+/// Free a string returned by `llminference_complete`. Passing null is a no-op.
 ///
 /// # Safety
-/// `s` must be a pointer previously returned by `llmserv_complete`.
+/// `s` must be a pointer previously returned by `llminference_complete`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn llmserv_free_string(s: *mut c_char) {
+pub unsafe extern "C" fn llminference_free_string(s: *mut c_char) {
     if s.is_null() {
         return;
     }
@@ -503,13 +503,13 @@ pub unsafe extern "C" fn llmserv_free_string(s: *mut c_char) {
     }));
 }
 
-/// Free an f32 array returned by `llmserv_embed`. Passing null is a no-op.
+/// Free an f32 array returned by `llminference_embed`. Passing null is a no-op.
 ///
 /// # Safety
-/// `p` must be a pointer returned by `llmserv_embed` and `len` must be
+/// `p` must be a pointer returned by `llminference_embed` and `len` must be
 /// the exact length written to `*out_dim` at that time.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn llmserv_free_floats(p: *mut f32, len: usize) {
+pub unsafe extern "C" fn llminference_free_floats(p: *mut f32, len: usize) {
     if p.is_null() || len == 0 {
         return;
     }
@@ -518,13 +518,13 @@ pub unsafe extern "C" fn llmserv_free_floats(p: *mut f32, len: usize) {
     }));
 }
 
-/// Free a u32 array returned by `llmserv_tokenize`. Passing null is a no-op.
+/// Free a u32 array returned by `llminference_tokenize`. Passing null is a no-op.
 ///
 /// # Safety
-/// `p` must be a pointer returned by `llmserv_tokenize` and `len` must
+/// `p` must be a pointer returned by `llminference_tokenize` and `len` must
 /// be the exact length written to `*out_len` at that time.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn llmserv_free_u32s(p: *mut u32, len: usize) {
+pub unsafe extern "C" fn llminference_free_u32s(p: *mut u32, len: usize) {
     if p.is_null() || len == 0 {
         return;
     }

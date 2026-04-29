@@ -2,7 +2,7 @@
 """
 Streaming-completion smoke test.
 
-Verifies that llmserv_complete_stream invokes the callback per token,
+Verifies that llminference_complete_stream invokes the callback per token,
 piece-by-piece, instead of blocking until the full text is ready.
 This is what an IDE autocomplete UI needs: show each token as it lands.
 
@@ -29,8 +29,8 @@ from ctypes import (
 )
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", ".."))
-TARGET_DIR = os.path.join(REPO_ROOT, "llmserv", "target", "release")
-LIB_NAME = {"win32": "llmserv.dll", "darwin": "libllmserv.dylib"}.get(sys.platform, "libllmserv.so")
+TARGET_DIR = os.path.join(REPO_ROOT, "llminference", "target", "release")
+LIB_NAME = {"win32": "llminference.dll", "darwin": "libllminference.dylib"}.get(sys.platform, "libllminference.so")
 LIB_PATH = os.path.join(TARGET_DIR, LIB_NAME)
 
 if not os.path.exists(LIB_PATH):
@@ -48,15 +48,15 @@ class LlmHandle(ctypes.Structure):
 
 LlmHandlePtr = POINTER(LlmHandle)
 
-lib.llmserv_init.argtypes = [POINTER(LlmHandlePtr)]
-lib.llmserv_init.restype = c_int
-lib.llmserv_destroy.argtypes = [LlmHandlePtr]
-lib.llmserv_destroy.restype = None
+lib.llminference_init.argtypes = [POINTER(LlmHandlePtr)]
+lib.llminference_init.restype = c_int
+lib.llminference_destroy.argtypes = [LlmHandlePtr]
+lib.llminference_destroy.restype = None
 
 # The callback signature: bool(*)(const char*, void*)
 TokenCallback = CFUNCTYPE(c_bool, c_char_p, c_void_p)
 
-lib.llmserv_complete_stream.argtypes = [
+lib.llminference_complete_stream.argtypes = [
     LlmHandlePtr,
     c_char_p,
     c_uint32,
@@ -64,13 +64,13 @@ lib.llmserv_complete_stream.argtypes = [
     TokenCallback,
     c_void_p,
 ]
-lib.llmserv_complete_stream.restype = c_int
+lib.llminference_complete_stream.restype = c_int
 
 
 def main() -> None:
     print(f"Loading library: {LIB_PATH}")
     handle = LlmHandlePtr()
-    rc = lib.llmserv_init(byref(handle))
+    rc = lib.llminference_init(byref(handle))
     assert rc == OK, f"init rc={rc}"
     print("  init OK")
 
@@ -86,7 +86,7 @@ def main() -> None:
         pieces.append(piece.decode("utf-8"))
         return True  # keep going
 
-    rc = lib.llmserv_complete_stream(
+    rc = lib.llminference_complete_stream(
         handle,
         b"Count to five:",
         c_uint32(20),
@@ -112,7 +112,7 @@ def main() -> None:
         collected.append(piece.decode("utf-8"))
         return len(collected) < stop_after
 
-    rc = lib.llmserv_complete_stream(
+    rc = lib.llminference_complete_stream(
         handle, b"Say something.", c_uint32(100), c_float(0.0), stop_early, None
     )
     assert rc == OK, f"early-stop rc={rc}"
@@ -130,7 +130,7 @@ def main() -> None:
         return False  # one token is enough
 
     expected_ptr = ctypes.addressof(marker)
-    rc = lib.llmserv_complete_stream(
+    rc = lib.llminference_complete_stream(
         handle,
         b"hi",
         c_uint32(1),
@@ -145,7 +145,7 @@ def main() -> None:
     )
     print(f"    user_data passed={expected_ptr:#x} received={observed_ptr_value[0]:#x} OK")
 
-    lib.llmserv_destroy(handle)
+    lib.llminference_destroy(handle)
     print("  destroy OK")
     print("\nStreaming smoke tests passed.")
 

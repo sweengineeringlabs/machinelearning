@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-FFI benchmark — measures llmserv_complete latency called directly
+FFI benchmark — measures llminference_complete latency called directly
 through the .dll/.so, for apples-to-apples comparison with the HTTP
 path measured by `llmc load`.
 
@@ -32,8 +32,8 @@ import time
 from ctypes import POINTER, byref, c_char_p, c_float, c_int, c_size_t, c_uint32
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", ".."))
-TARGET_DIR = os.path.join(REPO_ROOT, "llmserv", "target", "release")
-LIB_NAME = {"win32": "llmserv.dll", "darwin": "libllmserv.dylib"}.get(sys.platform, "libllmserv.so")
+TARGET_DIR = os.path.join(REPO_ROOT, "llminference", "target", "release")
+LIB_NAME = {"win32": "llminference.dll", "darwin": "libllminference.dylib"}.get(sys.platform, "libllminference.so")
 LIB_PATH = os.path.join(TARGET_DIR, LIB_NAME)
 
 if not os.path.exists(LIB_PATH):
@@ -52,16 +52,16 @@ class LlmHandle(ctypes.Structure):
 
 LlmHandlePtr = POINTER(LlmHandle)
 
-lib.llmserv_init.argtypes = [POINTER(LlmHandlePtr)]
-lib.llmserv_init.restype = c_int
-lib.llmserv_destroy.argtypes = [LlmHandlePtr]
-lib.llmserv_destroy.restype = None
-lib.llmserv_complete.argtypes = [LlmHandlePtr, c_char_p, c_uint32, c_float, POINTER(c_char_p)]
-lib.llmserv_complete.restype = c_int
-lib.llmserv_complete_chat.argtypes = [LlmHandlePtr, c_char_p, c_uint32, c_float, POINTER(c_char_p)]
-lib.llmserv_complete_chat.restype = c_int
-lib.llmserv_free_string.argtypes = [c_char_p]
-lib.llmserv_free_string.restype = None
+lib.llminference_init.argtypes = [POINTER(LlmHandlePtr)]
+lib.llminference_init.restype = c_int
+lib.llminference_destroy.argtypes = [LlmHandlePtr]
+lib.llminference_destroy.restype = None
+lib.llminference_complete.argtypes = [LlmHandlePtr, c_char_p, c_uint32, c_float, POINTER(c_char_p)]
+lib.llminference_complete.restype = c_int
+lib.llminference_complete_chat.argtypes = [LlmHandlePtr, c_char_p, c_uint32, c_float, POINTER(c_char_p)]
+lib.llminference_complete_chat.restype = c_int
+lib.llminference_free_string.argtypes = [c_char_p]
+lib.llminference_free_string.restype = None
 
 
 def percentile(xs: list[float], q: float) -> float:
@@ -79,7 +79,7 @@ def percentile(xs: list[float], q: float) -> float:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="FFI benchmark for llmserv_complete")
+    ap = argparse.ArgumentParser(description="FFI benchmark for llminference_complete")
     ap.add_argument("-n", "--count", type=int, default=10, help="number of completions to run")
     ap.add_argument("--prompt", type=str, default="Say hello briefly.")
     ap.add_argument("-m", "--max-tokens", type=int, default=16)
@@ -96,8 +96,8 @@ def main() -> None:
         "--chat",
         action="store_true",
         help=(
-            "use llmserv_complete_chat (applies chat template) instead of the "
-            "raw llmserv_complete. Use this variant to compare against the "
+            "use llminference_complete_chat (applies chat template) instead of the "
+            "raw llminference_complete. Use this variant to compare against the "
             "daemon's /v1/chat/completions endpoint; use the default (raw) to "
             "compare against /v1/completions."
         ),
@@ -105,7 +105,7 @@ def main() -> None:
     args = ap.parse_args()
 
     handle = LlmHandlePtr()
-    rc = lib.llmserv_init(byref(handle))
+    rc = lib.llminference_init(byref(handle))
     if rc != OK:
         print(f"init failed: {ERR_NAMES[rc]}", file=sys.stderr)
         sys.exit(1)
@@ -129,7 +129,7 @@ def main() -> None:
 
         t_measure = scheduled_at if scheduled_at is not None else time.perf_counter()
         out = c_char_p()
-        fn = lib.llmserv_complete_chat if args.chat else lib.llmserv_complete
+        fn = lib.llminference_complete_chat if args.chat else lib.llminference_complete
         rc = fn(
             handle,
             prompt_bytes,
@@ -140,7 +140,7 @@ def main() -> None:
         t_end = time.perf_counter()
 
         if rc == OK and out.value:
-            lib.llmserv_free_string(out)
+            lib.llminference_free_string(out)
             latencies_ms.append((t_end - t_measure) * 1000.0)
             # Synthesize a "status": 200 for OK, matching llmc load shape.
             status_counts[200] = status_counts.get(200, 0) + 1
@@ -151,7 +151,7 @@ def main() -> None:
                 error_samples.append(f"{ERR_NAMES[rc] if 0 <= rc <= 6 else rc}")
 
     wall = time.perf_counter() - start
-    lib.llmserv_destroy(handle)
+    lib.llminference_destroy(handle)
 
     successful = status_counts.get(200, 0)
     total = args.count

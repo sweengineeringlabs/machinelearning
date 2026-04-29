@@ -1,10 +1,10 @@
-# llmserv Daemon Code Review
+# llminference Daemon Code Review
 
 **Date:** 2026-04-15
 **Scope:** `swellmd` (HTTP daemon at `main/features/daemon/main`)
 **Verdict:** **Builds clean. Functional. Honest concerns around `usage` accounting, unbounded generation, and warning hygiene.**
 
-This review was verified by reading the cited files and running `cargo build -p swellmd` from `llmserv/`. It compiled in 3m 09s with warnings (see §5).
+This review was verified by reading the cited files and running `cargo build -p swellmd` from `llminference/`. It compiled in 3m 09s with warnings (see §5).
 
 ---
 
@@ -27,7 +27,7 @@ The three top-priority concerns below have been addressed in code. Build verifie
 | 2 | Streaming `usage` missing | **Fixed** — channel item type is now `StreamItem::{Token, Done(Usage)}`; final chunk carries `usage` and `finish_reason: "stop"` before `[DONE]` | `core/router.rs`, `api/types.rs` |
 | 3 | Unbounded generation / permit leak | **Fixed** — `[generation].request_timeout_secs` config wired into `AppState.request_timeout` and applied via `build_deadline()` at all three sites; default `0` preserves prior behavior | `api/config.rs`, `core/state.rs`, `bin/serve.rs`, `core/router.rs`, `config/application.toml` |
 
-**Test-coverage gap (honest):** no automated regression test yet asserts (a) that `usage.completion_tokens` differs from `split_whitespace().count()`, (b) that the streaming `usage` chunk is actually emitted, or (c) that a deadline truncates generation. `content_correctness.rs` exercises `Generator` directly, not the HTTP layer, so a regression that re-introduced `split_whitespace()` in the handler would still pass CI. Fixing this requires either a mock `Tokenizer`+`Model` stack for unit tests or an HTTP integration test gated alongside `LLMSERV_CC_*`. Not done in this pass.
+**Test-coverage gap (honest):** no automated regression test yet asserts (a) that `usage.completion_tokens` differs from `split_whitespace().count()`, (b) that the streaming `usage` chunk is actually emitted, or (c) that a deadline truncates generation. `content_correctness.rs` exercises `Generator` directly, not the HTTP layer, so a regression that re-introduced `split_whitespace()` in the handler would still pass CI. Fixing this requires either a mock `Tokenizer`+`Model` stack for unit tests or an HTTP integration test gated alongside `LLMINFERENCE_CC_*`. Not done in this pass.
 
 ---
 

@@ -160,7 +160,7 @@ $XDG_CONFIG_HOME/llminference/application.toml:
 ## Limitations (today)
 
 - **Blocking only.** No async FFI; callers wrap in their own async
-  (Python asyncio threadpool, Go goroutine, etc.). `llmserv_complete_stream`
+  (Python asyncio threadpool, Go goroutine, etc.). `llminference_complete_stream`
   is still blocking from the caller's thread — it just reports progress
   via the callback as it goes.
 - **Single handle per model load.** Multiple handles in the same process

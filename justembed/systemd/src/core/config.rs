@@ -11,5 +11,5 @@ const BUNDLED_DEFAULT: &str = include_str!("../../../../llminference/main/config
 
 /// Load + merge application.toml from XDG locations.
 pub fn load() -> LoadConfigResult<LoadedConfig<AppConfig>> {
-    load_config::<AppConfig>("llmserv", BUNDLED_DEFAULT)
+    load_config::<AppConfig>("llminference", BUNDLED_DEFAULT)
 }

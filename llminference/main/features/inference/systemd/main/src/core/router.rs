@@ -348,7 +348,7 @@ async fn handle_streaming(
 
 /// OpenAI-legacy text-completions endpoint. Takes a raw `prompt` and
 /// generates continuation text WITHOUT applying the chat template.
-/// Semantically matches the `llmserv_complete` FFI function, so HTTP
+/// Semantically matches the `llminference_complete` FFI function, so HTTP
 /// vs FFI can be compared on identical workloads.
 async fn completions(
     State(state): State<Arc<AppState>>,

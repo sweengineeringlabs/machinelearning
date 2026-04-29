@@ -7,11 +7,11 @@ This document provides an overview of the `machinelearning` project, designed to
 The `machinelearning` project is a pure-Rust ML platform comprising three main Cargo workspaces and a developer-tools tree. Its primary goal is to provide foundational ML capabilities, model acquisition and I/O, LLM serving, and tools for tasks like model quantization.
 
 The project is structured with a clear dependency flow:
-*   `llmserv` depends on `llmmodel`.
+*   `llminference` depends on `llmmodel`.
 *   `llmmodel` depends on `main` (foundations).
 *   `main` (foundations) is the root workspace.
 
-The `devtools/quantize` component is a standalone tool that reaches into `llmserv` for its quantizer library, representing a single backward dependency.
+The `devtools/quantize` component is a standalone tool that reaches into `llminference` for its quantizer library, representing a single backward dependency.
 
 ## Building and Running
 
@@ -28,13 +28,13 @@ cargo build --release
 # llmmodel workspace (download / io / weights / cli)
 cargo build --release --manifest-path llmmodel/Cargo.toml
 
-# llmserv workspace (inference stack, daemon, cli, embedding server)
-cargo build --release --manifest-path llmserv/Cargo.toml
+# llminference workspace (inference stack, daemon, cli, embedding server)
+cargo build --release --manifest-path llminference/Cargo.toml
 ```
 
 ### Running the LLM Daemon (`swellmd`)
 
-The `swellmd` daemon is configuration-driven. Edit `llmserv/main/config/application.toml` or set an override at `$XDG_CONFIG_HOME/llmserv/application.toml`.
+The `swellmd` daemon is configuration-driven. Edit `llminference/main/config/application.toml` or set an override at `$XDG_CONFIG_HOME/llminference/application.toml`.
 
 Example configuration snippet:
 
@@ -52,7 +52,7 @@ id = "google/gemma-3-1b-it"             # HuggingFace repo ID
 To run the daemon:
 
 ```bash
-llmserv/target/release/swellmd
+llminference/target/release/swellmd
 # → serves OpenAI-compatible /v1/chat/completions on configured host/port
 ```
 
@@ -73,7 +73,7 @@ Refer to `devtools/quantize/README.md` for more details.
 
 ### Running the Embedding Server (`swe-ml-embed`)
 
-Configure the embedding server via `llmserv/main/config/application.toml` or `$XDG_CONFIG_HOME/llmserv/application.toml`.
+Configure the embedding server via `llminference/main/config/application.toml` or `$XDG_CONFIG_HOME/llminference/application.toml`.
 
 Example configuration snippet:
 
@@ -89,7 +89,7 @@ gguf_path = "./models/nomic-embed-text-v1.5.Q8_0.gguf"
 To run the embedding server:
 
 ```bash
-llmserv/target/release/swe-ml-embed
+llminference/target/release/swe-ml-embed
 # → serves OpenAI-compatible /v1/embeddings on configured host/port
 ```
 
@@ -98,7 +98,7 @@ llmserv/target/release/swe-ml-embed
 The `sweai` CLI is flag-driven and provides various subcommands:
 
 ```bash
-llmserv/target/release/sweai --help
+llminference/target/release/sweai --help
 ```
 
 Available subcommands include `infer`, `hub`, `gguf`, `tokenizer`.
@@ -113,7 +113,7 @@ The project includes extensive documentation covering various aspects:
 
 | Topic                     | Location                                                    |
 | :------------------------ | :---------------------------------------------------------- |
-| Daemon architecture       | `llmserv/main/features/daemon/docs/3-design/architecture.md` |
+| Daemon architecture       | `llminference/main/features/inference/systemd/docs/3-design/architecture.md` |
 | Load testing strategy     | `docs/5-testing/load_testing_strategy.md`                   |
 | Load testing reports      | `docs/5-testing/report/load_testing_*.md`                   |
 | Performance reports       | `docs/5-testing/report/perf-*.md`                           |
@@ -129,7 +129,7 @@ The project is licensed under MIT OR Apache-2.0.
 
 ---
 
-## Analysis of `llmmodel` and `llmserv`
+## Analysis of `llmmodel` and `llminference`
 
 ### **`llmmodel`**
 
@@ -142,12 +142,12 @@ The project is licensed under MIT OR Apache-2.0.
     *   **Command-Line Interface (CLI):** The `cli` crate offers a command-line tool for basic operations like downloading, listing, and querying information about models.
     *   **Dependencies:** Relies on foundational crates from the root `main/features` workspace (`swe-ml-tensor`, `swe-ml-normalization`, `swe-cli`) for basic ML primitives. It also utilizes several external Rust crates for asynchronous operations (`tokio`), serialization (`serde`), HTTP requests (`reqwest`), CLI parsing (`clap`), memory mapping (`memmap2`), and numerical processing (`rayon`, `half`).
 
-### **`llmserv`**
+### **`llminference`**
 
-*   **High-Level Responsibility:** The `llmserv` workspace is dedicated to serving LLMs, providing the inference-server stack. It encapsulates the compute library necessary for inference and various frontends for exposing LLM capabilities via APIs.
+*   **High-Level Responsibility:** The `llminference` workspace is dedicated to serving LLMs, providing the inference-server stack. It encapsulates the compute library necessary for inference and various frontends for exposing LLM capabilities via APIs.
 
 *   **Internal Organization:**
-    *   **Inference Compute Stack:** This is the heart of `llmserv`, located under `main/features/inference/`. It includes crates for `generation` (text generation), `prefill` (initial token processing), `compute` (inference computations), `thread-config` (thread management for inference), `backend-api`, and `swe-llmserver-llamacpp` (located at `llamacpp/`, providing integration with `llama.cpp` for specialized inference).
+    *   **Inference Compute Stack:** This is the heart of `llminference`, located under `main/features/inference/`. It includes crates for `generation` (text generation), `prefill` (initial token processing), `compute` (inference computations), `thread-config` (thread management for inference), `backend-api`, and `swe-llmserver-llamacpp` (located at `llamacpp/`, providing integration with `llama.cpp` for specialized inference).
     *   **Serving Frontends:**
         *   `main/features/inference/systemd`: Likely the LLM daemon (`swellmd`) responsible for handling chat completions.
         *   `main/features/embedding/systemd`: The embedding HTTP server (`swe-ml-embed`).
@@ -155,14 +155,14 @@ The project is licensed under MIT OR Apache-2.0.
     *   **Shared Infrastructure:** `main/features/systemd` likely provides common services for daemon applications, such as configuration and logging.
     *   **Foreign Function Interface (FFI):** The `main/features/inference/ffi` crate suggests capabilities for integrating with other languages or environments, potentially for desktop or IDE applications.
     *   **Experimentation:** The `main/features/experimentation/llmforge` is explicitly excluded, indicating it's an archived or deprecated prototype.
-    *   **Dependencies:** `llmserv` depends on the same foundational crates from `main/features` as `llmmodel` (e.g., `swe-ml-tensor`, `swe-ml-normalization`). Crucially, it has extensive dependencies on many crates from the `llmmodel` workspace (e.g., `swe-llmmodel-download`, `swe-llmmodel-io`, `swe-llmmodel-weights`, `swe-llmmodel-tokenizer`, and all `swe-llmmodel-arch-*` crates), confirming the stated architectural dependency. Additionally, it uses `axum` for building web services, `toml` for configuration, and `llama-cpp-2` for `llama.cpp` bindings.
+    *   **Dependencies:** `llminference` depends on the same foundational crates from `main/features` as `llmmodel` (e.g., `swe-ml-tensor`, `swe-ml-normalization`). Crucially, it has extensive dependencies on many crates from the `llmmodel` workspace (e.g., `swe-llmmodel-download`, `swe-llmmodel-io`, `swe-llmmodel-weights`, `swe-llmmodel-tokenizer`, and all `swe-llmmodel-arch-*` crates), confirming the stated architectural dependency. Additionally, it uses `axum` for building web services, `toml` for configuration, and `llama-cpp-2` for `llama.cpp` bindings.
 
 ### **Interaction and Architectural Patterns**
 
-The interaction between `llmmodel` and `llmserv` strictly follows the layered architectural pattern described in the `README.md`: **`llmserv` → `llmmodel` → `main` (foundations)**.
+The interaction between `llmmodel` and `llminference` strictly follows the layered architectural pattern described in the `README.md`: **`llminference` → `llmmodel` → `main` (foundations)**.
 
 *   **`llmmodel` as a Library Layer:** `llmmodel` functions as a lower-level library, providing all the necessary components for understanding, loading, and performing basic operations on LLM architectures. It abstracts away the complexities of model file formats (like GGUF), weight handling, tokenization, and quantization.
 
-*   **`llmserv` as an Application/Service Layer:** `llmserv` builds upon the capabilities exposed by `llmmodel`. It consumes the processed models and data from `llmmodel` and integrates them into a high-performance serving infrastructure. `llmserv` focuses on the orchestration of inference, exposing user-friendly APIs (e.g., OpenAI-compatible chat completions and embedding endpoints) via web servers built with `axum`.
+*   **`llminference` as an Application/Service Layer:** `llminference` builds upon the capabilities exposed by `llmmodel`. It consumes the processed models and data from `llmmodel` and integrates them into a high-performance serving infrastructure. `llminference` focuses on the orchestration of inference, exposing user-friendly APIs (e.g., OpenAI-compatible chat completions and embedding endpoints) via web servers built with `axum`.
 
-This layered approach promotes modularity and separation of concerns. `llmmodel` focuses on model data and computation primitives, while `llmserv` focuses on deploying and exposing these models as services.
+This layered approach promotes modularity and separation of concerns. `llmmodel` focuses on model data and computation primitives, while `llminference` focuses on deploying and exposing these models as services.

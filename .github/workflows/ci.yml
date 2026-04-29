@@ -19,7 +19,7 @@ jobs:
   # Root workspace — foundation crates (tensor, normalization, activation,
   # architectures, training, hub, embedding/conversion). Pure Rust, runs
   # on all three platforms so any platform-specific regression in the
-  # foundations shows up before the llmserv jobs.
+  # foundations shows up before the llminference jobs.
   root:
     name: root — ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -50,12 +50,12 @@ jobs:
       - name: Test
         run: cargo test --release --workspace --locked
 
-  # llmserv workspace default build — no C++ toolchain, no llama.cpp.
+  # llminference workspace default build — no C++ toolchain, no llama.cpp.
   # This is the path every consumer who doesn't opt into
   # backend-llama-cpp will hit, so it has to stay fast and
   # toolchain-free on every platform.
-  llmserv-pure-rust:
-    name: llmserv pure-Rust — ${{ matrix.os }}
+  llminference-pure-rust:
+    name: llminference pure-Rust — ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -73,17 +73,17 @@ jobs:
       - name: Cache cargo registry + target
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: "llmserv -> target"
+          workspaces: "llminference -> target"
 
       - name: Build
-        working-directory: llmserv
+        working-directory: llminference
         run: cargo build --release --workspace --locked
 
       - name: Test
-        working-directory: llmserv
+        working-directory: llminference
         run: cargo test --release --workspace --locked
 
-  # llmserv workspace with the llama.cpp backend feature active on all
+  # llminference workspace with the llama.cpp backend feature active on all
   # three platforms. Each OS uses its native C/C++ toolchain paired
   # with Rust's default target for that host:
   #
@@ -95,8 +95,8 @@ jobs:
   # aren't exercised yet. Once the llama-cpp-2 API wiring lands
   # (BACKLOG P7.B step 4 completion), these become load-bearing —
   # installing them now means no CI churn when that lands.
-  llmserv-llama-cpp:
-    name: llmserv llama-cpp — ${{ matrix.os }}
+  llminference-llama-cpp:
+    name: llminference llama-cpp — ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -147,15 +147,15 @@ jobs:
       - name: Cache cargo registry + target
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: "llmserv -> target"
+          workspaces: "llminference -> target"
           key: llama-cpp
 
       - name: Build with backend-llama-cpp feature
-        working-directory: llmserv
+        working-directory: llminference
         run: cargo build --release -p swe-inference-systemd --features backend-llama-cpp --locked
 
       - name: Test with backend-llama-cpp feature
-        working-directory: llmserv
+        working-directory: llminference
         shell: bash
         run: |
           cargo test --release -p swe-inference-systemd --features backend-llama-cpp --locked

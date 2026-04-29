@@ -1,4 +1,4 @@
-# Cargo aliases for the llmserv workspace.
+# Cargo aliases for the llminference workspace.
 #
 # The build target itself is NOT set here. Each host uses whatever its
 # rustup default is — x86_64-unknown-linux-gnu on Linux,

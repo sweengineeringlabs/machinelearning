@@ -134,7 +134,7 @@ Request/response DTOs live in `api/types.rs` and mirror OpenAI's field names so 
 
 ## Lifecycle
 
-1. `bin/serve.rs` calls `load_config()` which reads `llmserv/main/config/application.toml` (bundled via `include_str!`) and overlays any user config from `$XDG_CONFIG_DIRS/llmserv/application.toml` and `$XDG_CONFIG_HOME/llmserv/application.toml` via deep-merge. The merged result deserializes into a typed `AppConfig`.
+1. `bin/serve.rs` calls `load_config()` which reads `llminference/main/config/application.toml` (bundled via `include_str!`) and overlays any user config from `$XDG_CONFIG_DIRS/llminference/application.toml` and `$XDG_CONFIG_HOME/llminference/application.toml` via deep-merge. The merged result deserializes into a typed `AppConfig`.
 2. `RUST_LOG` is set from `[logging].level` if not already in the environment.
 3. The optimization profile (`[runtime].opt_profile`) is applied to the `rustml-tensor` runtime config.
 4. `rayon` thread pool size is logged (from `rustml-thread-config::AutoThreadConfig`).
@@ -143,7 +143,7 @@ Request/response DTOs live in `api/types.rs` and mirror OpenAI's field names so 
 7. `AppState { model, throttle, request_timeout }` is wrapped in `Arc` and handed to `build_router`. `request_timeout` is derived from `[generation].request_timeout_secs` (`0` → `None` to preserve unbounded behavior).
 8. axum binds to `[server].host:[server].port` and serves until SIGINT/SIGTERM.
 
-No CLI flags. No reload. No graceful shutdown drain — the process is the unit of deployment. To run with different settings, set `XDG_CONFIG_HOME=/path/to/dir` where the overlay lives at `$XDG_CONFIG_HOME/llmserv/application.toml`.
+No CLI flags. No reload. No graceful shutdown drain — the process is the unit of deployment. To run with different settings, set `XDG_CONFIG_HOME=/path/to/dir` where the overlay lives at `$XDG_CONFIG_HOME/llminference/application.toml`.
 
 ## What's Out of Scope
 

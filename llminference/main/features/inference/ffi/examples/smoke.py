@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Smoke test for libllmserv via ctypes.
+Smoke test for libllminference via ctypes.
 
 Prereqs:
-    - Build the cdylib:  cargo build --release --manifest-path llmserv/Cargo.toml -p llmserv-ffi
+    - Build the cdylib:  cargo build --release --manifest-path llminference/Cargo.toml -p swe-inference-ffi
     - Ensure application.toml points at a model you have cached locally
       (or set XDG_CONFIG_HOME to a directory containing an override).
 
@@ -33,19 +33,19 @@ from ctypes import (
 # ─── locate the built library ────────────────────────────────────────
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", ".."))
-TARGET_DIR = os.path.join(REPO_ROOT, "llmserv", "target", "release")
+TARGET_DIR = os.path.join(REPO_ROOT, "llminference", "target", "release")
 
 if sys.platform == "win32":
-    LIB_NAME = "llmserv.dll"
+    LIB_NAME = "llminference.dll"
 elif sys.platform == "darwin":
-    LIB_NAME = "libllmserv.dylib"
+    LIB_NAME = "libllminference.dylib"
 else:
-    LIB_NAME = "libllmserv.so"
+    LIB_NAME = "libllminference.so"
 
 LIB_PATH = os.path.join(TARGET_DIR, LIB_NAME)
 if not os.path.exists(LIB_PATH):
     print(f"ERR: {LIB_PATH} not found. Build first:", file=sys.stderr)
-    print("    cargo build --release --manifest-path llmserv/Cargo.toml -p llmserv-ffi", file=sys.stderr)
+    print("    cargo build --release --manifest-path llminference/Cargo.toml -p swe-inference-ffi", file=sys.stderr)
     sys.exit(2)
 
 lib = ctypes.CDLL(LIB_PATH)
@@ -71,32 +71,32 @@ class LlmHandle(ctypes.Structure):
 
 LlmHandlePtr = POINTER(LlmHandle)
 
-lib.llmserv_init.argtypes = [POINTER(LlmHandlePtr)]
-lib.llmserv_init.restype = c_int
+lib.llminference_init.argtypes = [POINTER(LlmHandlePtr)]
+lib.llminference_init.restype = c_int
 
-lib.llmserv_destroy.argtypes = [LlmHandlePtr]
-lib.llmserv_destroy.restype = None
+lib.llminference_destroy.argtypes = [LlmHandlePtr]
+lib.llminference_destroy.restype = None
 
-lib.llmserv_complete.argtypes = [LlmHandlePtr, c_char_p, c_uint32, c_float, POINTER(c_char_p)]
-lib.llmserv_complete.restype = c_int
+lib.llminference_complete.argtypes = [LlmHandlePtr, c_char_p, c_uint32, c_float, POINTER(c_char_p)]
+lib.llminference_complete.restype = c_int
 
-lib.llmserv_embed.argtypes = [LlmHandlePtr, c_char_p, POINTER(POINTER(c_float)), POINTER(c_size_t)]
-lib.llmserv_embed.restype = c_int
+lib.llminference_embed.argtypes = [LlmHandlePtr, c_char_p, POINTER(POINTER(c_float)), POINTER(c_size_t)]
+lib.llminference_embed.restype = c_int
 
-lib.llmserv_tokenize.argtypes = [LlmHandlePtr, c_char_p, POINTER(POINTER(c_uint32)), POINTER(c_size_t)]
-lib.llmserv_tokenize.restype = c_int
+lib.llminference_tokenize.argtypes = [LlmHandlePtr, c_char_p, POINTER(POINTER(c_uint32)), POINTER(c_size_t)]
+lib.llminference_tokenize.restype = c_int
 
-lib.llmserv_token_count.argtypes = [LlmHandlePtr, c_char_p, POINTER(c_size_t)]
-lib.llmserv_token_count.restype = c_int
+lib.llminference_token_count.argtypes = [LlmHandlePtr, c_char_p, POINTER(c_size_t)]
+lib.llminference_token_count.restype = c_int
 
-lib.llmserv_free_string.argtypes = [c_char_p]
-lib.llmserv_free_string.restype = None
+lib.llminference_free_string.argtypes = [c_char_p]
+lib.llminference_free_string.restype = None
 
-lib.llmserv_free_floats.argtypes = [POINTER(c_float), c_size_t]
-lib.llmserv_free_floats.restype = None
+lib.llminference_free_floats.argtypes = [POINTER(c_float), c_size_t]
+lib.llminference_free_floats.restype = None
 
-lib.llmserv_free_u32s.argtypes = [POINTER(c_uint32), c_size_t]
-lib.llmserv_free_u32s.restype = None
+lib.llminference_free_u32s.argtypes = [POINTER(c_uint32), c_size_t]
+lib.llminference_free_u32s.restype = None
 
 
 def _check(code: int, fn: str) -> None:
@@ -111,12 +111,12 @@ def main() -> None:
     print(f"Loading library: {LIB_PATH}")
 
     handle = LlmHandlePtr()
-    _check(lib.llmserv_init(byref(handle)), "llmserv_init")
+    _check(lib.llminference_init(byref(handle)), "llminference_init")
     print(f"  init OK (handle = {ctypes.addressof(handle.contents):#x})")
 
     # Fast path — tokenizer-only
     count = c_size_t()
-    _check(lib.llmserv_token_count(handle, b"Hello, world!", byref(count)), "llmserv_token_count")
+    _check(lib.llminference_token_count(handle, b"Hello, world!", byref(count)), "llminference_token_count")
     print(f"  token_count('Hello, world!') = {count.value}")
     assert count.value > 0, "expected non-zero token count"
 
@@ -124,11 +124,11 @@ def main() -> None:
     ids_ptr = POINTER(c_uint32)()
     ids_len = c_size_t()
     _check(
-        lib.llmserv_tokenize(handle, b"Hello, world!", byref(ids_ptr), byref(ids_len)),
-        "llmserv_tokenize",
+        lib.llminference_tokenize(handle, b"Hello, world!", byref(ids_ptr), byref(ids_len)),
+        "llminference_tokenize",
     )
     ids = [ids_ptr[i] for i in range(ids_len.value)]
-    lib.llmserv_free_u32s(ids_ptr, ids_len)
+    lib.llminference_free_u32s(ids_ptr, ids_len)
     print(f"  tokenize('Hello, world!') = {ids}")
     assert len(ids) == count.value, "tokenize and token_count disagree"
 
@@ -136,15 +136,15 @@ def main() -> None:
     print("  running completion (this takes a few seconds)...")
     out_text = c_char_p()
     _check(
-        lib.llmserv_complete(handle, b"Say hello in 5 words.", c_uint32(12), c_float(0.0), byref(out_text)),
-        "llmserv_complete",
+        lib.llminference_complete(handle, b"Say hello in 5 words.", c_uint32(12), c_float(0.0), byref(out_text)),
+        "llminference_complete",
     )
     text = out_text.value.decode("utf-8") if out_text.value else ""
-    lib.llmserv_free_string(out_text)
+    lib.llminference_free_string(out_text)
     print(f"  complete -> {text!r}")
     assert text, "expected non-empty completion"
 
-    lib.llmserv_destroy(handle)
+    lib.llminference_destroy(handle)
     print("  destroy OK")
     print("\nAll smoke tests passed.")
 
