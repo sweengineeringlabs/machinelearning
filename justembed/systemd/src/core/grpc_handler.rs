@@ -16,10 +16,6 @@ use crate::core::state::EmbeddingState;
 
 /// Domain handler bridging proto-typed [`EmbedRequest`] / [`EmbedResponse`]
 /// to the shared embedding loop.
-///
-/// This is the gRPC analogue of the axum `embeddings` handler in
-/// `core::router`.  Both call [`embed_inputs`] so the two transports are
-/// guaranteed to produce the same vectors for the same inputs.
 pub struct EmbedHandler {
     state: Arc<EmbeddingState>,
 }

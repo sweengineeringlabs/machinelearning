@@ -2926,7 +2926,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum 0.8.9",
  "bytes",
  "clap",
  "edge-domain",
@@ -2939,7 +2938,6 @@ dependencies = [
  "log",
  "prost",
  "serde",
- "serde_json",
  "swe-cli",
  "swe-edge-ingress-grpc",
  "swe-llmmodel-arch-nomic-bert",

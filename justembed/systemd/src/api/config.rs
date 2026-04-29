@@ -23,36 +23,9 @@ impl DaemonConfig for AppConfig {
 #[derive(Debug, Deserialize, Default)]
 pub struct EmbeddingSection {
     #[serde(default)]
-    pub server: EmbeddingServerConfig,
-    #[serde(default)]
     pub model: EmbeddingModelSpec,
     #[serde(default)]
     pub grpc: EmbeddingGrpcConfig,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct EmbeddingServerConfig {
-    #[serde(default = "default_host")]
-    pub host: String,
-    #[serde(default = "default_port")]
-    pub port: u16,
-}
-
-impl Default for EmbeddingServerConfig {
-    fn default() -> Self {
-        Self {
-            host: default_host(),
-            port: default_port(),
-        }
-    }
-}
-
-fn default_host() -> String {
-    "127.0.0.1".into()
-}
-
-fn default_port() -> u16 {
-    8081
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -62,8 +35,7 @@ pub struct EmbeddingModelSpec {
     pub gguf_path: String,
 }
 
-/// Bind + security config for the gRPC `EmbedService` server that runs
-/// alongside the OpenAI-compatible REST endpoint.
+/// Bind + security config for the gRPC `EmbedService` server.
 ///
 /// Defaults assume a development workstation: bind to loopback, plaintext,
 /// `allow_unauthenticated = true`.  Production deployments MUST set TLS
@@ -75,7 +47,7 @@ pub struct EmbeddingGrpcConfig {
     #[serde(default = "default_grpc_host")]
     pub host: String,
 
-    /// Bind port.  Defaults to `8181` (REST is `8081`).
+    /// Bind port.  Defaults to `8181`.
     #[serde(default = "default_grpc_port")]
     pub port: u16,
 

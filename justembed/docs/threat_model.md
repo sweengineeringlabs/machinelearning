@@ -1,9 +1,8 @@
 # justembed Threat Model
 
-Scope: justembed daemon as deployed via `embed serve`, exposing two
-transports — OpenAI-compatible REST (`POST /v1/embeddings`) and gRPC
-(`justembed.EmbedService/Embed`) — over a single loaded GGUF embedding
-model.
+Scope: justembed daemon as deployed via `embed serve`, exposing one
+transport — gRPC (`justembed.EmbedService/Embed`) — over a single
+loaded GGUF embedding model.
 
 This document captures the threats the daemon defends against, the
 controls it relies on, and the residual risks the operator owns.  It
@@ -17,7 +16,7 @@ edge crates already verify in their own test suites.
 
 | Boundary | Side A (untrusted) | Side B (trusted) | Crossed by |
 |---------|--------------------|------------------|------------|
-| External client → daemon | gRPC / HTTP client | daemon process | TCP socket |
+| External client → daemon | gRPC client | daemon process | TCP socket |
 | Daemon → filesystem | daemon process | GGUF model file, TLS PEMs, application.toml | startup load + read |
 | Operator → config | operator | application.toml in XDG dirs | process restart |
 
@@ -52,12 +51,11 @@ adversaries; the daemon is not designed to defeat them.
 
 ### T1 — Denial of service via oversized request
 
-* **Attacker capability:** any client that can reach the gRPC or REST port.
+* **Attacker capability:** any client that can reach the gRPC port.
 * **Impact:** memory exhaustion, GC pressure, model thread starvation.
 * **Control:** gRPC ingress applies `max_message_bytes` (default 4 MiB) at the
   framing layer; over-limit messages return `ResourceExhausted` (status 8)
-  before the proto decoder runs.  REST is bounded by axum's default
-  body limit (configurable; recommend tightening for production).
+  before the proto decoder runs.
 * **Verification:** edge ingress test
   `test_server_enforces_message_size_limit_with_resource_exhausted`.
 
@@ -73,9 +71,6 @@ adversaries; the daemon is not designed to defeat them.
 * **Verification:** edge ingress tests
   `test_server_returns_deadline_exceeded_when_handler_overruns_deadline`
   and `test_server_rejects_past_deadline_request_before_handler_dispatch`.
-* **Residual risk:** REST does not currently impose a wall-clock cap.
-  Operators who expose REST on a public port should front it with a
-  reverse proxy that does.
 
 ### T3 — Denial of service via client disconnect mid-call
 
@@ -99,9 +94,6 @@ adversaries; the daemon is not designed to defeat them.
   raw message is logged server-side at WARN.
 * **Verification:** edge ingress test
   `test_server_sanitizes_internal_error_message_on_wire`.
-* **Note:** REST errors today return `EmbeddingApiError(String)`
-  verbatim with status 400.  Tighten before deploying outside trusted
-  networks.
 
 ### T5 — Confidentiality on the wire
 
@@ -114,8 +106,6 @@ adversaries; the daemon is not designed to defeat them.
 * **Default posture:** the bundled `application.toml` ships with no TLS
   block and a 127.0.0.1 bind, i.e. development mode.  Production
   operators MUST set TLS paths and bind to an internal interface.
-* **Residual risk:** the REST endpoint has no first-class TLS support
-  in this crate today; expose it via a TLS-terminating reverse proxy.
 
 ### T6 — Authentication / authorisation
 
@@ -169,21 +159,6 @@ adversaries; the daemon is not designed to defeat them.
   deployment-managed, owned root, mode 0644 at most.  Never let the
   service user own it.
 
-### T10 — Cross-transport divergence
-
-* **Attacker capability:** observe both transports return different
-  embeddings for the same input, then exploit the gap (e.g. cache
-  invalidation in a downstream system).
-* **Impact:** subtle correctness bugs in retrieval pipelines that mix
-  REST and gRPC consumers.
-* **Control:** both the axum REST handler and the gRPC `EmbedHandler`
-  invoke the shared `embed_inputs` function — there is no
-  per-transport transform in between.  The integration test
-  `test_embed_rpc_proto_roundtrip_preserves_vector_components_exactly`
-  asserts that the proto round-trip preserves f32 components
-  bit-for-bit, so any output the embedding loop produces survives both
-  transports identically.
-
 ---
 
 ## Defaults summary
@@ -191,7 +166,6 @@ adversaries; the daemon is not designed to defeat them.
 | Knob | Default | Production setting |
 |------|---------|-------------------|
 | gRPC bind | `127.0.0.1:8181` | internal interface only |
-| REST bind | `127.0.0.1:8081` | internal interface only |
 | `max_message_bytes` | 4 MiB | tighten per workload |
 | `allow_unauthenticated` | `true` | `false` once auth interceptor lands |
 | TLS | none | mandatory |

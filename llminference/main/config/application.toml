@@ -17,13 +17,6 @@ host = "127.0.0.1"
 port = 8080
 
 # ──────────────────────────────────────────────────────────────────────
-# [embedding.server] — embedding HTTP server (swe-embedding-systemd)
-# ──────────────────────────────────────────────────────────────────────
-[embedding.server]
-host = "127.0.0.1"
-port = 8081
-
-# ──────────────────────────────────────────────────────────────────────
 # [embedding.model] — embedding model source
 #
 # Currently GGUF only. Set gguf_path to an absolute or workspace-relative
@@ -35,9 +28,9 @@ gguf_path = ""
 # ──────────────────────────────────────────────────────────────────────
 # [embedding.grpc] — gRPC EmbedService server
 #
-# Runs alongside the OpenAI REST endpoint on a separate port. gRPC is
-# the primary protocol for intra-cluster service-to-service calls; the
-# REST endpoint is kept for ecosystem compatibility.
+# justembed is gRPC-only; the OpenAI-compatible REST endpoint that
+# previously ran on port 8081 was removed. External callers must speak
+# gRPC against `justembed.EmbedService/Embed`.
 #
 # Security defaults assume a development workstation:
 #   * loopback-only bind

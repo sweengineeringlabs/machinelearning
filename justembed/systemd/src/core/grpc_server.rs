@@ -1,5 +1,5 @@
 //! gRPC server orchestration — wires the [`HandlerRegistry`] to the
-//! edge gRPC ingress and runs it alongside the axum REST server.
+//! edge gRPC ingress and runs the tonic listener.
 //!
 //! Returns the bound address and a shutdown channel so callers (the
 //! `embed` binary, integration tests) can manage lifecycle.

@@ -14,11 +14,6 @@
 //!   * the registry bridge dispatches to the right handler by URI path
 //!   * `HandlerError::InvalidRequest` surfaces as gRPC `InvalidArgument`
 //!   * mismatched URIs surface as gRPC `Unimplemented`
-//!
-//! The "parity" claim — REST and gRPC return semantically equivalent
-//! embeddings — follows because both transports invoke the same shared
-//! [`embed_inputs`] function with no extra per-transport transforms.
-//! The on-the-wire f32 fidelity check below is what guards parity.
 
 use std::any::Any;
 use std::collections::HashMap;
@@ -214,9 +209,7 @@ async fn test_embed_rpc_returns_one_vector_per_input_with_correct_model() {
 
 /// @covers: proto round-trip preserves f32 components bit-for-bit, so
 /// the cosine similarity between the on-wire vector and the handler's
-/// in-memory vector is exactly 1.0.  This is the parity guard between
-/// REST and gRPC: both transports return whatever the embedding loop
-/// produced, so vector fidelity is what defines semantic equivalence.
+/// in-memory vector is exactly 1.0.
 #[tokio::test]
 async fn test_embed_rpc_proto_roundtrip_preserves_vector_components_exactly() {
     let (addr, _shutdown) = start_test_server().await;

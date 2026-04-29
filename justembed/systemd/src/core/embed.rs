@@ -1,5 +1,8 @@
-//! Shared embedding loop — invoked by both transports (axum REST and
-//! tonic gRPC) so behaviour cannot drift between them.
+//! Shared embedding loop — invoked by the gRPC `EmbedHandler`.
+//!
+//! Kept transport-agnostic so a future ingress (e.g. an in-process call
+//! site, a benchmark harness) can call it directly without dragging the
+//! tonic/proto layers along.
 //!
 //! The function is sync and CPU-bound — callers MUST wrap it in
 //! [`tokio::task::spawn_blocking`] when invoking from an async context
@@ -14,12 +17,13 @@ use swe_llmmodel_layers::PoolingStrategy;
 
 use crate::core::state::EmbeddingState;
 
-/// Failure modes shared by both transports.
+/// Failure modes surfaced by the embedding loop.
 ///
-/// Each variant is mapped at the transport boundary:
-///   * REST: `EmptyInput` and `Tokenization` → 400; others → 500
-///   * gRPC: `EmptyInput` and `Tokenization` → InvalidArgument;
-///           `Embed` and `Normalize` → Internal (sanitised on wire).
+/// Mapped at the gRPC handler boundary:
+///   * `EmptyInput` and `Tokenization` → `HandlerError::InvalidRequest`
+///     (gRPC `InvalidArgument`).
+///   * `Embed` and `Normalize`         → `HandlerError::ExecutionFailed`
+///     (gRPC `Internal`, sanitised on the wire).
 #[derive(Debug, thiserror::Error)]
 pub enum EmbedError {
     /// Caller sent an empty `input` field — refuse before any work runs.
@@ -37,7 +41,7 @@ pub enum EmbedError {
 }
 
 /// Result of one embedding call: per-input vectors plus a token-count
-/// summary that REST forwards in `EmbeddingsResponse.usage`.
+/// summary that callers expose as part of their response shape.
 #[derive(Debug)]
 pub struct EmbedOutcome {
     /// One L2-normalised vector per input string, in input order.

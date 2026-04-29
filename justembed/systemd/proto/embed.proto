@@ -1,9 +1,7 @@
 // justembed embed.proto — gRPC schema for the embedding service.
 //
-// Mirrors the OpenAI-compatible REST shape so a single embedding loop
-// serves both transports without semantic drift.  The REST endpoint
-// remains the primary surface for external/ecosystem clients; this
-// service is the primary surface for intra-cluster RPC.
+// gRPC is the only surface justembed exposes; the OpenAI-compatible
+// REST endpoint that previously ran on port 8081 was removed.
 
 syntax = "proto3";
 
