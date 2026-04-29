@@ -61,7 +61,7 @@ impl Linear {
             // Default off pending P7.2.b follow-up work (multiple integer
             // accumulators + pre-allocated activation buffer). With those,
             // v2 is expected to beat v1; without them, v1 (FMA path) wins
-            // by ~7% on this CPU. See llmserv/BACKLOG.md P7.2.
+            // by ~7% on this CPU. See llminference/BACKLOG.md P7.2.
             use_native_q8: false,
         }
     }
@@ -97,7 +97,7 @@ impl Linear {
             // Default off pending P7.2.b follow-up work (multiple integer
             // accumulators + pre-allocated activation buffer). With those,
             // v2 is expected to beat v1; without them, v1 (FMA path) wins
-            // by ~7% on this CPU. See llmserv/BACKLOG.md P7.2.
+            // by ~7% on this CPU. See llminference/BACKLOG.md P7.2.
             use_native_q8: false,
         })
     }

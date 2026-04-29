@@ -1,6 +1,6 @@
 //! Typed application-config schema for the daemon.
 //!
-//! The schema mirrors the sections of `llmserv/main/config/application.toml`.
+//! The schema mirrors the sections of `llminference/main/config/application.toml`.
 //! Only sections the daemon consumes are defined here; unknown sections are
 //! tolerated and ignored. Backend-selection types (`ModelSpec`,
 //! `ModelBackend`, `ModelSource`) live in `swe_inference_backend_api` so backend crates

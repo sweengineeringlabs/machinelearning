@@ -6,7 +6,7 @@ use swe_cli::{
     Cli as SweCli, VerbosityArgs, apply_logging_filter, init_env_logger, install_panic_hook,
 };
 
-/// llmc — developer CLI for llmserv.
+/// llmc — developer CLI for llminference.
 ///
 /// Subcommands: infer, gguf, tokenizer, load. Model download lives in the
 /// standalone `llmmodel` binary.

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Concurrent load test for the swe_inference_systemd daemon.
 #
-# Usage: ./llmserv/main/features/daemon/scripts/load_test.sh [N] [URL]
+# Usage: ./llminference/main/features/inference/systemd/scripts/load_test.sh [N] [URL]
 #   N   — number of concurrent requests (default: 4)
 #   URL — endpoint (default: http://127.0.0.1:8080/v1/chat/completions)
 #

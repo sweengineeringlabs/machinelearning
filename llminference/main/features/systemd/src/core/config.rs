@@ -26,7 +26,7 @@ use crate::api::types::LoadedConfig;
 /// Load + merge an `application.toml` for a daemon.
 ///
 /// * `app_dir_name` — the subdirectory name under XDG config dirs
-///   (e.g. `"llmserv"` → `$XDG_CONFIG_HOME/llmserv/application.toml`).
+///   (e.g. `"llminference"` → `$XDG_CONFIG_HOME/llminference/application.toml`).
 /// * `bundled_default` — TOML text compiled into the binary, usually
 ///   via `include_str!`.
 pub fn load_config<T: DaemonConfig>(

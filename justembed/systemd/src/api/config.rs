@@ -1,6 +1,6 @@
 //! Typed application-config schema for the embedding server.
 //!
-//! Mirrors the sections of `llmserv/main/config/application.toml` that
+//! Mirrors the sections of `llminference/main/config/application.toml` that
 //! this binary consumes.
 
 use serde::Deserialize;

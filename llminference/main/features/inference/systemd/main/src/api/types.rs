@@ -97,7 +97,7 @@ pub struct Usage {
 /// OpenAI-legacy text completion request — `/v1/completions`.
 /// Takes a raw prompt (no chat template applied), returns text in the
 /// choices. Use this when you want apples-to-apples comparison against
-/// `llmserv_complete` in the FFI library, or when the client is a
+/// `llminference_complete` in the FFI library, or when the client is a
 /// legacy SDK that uses the text-completions endpoint.
 #[derive(Debug, Deserialize)]
 pub struct CompletionRequest {

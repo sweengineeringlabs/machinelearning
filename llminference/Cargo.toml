@@ -85,7 +85,7 @@ llama-cpp-2 = "0.1.143"
 
 # ──────────────────────────────────────────────────────────────────────
 # Cross-workspace foundations (consumed from the root workspace via path).
-# These are not owned by llmserv; llmserv just uses them.
+# These are not owned by llminference; llminference just uses them.
 # ──────────────────────────────────────────────────────────────────────
 swe-ml-tensor        = { path = "../main/features/tensor" }
 swe-ml-normalization = { path = "../main/features/normalization" }
