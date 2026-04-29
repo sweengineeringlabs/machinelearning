@@ -1,10 +1,9 @@
-//! `embed` — embedding HTTP daemon.
+//! `embed` — embedding gRPC daemon.
 //!
-//! Hosts the OpenAI-compatible `POST /v1/embeddings` endpoint over a
-//! GGUF embedding model (nomic-bert at the moment). Config is file-
-//! driven; there are no per-flag overrides on the CLI.
+//! Hosts the `justembed.EmbedService/Embed` gRPC method over a GGUF
+//! embedding model (nomic-bert at the moment). Config is file-driven;
+//! there are no per-flag overrides on the CLI.
 
-use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -13,13 +12,13 @@ use clap::{Parser, Subcommand};
 
 use swe_cli::{Cli as SweCli, VerbosityArgs, install_panic_hook};
 use swe_embedding_systemd::{
-    AppConfig, apply_logging_filter, build_embedding_router, load_config, load_gguf, serve_http,
+    AppConfig, apply_logging_filter, load_config, load_gguf, start_grpc_server,
 };
 
-/// `embed` — embedding HTTP daemon.
+/// `embed` — embedding gRPC daemon.
 ///
 /// The daemon loads a GGUF embedding model (e.g. nomic-embed-text) and
-/// serves OpenAI-compatible embedding requests.
+/// serves `justembed.EmbedService/Embed` over gRPC.
 ///
 /// Config sources (later overrides earlier):
 ///   1. Bundled default (compiled into the binary)
@@ -37,22 +36,20 @@ use swe_embedding_systemd::{
 ///   cat > ~/.config/llminference/application.toml <<EOF
 ///   [embedding.model]
 ///   gguf_path = "/path/to/nomic-embed-text.Q8_0.gguf"
-///   [embedding.server]
+///   [embedding.grpc]
 ///   host = "127.0.0.1"
-///   port = 8081
+///   port = 8181
 ///   EOF
 ///   embed serve
 ///
-///   # Hit the running daemon:
-///   curl -s http://127.0.0.1:8081/health
-///   curl -s -X POST http://127.0.0.1:8081/v1/embeddings \
-///     -H 'Content-Type: application/json' \
-///     -d '{"input":"hello world","model":"nomic"}'
+///   # Hit the running daemon (gRPC, requires a generated client or grpcurl):
+///   grpcurl -plaintext -d '{"input":["hello world"]}' \
+///     127.0.0.1:8181 justembed.EmbedService/Embed
 #[derive(Parser)]
 #[command(
     name = "embed",
     version,
-    about = "Embedding HTTP daemon — OpenAI-compatible /v1/embeddings",
+    about = "Embedding gRPC daemon — justembed.EmbedService/Embed",
     long_about = None,
 )]
 struct Cli {
@@ -65,10 +62,10 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Start the embedding HTTP daemon.
+    /// Start the embedding gRPC daemon.
     ///
     /// Loads the GGUF model referenced by `[embedding.model].gguf_path`
-    /// in the merged config and binds to `[embedding.server].host:port`.
+    /// in the merged config and binds to `[embedding.grpc].host:port`.
     /// Runs in the foreground; send SIGINT/Ctrl-C to stop.
     Serve,
 }
@@ -103,16 +100,15 @@ async fn run_serve(verbosity: VerbosityArgs) -> Result<()> {
     let model_id = embedding_state.model_id.clone();
 
     let state = Arc::new(embedding_state);
-    let app = build_embedding_router(state);
 
-    let addr: SocketAddr = format!(
-        "{}:{}",
-        loaded.app.embedding.server.host, loaded.app.embedding.server.port
-    )
-    .parse()?;
-    log::info!("embed: serving '{}' on http://{}", model_id, addr);
+    let grpc = start_grpc_server(Arc::clone(&state), &loaded.app.embedding.grpc).await?;
+    log::info!("embed: serving '{}' on {} (gRPC)", model_id, grpc.addr);
 
-    serve_http(addr, app).await
+    // Block on the gRPC server task; SIGINT shuts down via the runtime.
+    match grpc.task.await {
+        Ok(serve_result) => serve_result,
+        Err(join_err) => bail!("gRPC server task join error: {join_err}"),
+    }
 }
 
 fn resolve_model_path(cfg: &AppConfig) -> Result<PathBuf> {

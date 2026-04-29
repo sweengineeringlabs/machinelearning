@@ -1,11 +1,12 @@
 [package]
 name = "swe-embedding-systemd"
-description = "Embedding HTTP daemon — serves /v1/embeddings"
+description = "Embedding daemon — serves justembed.EmbedService/Embed over gRPC"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
 repository.workspace = true
+build = "build.rs"
 
 [[bin]]
 name = "embed"
@@ -19,13 +20,34 @@ swe-llmmodel-arch-nomic-bert.workspace = true
 swe-llmmodel-gguf.workspace = true
 swe-llmmodel-tokenizer.workspace = true
 swe-llmmodel-layers.workspace = true
-axum.workspace = true
 tokio.workspace = true
 clap.workspace = true
 anyhow.workspace = true
 serde.workspace = true
-serde_json.workspace = true
 log.workspace = true
 env_logger.workspace = true
 swe-systemd.workspace = true
 swe-cli.workspace = true
+thiserror.workspace = true
+
+# gRPC ingress — wire-level handler, status codes, TLS surface.
+swe-edge-ingress-grpc = { path = "../../../edge/ingress/grpc" }
+edge-domain           = { path = "../../../edge/domain" }
+
+# gRPC encoding + transport.  Kept in lockstep with edge's tonic 0.12.
+async-trait = "0.1"
+futures     = "0.3"
+prost       = "0.13"
+tonic       = { version = "0.12", default-features = false, features = ["transport", "codegen", "prost"] }
+tracing     = "0.1"
+
+[build-dependencies]
+tonic-build = { version = "0.12", default-features = false, features = ["prost"] }
+
+[dev-dependencies]
+tokio       = { workspace = true, features = ["macros", "rt-multi-thread"] }
+hyper       = { version = "1", features = ["http2", "client"] }
+hyper-util  = { version = "0.1", features = ["tokio"] }
+http        = "1"
+http-body-util = "0.1"
+bytes       = "1"

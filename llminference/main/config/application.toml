@@ -17,13 +17,6 @@ host = "127.0.0.1"
 port = 8080
 
 # ──────────────────────────────────────────────────────────────────────
-# [embedding.server] — embedding HTTP server (swe-embedding-systemd)
-# ──────────────────────────────────────────────────────────────────────
-[embedding.server]
-host = "127.0.0.1"
-port = 8081
-
-# ──────────────────────────────────────────────────────────────────────
 # [embedding.model] — embedding model source
 #
 # Currently GGUF only. Set gguf_path to an absolute or workspace-relative
@@ -31,6 +24,34 @@ port = 8081
 # ──────────────────────────────────────────────────────────────────────
 [embedding.model]
 gguf_path = ""
+
+# ──────────────────────────────────────────────────────────────────────
+# [embedding.grpc] — gRPC EmbedService server
+#
+# justembed is gRPC-only; the OpenAI-compatible REST endpoint that
+# previously ran on port 8081 was removed. External callers must speak
+# gRPC against `justembed.EmbedService/Embed`.
+#
+# Security defaults assume a development workstation:
+#   * loopback-only bind
+#   * plaintext (TLS not configured)
+#   * allow_unauthenticated = true
+#
+# Production deployments MUST set [embedding.grpc.tls] paths and flip
+# allow_unauthenticated to false once an auth interceptor is wired.
+# ──────────────────────────────────────────────────────────────────────
+[embedding.grpc]
+host = "127.0.0.1"
+port = 8181
+max_message_bytes = 4194304          # 4 MiB
+allow_unauthenticated = true
+
+# Uncomment to enable TLS:
+# [embedding.grpc.tls]
+# cert_pem_path = "/etc/justembed/server.crt"
+# key_pem_path  = "/etc/justembed/server.key"
+# # Optional client-CA → enables mTLS:
+# # client_ca_pem_path = "/etc/justembed/client-ca.crt"
 
 # ──────────────────────────────────────────────────────────────────────
 # [model] — which model to load
