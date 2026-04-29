@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 Diff two LOGIT-format dumps produced by:
-  llmserv/.../bin/dump_logits_native.rs   (native_rust path)
-  llmserv/.../tests/dump_logits.rs        (llama_cpp path)
+  llminference/.../bin/dump_logits_native.rs   (native_rust path)
+  llminference/.../tests/dump_logits.rs        (llama_cpp path)
 
 Both must dump the same fixed token sequence so we're comparing
 forward-pass numerics, not tokenizer behavior.
