@@ -4,8 +4,8 @@ pub use crate::api::config::{
 pub use crate::api::proto::{EmbedRequest, EmbedResponse, FloatVector, EMBED_METHOD_PATH};
 pub use crate::core::config::load as load_config;
 pub use crate::core::embed::{EmbedError, EmbedOutcome, embed_inputs};
+pub use crate::core::grpc_dispatch::{HEALTH_SERVICE_PREFIX, MethodPathRouter};
 pub use crate::core::grpc_handler::EmbedHandler;
-pub use crate::core::grpc_inbound::RegistryGrpcInbound;
 pub use crate::core::grpc_server::{EmbedGrpcServer, start_grpc_server};
 pub use crate::core::loader::load_gguf;
 pub use crate::core::state::EmbeddingState;
