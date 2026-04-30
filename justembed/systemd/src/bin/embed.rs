@@ -1,0 +1,151 @@
+//! `embed` — embedding gRPC daemon.
+//!
+//! Hosts the `justembed.EmbedService/Embed` gRPC method over a GGUF
+//! embedding model (nomic-bert at the moment). Config is file-driven;
+//! there are no per-flag overrides on the CLI.
+
+use std::path::PathBuf;
+use std::sync::Arc;
+
+use anyhow::{Result, bail};
+use clap::{Parser, Subcommand};
+
+use swe_cli::{Cli as SweCli, VerbosityArgs, install_panic_hook};
+use swe_embedding_systemd::{
+    AppConfig, apply_logging_filter, load_config, load_gguf, start_grpc_server,
+};
+
+/// `embed` — embedding gRPC daemon.
+///
+/// The daemon loads a GGUF embedding model (e.g. nomic-embed-text) and
+/// serves `justembed.EmbedService/Embed` over gRPC.
+///
+/// Config sources (later overrides earlier):
+///   1. Bundled default (compiled into the binary)
+///   2. $XDG_CONFIG_DIRS/llminference/application.toml
+///   3. $XDG_CONFIG_HOME/llminference/application.toml
+///      (on Windows: %APPDATA%\llminference\application.toml)
+///
+/// EXAMPLES:
+///
+///   # Start with the default config (requires [embedding.model].gguf_path set):
+///   embed serve
+///
+///   # Override the config via XDG:
+///   mkdir -p ~/.config/llminference
+///   cat > ~/.config/llminference/application.toml <<EOF
+///   [embedding.model]
+///   gguf_path = "/path/to/nomic-embed-text.Q8_0.gguf"
+///   [embedding.grpc]
+///   host = "127.0.0.1"
+///   port = 8181
+///   EOF
+///   embed serve
+///
+///   # Hit the running daemon (gRPC, requires a generated client or grpcurl):
+///   grpcurl -plaintext -d '{"input":["hello world"]}' \
+///     127.0.0.1:8181 justembed.EmbedService/Embed
+#[derive(Parser)]
+#[command(
+    name = "embed",
+    version,
+    about = "Embedding gRPC daemon — justembed.EmbedService/Embed",
+    long_about = None,
+)]
+struct Cli {
+    #[command(flatten)]
+    verbosity: VerbosityArgs,
+
+    #[command(subcommand)]
+    command: Command,
+}
+
+#[derive(Subcommand)]
+enum Command {
+    /// Start the embedding gRPC daemon.
+    ///
+    /// Loads the GGUF model referenced by `[embedding.model].gguf_path`
+    /// in the merged config and binds to `[embedding.grpc].host:port`.
+    /// Runs in the foreground; send SIGINT/Ctrl-C to stop.
+    Serve,
+}
+
+impl SweCli for Cli {
+    fn dispatch(self) -> Result<()> {
+        install_panic_hook();
+        let Cli { verbosity, command } = self;
+        match command {
+            Command::Serve => run_serve(verbosity),
+        }
+    }
+}
+
+fn main() -> Result<()> {
+    <Cli as SweCli>::run()
+}
+
+#[tokio::main(flavor = "multi_thread")]
+async fn run_serve(verbosity: VerbosityArgs) -> Result<()> {
+    let loaded = load_config()?;
+    apply_logging_filter(&verbosity.resolve(&loaded.app.logging.level));
+    env_logger::init();
+
+    log::info!("Config sources ({}):", loaded.sources.len());
+    for src in &loaded.sources {
+        log::info!("  - {}", src);
+    }
+
+    // No-model mode (issue #10): an empty `gguf_path` no longer hard-exits
+    // at startup. The daemon boots, registers the gRPC service, but every
+    // Embed call returns FailedPrecondition. Operators / orchestrators
+    // see "service up, model not loaded" through grpc.health.v1.Health
+    // rather than connection-refused. Loaded mode is the production path
+    // and stays unchanged.
+    let state = match resolve_model_path(&loaded.app) {
+        Some(gguf_path) => {
+            let embedding_state = load_gguf(&gguf_path)?;
+            let model_id = embedding_state.model_id.clone();
+            log::info!(
+                "embed: model loaded — '{}' from {}",
+                model_id,
+                gguf_path.display()
+            );
+            Some(Arc::new(embedding_state))
+        }
+        None => {
+            log::warn!(
+                "embed: no [embedding.model].gguf_path set — running in NO-MODEL mode. \
+                 EmbedService is reachable but every Embed RPC will return \
+                 FailedPrecondition until a model is configured + the daemon is \
+                 restarted. Set the path in your XDG overlay to switch to loaded mode."
+            );
+            None
+        }
+    };
+    let model_label = state
+        .as_ref()
+        .map(|s| s.model_id.clone())
+        .unwrap_or_else(|| "<no-model>".to_string());
+
+    let grpc = start_grpc_server(state, &loaded.app.embedding.grpc).await?;
+    log::info!("embed: serving '{}' on {} (gRPC)", model_label, grpc.addr);
+
+    // Block on the gRPC server task; SIGINT shuts down via the runtime.
+    match grpc.task.await {
+        Ok(serve_result) => serve_result,
+        Err(join_err) => bail!("gRPC server task join error: {join_err}"),
+    }
+}
+
+/// Returns `Some(path)` when a GGUF was configured, `None` for the
+/// no-model degraded boot path. Empty / whitespace-only / absent
+/// `gguf_path` values all map to `None` so operators don't get caught
+/// out by accidental whitespace.
+fn resolve_model_path(cfg: &AppConfig) -> Option<PathBuf> {
+    let path = cfg.embedding.model.gguf_path.trim();
+    if path.is_empty() {
+        None
+    } else {
+        Some(PathBuf::from(path))
+    }
+}

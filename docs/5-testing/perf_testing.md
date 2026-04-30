@@ -82,7 +82,7 @@ lto = "thin"
 
 ### Start the Daemon
 
-Edit `llmserv/main/config/application.toml` to select the model and port, or use an XDG override at `$XDG_CONFIG_HOME/llmserv/application.toml`:
+Edit `llminference/main/config/application.toml` to select the model and port, or use an XDG override at `$XDG_CONFIG_HOME/llminference/application.toml`:
 
 ```toml
 [server]

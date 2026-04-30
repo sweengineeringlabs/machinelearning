@@ -23,9 +23,9 @@ Use it for:
 The checklist is ordered roughly from "enforced by Rust/the ABI" to
 "documented caller discipline."
 
-Current applicable consumer: `llmserv/main/features/ffi/`
-(`llmserv.dll` / `libllmserv.so` / `libllmserv.dylib`). Each row cites
-how llmserv-ffi addresses it — use as a worked example.
+Current applicable consumer: `llminference/main/features/inference/ffi/`
+(`llminference.dll` / `libllminference.so` / `libllminference.dylib`). Each row cites
+how llminference-ffi addresses it — use as a worked example.
 
 ---
 
@@ -52,7 +52,7 @@ could become a runtime or structural guarantee.
 
 ### 1. Calling convention
 
-| # | Property | Enforcement | Verification | llmserv-ffi status |
+| # | Property | Enforcement | Verification | llminference-ffi status |
 |---|---|---|---|---|
 | 1.1 | Public functions declared `extern "C"` (or `unsafe extern "C"`) | Structural (won't compile) | grep for `pub fn` without `extern "C"` in `src/lib.rs` | Done |
 | 1.2 | Public functions marked `#[no_mangle]` so symbols match the header | Structural | grep for `extern "C"` without `#[no_mangle]` or `#[unsafe(no_mangle)]` | Done |
@@ -61,15 +61,15 @@ could become a runtime or structural guarantee.
 
 ### 2. Panic safety
 
-| # | Property | Enforcement | Verification | llmserv-ffi status |
+| # | Property | Enforcement | Verification | llminference-ffi status |
 |---|---|---|---|---|
 | 2.1 | No Rust panic unwinds across the FFI boundary (UB otherwise) | Runtime (`std::panic::catch_unwind` in every extern fn) | grep for `extern "C" fn` body without `catch_unwind`/`wrap()` | Done (every fn calls `wrap()`) |
-| 2.2 | Callbacks from caller can panic; library stays consistent | Runtime (`catch_unwind` around each callback invocation) | unit/smoke test that passes a panicking callback | Done (inside `llmserv_complete_stream`) |
+| 2.2 | Callbacks from caller can panic; library stays consistent | Runtime (`catch_unwind` around each callback invocation) | unit/smoke test that passes a panicking callback | Done (inside `llminference_complete_stream`) |
 | 2.3 | Caught panics become a defined error code, not silent success | Runtime | test: panic inside extern fn returns `LlmError::Panic` | Done (`LlmError::Panic = 4`) |
 
 ### 3. Null pointers and invalid strings
 
-| # | Property | Enforcement | Verification | llmserv-ffi status |
+| # | Property | Enforcement | Verification | llminference-ffi status |
 |---|---|---|---|---|
 | 3.1 | Every pointer argument checked for null before dereference | Runtime (null check → `InvalidInput`) | test: pass NULL, expect error not segfault | Done (via `cstr_to_str` + `.as_ref()`) |
 | 3.2 | C-string → Rust `&str` checks UTF-8 validity | Runtime | test: pass invalid UTF-8 bytes | Done (via `CStr::to_str`) |
@@ -77,7 +77,7 @@ could become a runtime or structural guarantee.
 
 ### 4. Memory ownership and allocator boundaries
 
-| # | Property | Enforcement | Verification | llmserv-ffi status |
+| # | Property | Enforcement | Verification | llminference-ffi status |
 |---|---|---|---|---|
 | 4.1 | Every heap allocation returned across FFI has a matching typed `free_*` function | Documentation + naming | spec: one `free_X` per allocation type | Done (`free_string`, `free_floats`, `free_u32s`) |
 | 4.2 | Rust allocates, Rust frees. Never mix with caller's `free()` / `PyMem_Free` / `delete` | Documentation | README "Memory ownership" section | Done |
@@ -88,7 +88,7 @@ could become a runtime or structural guarantee.
 
 ### 5. Handle lifecycle
 
-| # | Property | Enforcement | Verification | llmserv-ffi status |
+| # | Property | Enforcement | Verification | llminference-ffi status |
 |---|---|---|---|---|
 | 5.1 | `init` returns a fully-owned opaque handle; caller never sees fields | Structural (opaque struct declared in header, hidden body) | grep: handle body is private | Done |
 | 5.2 | `destroy` is idempotent (second call is a no-op) | Runtime (`guard.take()` after lock) | test: double-destroy doesn't crash | Done |
@@ -98,7 +98,7 @@ could become a runtime or structural guarantee.
 
 ### 6. Thread safety
 
-| # | Property | Enforcement | Verification | llmserv-ffi status |
+| # | Property | Enforcement | Verification | llminference-ffi status |
 |---|---|---|---|---|
 | 6.1 | All types behind the handle are `Send + Sync` (no interior mutability) | Structural (Rust trait bounds) | grep for `RefCell`/`Cell`/`UnsafeCell` in session types | Done (`Model: Send + Sync` bound) |
 | 6.2 | Concurrent read operations on the same handle produce consistent results | Runtime (`RwLock::read` + read-only types) | concurrent smoke test: N threads × M calls, check consistency | Done (4000 calls × 16 threads, 0 mismatches) |
@@ -107,7 +107,7 @@ could become a runtime or structural guarantee.
 
 ### 7. Error reporting
 
-| # | Property | Enforcement | Verification | llmserv-ffi status |
+| # | Property | Enforcement | Verification | llminference-ffi status |
 |---|---|---|---|---|
 | 7.1 | Every function returns an error code; zero = success | Structural (function signatures) | grep: every `extern fn` returns `c_int` / error enum | Done |
 | 7.2 | Error enum exposed in the header with named variants | Structural + cbindgen config | check header has the enum, not opaque `c_int` | Done (LlmError in header) |
@@ -116,25 +116,25 @@ could become a runtime or structural guarantee.
 
 ### 8. Callback safety (if any extern fn takes a function pointer)
 
-| # | Property | Enforcement | Verification | llmserv-ffi status |
+| # | Property | Enforcement | Verification | llminference-ffi status |
 |---|---|---|---|---|
 | 8.1 | Callback type declared as plain function pointer (not `Option<fn>`, which cbindgen mis-renders) | Structural | check `cbindgen`-generated header for plain `typedef` | Done (`LlmTokenCallback`) |
 | 8.2 | `user_data` pointer round-trips unchanged (opaque context) | Runtime | test: pass pointer, compare what callback receives | Done (verified `0x29d37484c98` round-trip) |
-| 8.3 | Callback panics caught, converted to "stop" signal, not propagated | Runtime (`catch_unwind` around the callback invocation) | test: panicking callback | Done (in `llmserv_complete_stream`) |
+| 8.3 | Callback panics caught, converted to "stop" signal, not propagated | Runtime (`catch_unwind` around the callback invocation) | test: panicking callback | Done (in `llminference_complete_stream`) |
 | 8.4 | Callback receives buffers with clearly-documented lifetimes | Documentation + runtime (buffer dropped after callback returns) | header comment on the typedef | Done |
 | 8.5 | Re-entrancy: caller may (or may not) call back into the library from the callback | Documentation | header comment on the typedef | Undocumented (default: UB) |
 
 ### 9. ABI stability
 
-| # | Property | Enforcement | Verification | llmserv-ffi status |
+| # | Property | Enforcement | Verification | llminference-ffi status |
 |---|---|---|---|---|
 | 9.1 | `#[repr(C)]` enums and structs frozen at 1.0 (pre-1.0: anything goes, document it) | Documentation | semver + README | pre-1.0 |
 | 9.2 | Soname bump on breaking ABI change | Build system | — | Not implemented (no soname versioning yet) |
-| 9.3 | Header versioning (major/minor defines) to let callers check at compile time | Documentation | `#define LLMSERV_VERSION_MAJOR ...` in header | Not implemented |
+| 9.3 | Header versioning (major/minor defines) to let callers check at compile time | Documentation | `#define LLMINFERENCE_VERSION_MAJOR ...` in header | Not implemented |
 
 ### 10. Documentation and examples
 
-| # | Property | Enforcement | Verification | llmserv-ffi status |
+| # | Property | Enforcement | Verification | llminference-ffi status |
 |---|---|---|---|---|
 | 10.1 | `README.md` in the crate describing scope, build, API surface, ownership | Documentation | review | Done |
 | 10.2 | Smoke test in at least one non-Rust language exercising every public fn | Runtime (green CI) | `pytest` / GitHub Actions | Done (Python: smoke, smoke_threads, smoke_destroy, smoke_stream) |
@@ -175,6 +175,6 @@ could become a runtime or structural guarantee.
 
 - Glossary entry "Semaphore", "RAII", "Coordinated omission" —
   `docs/3-design/glossary.md`
-- llmserv-ffi README and implementation —
-  `llmserv/main/features/ffi/README.md`
-- Backlog items T2.1–T2.7 — `llmserv/BACKLOG.md`
+- llminference-ffi README and implementation —
+  `llminference/main/features/inference/ffi/README.md`
+- Backlog items T2.1–T2.7 — `llminference/BACKLOG.md`

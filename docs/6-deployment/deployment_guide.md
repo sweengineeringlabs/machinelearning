@@ -217,7 +217,7 @@ RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/
 COPY --from=builder /app/target/release/swellmd /usr/local/bin/
 
 # application.toml is baked into the swellmd binary as the bundled
-# default. To override, mount an XDG config at /etc/config/llmserv/application.toml
+# default. To override, mount an XDG config at /etc/config/llminference/application.toml
 # and set XDG_CONFIG_HOME=/etc/config in the container.
 
 EXPOSE 8080
@@ -226,7 +226,7 @@ ENV XDG_CONFIG_HOME=/etc/config
 ENTRYPOINT ["swellmd"]
 ```
 
-An override TOML mounted at `/etc/config/llmserv/application.toml` might look like:
+An override TOML mounted at `/etc/config/llminference/application.toml` might look like:
 
 ```toml
 [server]
@@ -266,7 +266,7 @@ services:
     ports:
       - "8090:8080"
     volumes:
-      - ./config:/etc/config                 # contains llmserv/application.toml
+      - ./config:/etc/config                 # contains llminference/application.toml
       - ./models:/models
       - swellmd-cache:/root/.cache/rustml
     environment:

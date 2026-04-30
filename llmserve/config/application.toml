@@ -1,0 +1,7 @@
+# Application configuration.
+# Forces the feature to be runtime-configurable — add keys here
+# rather than hardcoding values in source.
+
+[application]
+name = ""
+version = "0.1.0"

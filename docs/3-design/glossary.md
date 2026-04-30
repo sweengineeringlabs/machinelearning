@@ -10,7 +10,7 @@ Keep this focused. Add terms when someone has to ask what one means, not preempt
 
 **Origin**: The name comes from railway signaling — a semaphore is a pivoting-arm signal used to indicate whether a section of track is clear. Edsger Dijkstra introduced it as a computer science concept in 1965 ("Cooperating Sequential Processes") to coordinate access to shared resources between concurrent processes. The two operations were originally named *P* (Dutch *passeren*, "to pass") and *V* (Dutch *vrijgeven*, "to release"). Modern APIs call them *acquire* and *release*.
 
-**In this codebase**: `core/throttle.rs` uses `tokio::sync::Semaphore` (an async-aware implementation) as the backing store for `SemaphoreThrottle`. Capacity is configured at `[throttle.semaphore].max_concurrent` in `llmserv/main/config/application.toml`. Request handlers call `try_acquire` (fail-fast variant) before `spawn_blocking`; failure returns HTTP 503 instead of queueing. See `llmserv/main/features/daemon/docs/3-design/architecture.md` for the full admission-control design.
+**In this codebase**: `core/throttle.rs` uses `tokio::sync::Semaphore` (an async-aware implementation) as the backing store for `SemaphoreThrottle`. Capacity is configured at `[throttle.semaphore].max_concurrent` in `llminference/main/config/application.toml`. Request handlers call `try_acquire` (fail-fast variant) before `spawn_blocking`; failure returns HTTP 503 instead of queueing. See `llminference/main/features/inference/systemd/docs/3-design/architecture.md` for the full admission-control design.
 
 Separately, `llmc load`'s open-loop mode uses a different semaphore to cap
 in-flight requests during rate-targeted load generation — see below on

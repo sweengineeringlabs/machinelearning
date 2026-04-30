@@ -1,0 +1,129 @@
+# LLM inference serving workspace.
+#
+# This workspace holds the inference-server stack: the inference compute
+# library (under main/features/inference/) plus serving frontends (daemon,
+# cli, embedding server, experimentation).
+#
+# Cross-workspace dependencies flow one way: llminference crates depend on
+# foundation crates in the root workspace (tensor, hub, activation,
+# normalization, architectures, training, embedding/conversion) via path.
+# The root workspace has a single tool-level backward arrow from
+# devtools/quantize into llminference, accepted because quantize is a tool.
+
+[workspace]
+resolver = "2"
+members = [
+    # Inference compute stack (library — reusable by any frontend).
+    "main/features/inference/generation",
+    "main/features/inference/prefill",
+    "main/features/inference/thread-config",
+    "main/features/inference/compute",
+    "main/features/inference/backend-api",
+    # Shared daemon infrastructure (XDG config overlay, logging, serve loop).
+    "main/features/systemd",
+    # Serving frontends (leaves — each removable without breaking the stack).
+    "main/features/inference/systemd",
+    "main/features/inference/cli",
+    # Foreign-function interface — cdylib for desktop/IDE integration.
+    "main/features/inference/ffi",
+    # Note: experimentation/llmforge has its own nested workspace; excluded below.
+]
+exclude = [
+    "main/features/experimentation/llmforge",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+authors = ["phdsystems <developer@phdsystems.com>"]
+repository = "https://github.com/sweengineeringlabs/machinelearning"
+
+[workspace.dependencies]
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+# Async
+tokio = { version = "1", features = ["full"] }
+# Error handling
+thiserror = "2"
+anyhow = "1"
+# CLI
+clap = { version = "4", features = ["derive"] }
+# Utilities
+rand = "0.8"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4"] }
+regex = "1"
+dirs = "6"
+# HTTP
+reqwest = { version = "0.12", features = ["json"] }
+futures-util = "0.3"
+# Testing
+approx = "0.5"
+# Logging
+log = "0.4"
+env_logger = "0.11"
+# Shared low-level crates
+bytemuck = { version = "1", features = ["extern_crate_alloc"] }
+half = { version = "2.3", features = ["bytemuck"] }
+rayon = "1.8"
+memmap2 = "0.9"
+crc32fast = "1.3"
+hf-hub = "0.4"
+smallvec = { version = "1.11", features = ["const_generics"] }
+safetensors = "0.3"
+tokenizers = "0.21"
+# Web server deps (daemon, embedding/server)
+axum = "0.7"
+tokio-stream = "0.1"
+# llama.cpp bindings — C++ toolchain + cmake required when actually
+# depended on. Consumers keep it behind a feature flag so pure-Rust
+# builds stay toolchain-free.
+llama-cpp-2 = "0.1.143"
+
+# ──────────────────────────────────────────────────────────────────────
+# Cross-workspace foundations (consumed from the root workspace via path).
+# These are not owned by llminference; llminference just uses them.
+# ──────────────────────────────────────────────────────────────────────
+swe-ml-tensor        = { path = "../main/features/tensor" }
+swe-ml-normalization = { path = "../main/features/normalization" }
+swe-ml-activation    = { path = "../main/features/activation" }
+swe-ml-embedding     = { path = "../justembed/conversion" }
+swe-cli              = { path = "../main/features/cli" }
+swe-ml-architectures = { path = "../main/features/architectures" }
+swe-ml-training      = { path = "../main/features/training" }
+
+# llmmodel workspace — download, io, weights.
+swe-llmmodel-download = { path = "../llmserve/llmmodel/download" }
+swe-llmmodel-io       = { path = "../llmserve/llmmodel/io" }
+swe-llmmodel-weights  = { path = "../llmserve/llmmodel/weights" }
+swe-llmmodel-kernel   = { path = "../llmserve/llmmodel/kernel" }
+swe-llmmodel-layers   = { path = "../llmserve/llmmodel/layers" }
+swe-llmmodel-gguf     = { path = "../llmserve/llmmodel/gguf" }
+swe-llmmodel-model    = { path = "../llmserve/llmmodel/model" }
+swe-llmmodel-tokenizer = { path = "../llmserve/llmmodel/tokenizer" }
+swe-llmmodel-quantizer = { path = "../llmserve/llmmodel/quantizer" }
+swe-llmmodel-arch-llama      = { path = "../llmserve/llmmodel/arch/llama" }
+swe-llmmodel-arch-gpt2       = { path = "../llmserve/llmmodel/arch/gpt2" }
+swe-llmmodel-arch-falcon     = { path = "../llmserve/llmmodel/arch/falcon" }
+swe-llmmodel-arch-mixtral    = { path = "../llmserve/llmmodel/arch/mixtral" }
+swe-llmmodel-arch-gemma3     = { path = "../llmserve/llmmodel/arch/gemma3" }
+swe-llmmodel-arch-gemma4     = { path = "../llmserve/llmmodel/arch/gemma4" }
+swe-llmmodel-arch-bert       = { path = "../llmserve/llmmodel/arch/bert" }
+swe-llmmodel-arch-nomic-bert = { path = "../llmserve/llmmodel/arch/nomic_bert" }
+swe-llmmodel-loader          = { path = "../llmserve/llmmodel/loader" }
+swe-llmserver-llamacpp = { path = "../llmserve/llamacpp" }
+
+# ──────────────────────────────────────────────────────────────────────
+# Inference library (internal to this workspace).
+# ──────────────────────────────────────────────────────────────────────
+swe-inference-generation       = { path = "main/features/inference/generation" }
+swe-inference-prefill          = { path = "main/features/inference/prefill" }
+swe-inference-thread-config    = { path = "main/features/inference/thread-config" }
+swe-inference-compute              = { path = "main/features/inference/compute" }
+swe-inference-backend-api              = { path = "main/features/inference/backend-api" }
+swe-systemd                    = { path = "main/features/systemd" }
+swe-embedding-systemd     = { path = "../justembed/systemd" }
+swe-inference-systemd                 = { path = "main/features/inference/systemd" }

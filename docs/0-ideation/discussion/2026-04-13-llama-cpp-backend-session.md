@@ -39,8 +39,8 @@ prompts):
   and SSE streaming
 - Context pool: `LlamaContext` reused across requests, KV cache
   reset via `clear_kv_cache_seq` on release
-- Multi-platform CI matrix (Linux/macOS/Windows × root/llmserv-
-  pure-rust/llmserv-llama-cpp = 9 jobs per push)
+- Multi-platform CI matrix (Linux/macOS/Windows × root/llminference-
+  pure-rust/llminference-llama-cpp = 9 jobs per push)
 - Cargo aliases: `cargo build-llama`, `cargo test-llama`,
   `cargo test-backend-llama`
 - Backend SPI: `llmbackend` crate with `Model` trait +
@@ -55,11 +55,11 @@ prompts):
 - `libclang.dll` for bindgen: installed via `scoop install llvm`
   (winget's LLVM package is slimmed and missing libclang; chocolatey
   failed with admin-perm issues; scoop is user-scope and worked).
-- Disk freed: ran `cargo clean` in both root + llmserv workspaces,
+- Disk freed: ran `cargo clean` in both root + llminference workspaces,
   reclaimed 29 GB.
 - MSVC `/MD` vs `/MT` CRT mismatch (LNK1319): set
   `CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL` + `CFLAGS=-MD` +
-  `CXXFLAGS=-MD`. Documented in `llmserv/.cargo/config.toml` (not
+  `CXXFLAGS=-MD`. Documented in `llminference/.cargo/config.toml` (not
   pinned in `[env]` because `-MD` breaks Linux/macOS compilers).
   CI Windows job sets these explicitly.
 
@@ -191,12 +191,12 @@ Cache locations (Windows-specific):
 - llama.cpp GGUFs: Ollama's cache at `~/.ollama/models/blobs/`
 - HF SafeTensors: `~/AppData/Local/rustml/hub/` (symlinks into
   `~/.cache/huggingface/hub/.../snapshots/<sha>/`)
-- Daemon config override: `~/AppData/Roaming/llmserv/application.toml`
+- Daemon config override: `~/AppData/Roaming/llminference/application.toml`
 - LLVM (libclang.dll): `~/scoop/apps/llvm/current/bin`
 - MSVC: `C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools`
 
 To resume work: read this file, then `git log c5e9bdd..HEAD --oneline`
-for the commit-by-commit history, then `llmserv/BACKLOG.md` P7.C and
+for the commit-by-commit history, then `llminference/BACKLOG.md` P7.C and
 P9 for the open work.
 
 ## Late-session update — P9 fixed, P10 found and fixed, content-correctness shipped
@@ -255,12 +255,12 @@ storage bytes regardless of logical layout, and points at
 
 ### Content-correctness infrastructure shipped
 
-`llmserv/main/features/daemon/main/tests/content_correctness.rs`:
+`llminference/main/features/inference/systemd/main/tests/content_correctness.rs`:
 three fixed prompts ("capital of France", "13 × 17", "largest
 country in South America"), each with a substring allowlist. Both
 backends tested with `complete_turn_stream` end-to-end through the
 same code path the daemon uses. Gated by `#[ignore]` + env vars
-(`LLMSERV_CC_HF_ID` / `LLMSERV_CC_GGUF`) so the suite runs in CI
+(`LLMINFERENCE_CC_HF_ID` / `LLMINFERENCE_CC_GGUF`) so the suite runs in CI
 only where a test model is available.
 
 Ran both locally in release mode against real models:
