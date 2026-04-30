@@ -1,0 +1,2235 @@
+openapi: 3.1.0
+
+info:
+  title: WeightScope API
+  version: 2.5.0
+  description: |
+    WeightScope is a REST API for AI model weight analysis, quantization,
+    tensor inspection, embedding queries, and quantization evaluation.
+
+    ## Core capabilities
+    - **Model management** — upload, register, and list model checkpoints
+    - **Weight analysis** — layer statistics, heatmaps, anomaly detection, sparsity
+    - **Quantization engine** — configure and run quantization with per-layer control
+    - **Tensor details** — inspect embeddings, attention heads, FFN, norms, positional encodings
+    - **Embedding query** — similarity search, vector arithmetic, analogies, 2D projection
+    - **Quantization evaluation** — perplexity benchmarks, task accuracy, speed/memory profiling
+
+    ## Authentication
+    All endpoints require a bearer token in the `Authorization` header.
+
+    ## Rate limits
+    - Free tier: 60 requests / minute
+    - Pro tier: 600 requests / minute
+    - Enterprise: unlimited
+
+  contact:
+    name: WeightScope Support
+    email: support@weightscope.ai
+    url: https://weightscope.ai/docs
+
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+
+servers:
+  - url: https://api.weightscope.ai/v2
+    description: Production
+  - url: https://staging-api.weightscope.ai/v2
+    description: Staging
+  - url: http://localhost:8080/v2
+    description: Local development
+
+tags:
+  - name: Models
+    description: Upload and manage model checkpoints
+  - name: Analysis
+    description: Weight distribution, heatmaps, anomaly detection
+  - name: Quantization
+    description: Configure, run, and export quantized models
+  - name: Tensors
+    description: Deep tensor inspection — embeddings, attention, FFN, norms
+  - name: Embeddings
+    description: Query the embedding space — similarity, arithmetic, analogies
+  - name: Evaluation
+    description: Benchmark quantization quality, speed, and memory
+
+# ─────────────────────────────────────────────
+# PATHS
+# ─────────────────────────────────────────────
+paths:
+
+  # ── MODELS ──────────────────────────────────
+
+  /models:
+    get:
+      operationId: listModels
+      tags: [Models]
+      summary: List registered models
+      description: Returns all models available in the current session or workspace.
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - name: type
+          in: query
+          description: Filter by architecture type
+          schema:
+            type: string
+            enum: [decoder, encoder, encoder-decoder, vision, multimodal]
+      responses:
+        '200':
+          description: Paginated list of models
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      operationId: registerModel
+      tags: [Models]
+      summary: Register a model from a URL or path
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModelRegisterRequest'
+      responses:
+        '201':
+          description: Model registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Model'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /models/upload:
+    post:
+      operationId: uploadModel
+      tags: [Models]
+      summary: Upload a model checkpoint file
+      description: |
+        Accepts `.pt`, `.pth`, `.bin`, `.safetensors`, and `.gguf` files.
+        Files up to 50 GB are supported via multipart upload.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Model checkpoint file
+                name:
+                  type: string
+                  description: Human-readable model name
+                dtype:
+                  type: string
+                  enum: [FP32, FP16, BF16, INT8, INT4]
+                  default: FP32
+                architecture:
+                  type: string
+                  description: Architecture hint (e.g. llama, gpt2, bert)
+      responses:
+        '202':
+          description: Upload accepted; model parsing in progress
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadJob'
+        '413':
+          description: File too large (max 50 GB)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /models/{modelId}:
+    get:
+      operationId: getModel
+      tags: [Models]
+      summary: Get model metadata
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+      responses:
+        '200':
+          description: Model metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Model'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      operationId: deleteModel
+      tags: [Models]
+      summary: Delete a registered model
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+      responses:
+        '204':
+          description: Model deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /models/{modelId}/status:
+    get:
+      operationId: getModelStatus
+      tags: [Models]
+      summary: Check parsing/loading status of an uploaded model
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+      responses:
+        '200':
+          description: Current model status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelStatus'
+
+  # ── ANALYSIS ────────────────────────────────
+
+  /models/{modelId}/analysis:
+    get:
+      operationId: getAnalysisSummary
+      tags: [Analysis]
+      summary: Full model weight analysis summary
+      description: Returns aggregated statistics across all layers.
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+      responses:
+        '200':
+          description: Analysis summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisSummary'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /models/{modelId}/analysis/layers:
+    get:
+      operationId: listLayerStats
+      tags: [Analysis]
+      summary: Per-layer weight statistics
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+        - name: layer_type
+          in: query
+          description: Filter by layer type
+          schema:
+            type: string
+            enum: [all, attention, ffn, norm, embedding, lm_head]
+            default: all
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: List of layer statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  layers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LayerStats'
+
+  /models/{modelId}/analysis/distribution:
+    get:
+      operationId: getWeightDistribution
+      tags: [Analysis]
+      summary: Weight value distribution (histogram)
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+        - name: layer
+          in: query
+          description: Specific layer name; omit for global distribution
+          schema:
+            type: string
+        - name: bins
+          in: query
+          description: Number of histogram bins
+          schema:
+            type: integer
+            minimum: 10
+            maximum: 500
+            default: 100
+      responses:
+        '200':
+          description: Weight distribution histogram
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeightDistribution'
+
+  /models/{modelId}/analysis/heatmap:
+    get:
+      operationId: getWeightHeatmap
+      tags: [Analysis]
+      summary: Layer weight magnitude heatmap
+      description: Returns a 2-D grid of weight magnitudes (layers × columns).
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+        - name: columns
+          in: query
+          schema:
+            type: integer
+            minimum: 4
+            maximum: 64
+            default: 20
+        - name: normalize
+          in: query
+          description: Normalize magnitudes to [0, 1]
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Heatmap data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HeatmapData'
+
+  /models/{modelId}/analysis/anomalies:
+    get:
+      operationId: detectAnomalies
+      tags: [Analysis]
+      summary: Detect weight anomalies
+      description: |
+        Identifies potential issues such as gradient explosion risk,
+        excessive sparsity, non-normal distributions, and memory pressure.
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+        - name: sigma_threshold
+          in: query
+          description: Standard deviation threshold for outlier detection
+          schema:
+            type: number
+            minimum: 1.0
+            maximum: 5.0
+            default: 2.0
+      responses:
+        '200':
+          description: List of detected anomalies
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  anomalies:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Anomaly'
+
+  # ── QUANTIZATION ────────────────────────────
+
+  /models/{modelId}/quantize:
+    post:
+      operationId: startQuantization
+      tags: [Quantization]
+      summary: Start a quantization job
+      description: |
+        Runs the full quantization pipeline:
+        load → calibrate → sensitivity analysis → quantize → verify → export.
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuantizationRequest'
+      responses:
+        '202':
+          description: Quantization job started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuantizationJob'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: A quantization job is already running for this model
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /models/{modelId}/quantize/{jobId}:
+    get:
+      operationId: getQuantizationJob
+      tags: [Quantization]
+      summary: Get quantization job status and results
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Job status and result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuantizationJob'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /models/{modelId}/quantize/{jobId}/cancel:
+    post:
+      operationId: cancelQuantizationJob
+      tags: [Quantization]
+      summary: Cancel a running quantization job
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Job cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuantizationJob'
+
+  /models/{modelId}/quantize/{jobId}/download:
+    get:
+      operationId: downloadQuantizedModel
+      tags: [Quantization]
+      summary: Download the quantized model checkpoint
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: format
+          in: query
+          description: Output checkpoint format
+          schema:
+            type: string
+            enum: [pytorch, safetensors, gguf]
+            default: safetensors
+      responses:
+        '200':
+          description: Quantized model binary
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '202':
+          description: Export still in progress; retry after indicated delay
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /models/{modelId}/quantize/formats:
+    get:
+      operationId: listQuantFormats
+      tags: [Quantization]
+      summary: List all supported quantization formats with projections
+      description: Returns size, compression, and quality estimates for every format.
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+      responses:
+        '200':
+          description: Format list with projections
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  formats:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/QuantFormat'
+
+  /models/{modelId}/quantize/sensitivity:
+    get:
+      operationId: getLayerSensitivity
+      tags: [Quantization]
+      summary: Per-layer quantization sensitivity analysis
+      description: |
+        Estimates how much each layer's output changes under a given
+        quantization scheme, using calibration data activation statistics.
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+        - name: target_format
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/QuantFormatEnum'
+        - name: calibration_samples
+          in: query
+          schema:
+            type: integer
+            minimum: 64
+            maximum: 4096
+            default: 512
+      responses:
+        '200':
+          description: Layer sensitivity scores
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  layers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LayerSensitivity'
+
+  # ── TENSORS ─────────────────────────────────
+
+  /models/{modelId}/tensors:
+    get:
+      operationId: listTensors
+      tags: [Tensors]
+      summary: List all tensors in the model
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [all, embed, attn, ffn, norm, pos, head]
+            default: all
+        - name: search
+          in: query
+          description: Filter by tensor name substring
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: Tensor inventory
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  tensors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TensorMeta'
+
+  /models/{modelId}/tensors/{tensorName}:
+    get:
+      operationId: getTensorDetail
+      tags: [Tensors]
+      summary: Detailed statistics for a single tensor
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+        - name: tensorName
+          in: path
+          required: true
+          description: Full tensor name (URL-encoded)
+          schema:
+            type: string
+            example: model.layers.0.self_attn.q_proj.weight
+      responses:
+        '200':
+          description: Tensor detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TensorDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /models/{modelId}/tensors/{tensorName}/values:
+    get:
+      operationId: getTensorSlice
+      tags: [Tensors]
+      summary: Read a slice of raw tensor values
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+        - name: tensorName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: rows
+          in: query
+          description: Row range as "start:end" (inclusive)
+          schema:
+            type: string
+            example: '0:31'
+        - name: cols
+          in: query
+          description: Column range as "start:end"
+          schema:
+            type: string
+            example: '0:63'
+      responses:
+        '200':
+          description: Tensor value slice
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TensorSlice'
+
+  /models/{modelId}/tensors/attention/{layerIndex}:
+    get:
+      operationId: getAttentionLayerTensors
+      tags: [Tensors]
+      summary: All attention tensors for a specific transformer layer
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+        - name: layerIndex
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        '200':
+          description: Attention layer tensors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttentionLayerTensors'
+
+  /models/{modelId}/tensors/embeddings:
+    get:
+      operationId: getEmbeddingTensorStats
+      tags: [Tensors]
+      summary: Token embedding tensor statistics
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+      responses:
+        '200':
+          description: Embedding tensor stats
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbeddingStats'
+
+  /models/{modelId}/tensors/positional:
+    get:
+      operationId: getPositionalEncodingTensors
+      tags: [Tensors]
+      summary: Positional encoding tensor details and RoPE frequency bands
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+      responses:
+        '200':
+          description: Positional encoding data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PositionalEncoding'
+
+  # ── EMBEDDINGS ──────────────────────────────
+
+  /models/{modelId}/embeddings/query:
+    post:
+      operationId: queryEmbeddings
+      tags: [Embeddings]
+      summary: Similarity search over the token embedding space
+      description: |
+        Returns the top-K nearest tokens to a query string measured by
+        cosine similarity, dot product, Euclidean, or Manhattan distance.
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmbeddingQueryRequest'
+      responses:
+        '200':
+          description: Nearest-neighbor results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbeddingQueryResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /models/{modelId}/embeddings/vector:
+    post:
+      operationId: getTokenVector
+      tags: [Embeddings]
+      summary: Retrieve the embedding vector for a token or phrase
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  type: string
+                  description: Token string (tokenized to first sub-token if multiple)
+                normalize:
+                  type: boolean
+                  default: true
+      responses:
+        '200':
+          description: Token vector
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenVector'
+
+  /models/{modelId}/embeddings/arithmetic:
+    post:
+      operationId: vectorArithmetic
+      tags: [Embeddings]
+      summary: Compute vector arithmetic and return nearest tokens
+      description: |
+        Supports expressions of the form `A + B`, `A - B`, or the classic
+        analogy form `king - man + woman`. Returns the nearest tokens to
+        the resulting vector.
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VectorArithmeticRequest'
+      responses:
+        '200':
+          description: Arithmetic result nearest neighbors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbeddingQueryResult'
+
+  /models/{modelId}/embeddings/analogy:
+    post:
+      operationId: solveAnalogy
+      tags: [Embeddings]
+      summary: Solve a word analogy (A is to B as C is to ?)
+      description: Uses the 3CosAdd method (b - a + c) to solve analogies.
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnalogyRequest'
+      responses:
+        '200':
+          description: Analogy solutions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbeddingQueryResult'
+
+  /models/{modelId}/embeddings/projection:
+    post:
+      operationId: projectEmbeddings
+      tags: [Embeddings]
+      summary: 2D projection of a token set
+      description: Returns 2D coordinates for visualising the embedding space.
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectionRequest'
+      responses:
+        '200':
+          description: 2D projection coordinates
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectionResult'
+
+  /models/{modelId}/embeddings/similarity:
+    post:
+      operationId: computeSimilarity
+      tags: [Embeddings]
+      summary: Pairwise similarity between a list of tokens
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tokens]
+              properties:
+                tokens:
+                  type: array
+                  items:
+                    type: string
+                  minItems: 2
+                  maxItems: 100
+                metric:
+                  $ref: '#/components/schemas/SimilarityMetricEnum'
+      responses:
+        '200':
+          description: Similarity matrix
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimilarityMatrix'
+
+  # ── EVALUATION ──────────────────────────────
+
+  /models/{modelId}/eval:
+    post:
+      operationId: startEvaluation
+      tags: [Evaluation]
+      summary: Start a quantization evaluation job
+      description: |
+        Runs benchmarks across one or more quantization formats.
+        Evaluates perplexity, task accuracy, speed, and memory usage.
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvalRequest'
+      responses:
+        '202':
+          description: Evaluation job started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvalJob'
+
+  /models/{modelId}/eval/{evalId}:
+    get:
+      operationId: getEvalJob
+      tags: [Evaluation]
+      summary: Get evaluation job status and results
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+        - name: evalId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Evaluation job and results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvalJob'
+
+  /models/{modelId}/eval/{evalId}/perplexity:
+    get:
+      operationId: getPerplexityResults
+      tags: [Evaluation]
+      summary: Perplexity benchmark results per format and dataset
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+        - name: evalId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Perplexity results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerplexityResults'
+
+  /models/{modelId}/eval/{evalId}/tasks:
+    get:
+      operationId: getTaskAccuracyResults
+      tags: [Evaluation]
+      summary: Task accuracy benchmark results per format
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+        - name: evalId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Task accuracy results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskAccuracyResults'
+
+  /models/{modelId}/eval/{evalId}/layer-error:
+    get:
+      operationId: getLayerErrorResults
+      tags: [Evaluation]
+      summary: Per-layer quantization error (MSE) per format
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+        - name: evalId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Layer error results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LayerErrorResults'
+
+  /models/{modelId}/eval/{evalId}/speed:
+    get:
+      operationId: getSpeedResults
+      tags: [Evaluation]
+      summary: Inference speed and memory benchmark results per format
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+        - name: evalId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Speed and memory results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpeedResults'
+
+  /models/{modelId}/eval/{evalId}/leaderboard:
+    get:
+      operationId: getLeaderboard
+      tags: [Evaluation]
+      summary: Composite leaderboard ranking all evaluated formats
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+        - name: evalId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: weights
+          in: query
+          description: |
+            Comma-separated metric weights as `ppl:0.3,accuracy:0.25,speed:0.25,size:0.2`
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Leaderboard
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Leaderboard'
+
+  /models/{modelId}/eval/{evalId}/report:
+    get:
+      operationId: downloadEvalReport
+      tags: [Evaluation]
+      summary: Download a full evaluation report
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+        - name: evalId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [json, csv, pdf]
+            default: json
+      responses:
+        '200':
+          description: Report file
+          content:
+            application/json:
+              schema:
+                type: object
+            text/csv:
+              schema:
+                type: string
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+
+# ─────────────────────────────────────────────
+# COMPONENTS
+# ─────────────────────────────────────────────
+components:
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  # ── PARAMETERS ──────────────────────────────
+  parameters:
+    ModelId:
+      name: modelId
+      in: path
+      required: true
+      description: Unique model identifier
+      schema:
+        type: string
+        format: uuid
+        example: 7f3a1d2e-8b4c-4f6e-9a0d-3c2e1f5b8d9a
+
+    Limit:
+      name: limit
+      in: query
+      description: Maximum number of items to return
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 500
+        default: 50
+
+    Offset:
+      name: offset
+      in: query
+      description: Number of items to skip
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+
+  # ── RESPONSES ───────────────────────────────
+  responses:
+    Unauthorized:
+      description: Missing or invalid authentication token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: 401
+            error: unauthorized
+            message: "Bearer token is missing or expired"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: 404
+            error: not_found
+            message: "Model not found"
+
+    BadRequest:
+      description: Invalid request parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  # ── SCHEMAS ─────────────────────────────────
+  schemas:
+
+    # ── Enums ──
+    QuantFormatEnum:
+      type: string
+      enum: [FP32, FP16, BF16, INT8, INT4, NF4, GPTQ-4, AWQ-4, BnB-4]
+      description: Quantization format identifier
+
+    SimilarityMetricEnum:
+      type: string
+      enum: [cosine, dot, euclidean, manhattan]
+      default: cosine
+
+    ProjectionMethodEnum:
+      type: string
+      enum: [tsne, pca, umap]
+      default: tsne
+
+    ModelArchitectureEnum:
+      type: string
+      enum: [decoder, encoder, encoder-decoder, vision, multimodal]
+
+    # ── Core model types ──
+    Model:
+      type: object
+      required: [id, name, params, layers, dtype, size_mb, architecture, status, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: "GPT-2 Small"
+        params:
+          type: integer
+          description: Total parameter count
+          example: 117000000
+        layers:
+          type: integer
+          example: 12
+        dtype:
+          $ref: '#/components/schemas/QuantFormatEnum'
+        size_mb:
+          type: number
+          format: float
+          description: On-disk size in MB
+          example: 448.0
+        architecture:
+          $ref: '#/components/schemas/ModelArchitectureEnum'
+        vocab_size:
+          type: integer
+          example: 50257
+        hidden_dim:
+          type: integer
+          example: 768
+        num_heads:
+          type: integer
+          example: 12
+        max_seq_len:
+          type: integer
+          example: 1024
+        status:
+          type: string
+          enum: [uploading, parsing, ready, error]
+        created_at:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Arbitrary model metadata (source, training info, etc.)
+
+    ModelList:
+      type: object
+      properties:
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+        models:
+          type: array
+          items:
+            $ref: '#/components/schemas/Model'
+
+    ModelStatus:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [uploading, parsing, ready, error]
+        progress:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Fractional progress 0–1
+        message:
+          type: string
+        error:
+          type: string
+          nullable: true
+
+    ModelRegisterRequest:
+      type: object
+      required: [source_url]
+      properties:
+        source_url:
+          type: string
+          format: uri
+          description: Public URL of the model checkpoint
+        name:
+          type: string
+        dtype:
+          $ref: '#/components/schemas/QuantFormatEnum'
+        architecture:
+          $ref: '#/components/schemas/ModelArchitectureEnum'
+
+    UploadJob:
+      type: object
+      properties:
+        job_id:
+          type: string
+          format: uuid
+        model_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [uploading, parsing, ready, error]
+        upload_progress:
+          type: number
+          format: float
+
+    # ── Analysis ──
+    AnalysisSummary:
+      type: object
+      properties:
+        model_id:
+          type: string
+          format: uuid
+        total_parameters:
+          type: integer
+        total_tensors:
+          type: integer
+        global_mean:
+          type: number
+          format: float
+        global_std:
+          type: number
+          format: float
+        global_sparsity_pct:
+          type: number
+          format: float
+        kurtosis:
+          type: number
+          format: float
+        anomaly_count:
+          type: integer
+        size_fp32_mb:
+          type: number
+          format: float
+        layer_count_by_type:
+          type: object
+          properties:
+            attention:
+              type: integer
+            ffn:
+              type: integer
+            norm:
+              type: integer
+            embedding:
+              type: integer
+            lm_head:
+              type: integer
+
+    LayerStats:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "model.layers.0.self_attn.q_proj"
+        type:
+          type: string
+          enum: [attention, ffn, norm, embedding, lm_head, other]
+        params:
+          type: integer
+        shape:
+          type: array
+          items:
+            type: integer
+          example: [768, 768]
+        mean:
+          type: number
+          format: float
+        std:
+          type: number
+          format: float
+        min:
+          type: number
+          format: float
+        max:
+          type: number
+          format: float
+        l2_norm:
+          type: number
+          format: float
+        sparsity_pct:
+          type: number
+          format: float
+        sensitivity:
+          type: string
+          enum: [low, medium, high]
+        kurtosis:
+          type: number
+          format: float
+
+    WeightDistribution:
+      type: object
+      properties:
+        bins:
+          type: array
+          items:
+            type: number
+          description: Bin edge values
+        counts:
+          type: array
+          items:
+            type: integer
+          description: Count per bin
+        mean:
+          type: number
+          format: float
+        std:
+          type: number
+          format: float
+        kurtosis:
+          type: number
+          format: float
+        skewness:
+          type: number
+          format: float
+
+    HeatmapData:
+      type: object
+      properties:
+        rows:
+          type: integer
+          description: Number of layers
+        cols:
+          type: integer
+        layer_names:
+          type: array
+          items:
+            type: string
+        values:
+          type: array
+          description: Row-major flat array of magnitude values
+          items:
+            type: number
+            format: float
+        min_value:
+          type: number
+          format: float
+        max_value:
+          type: number
+          format: float
+
+    Anomaly:
+      type: object
+      properties:
+        severity:
+          type: string
+          enum: [warning, critical]
+        type:
+          type: string
+          enum: [gradient_explosion, high_sparsity, non_normal, memory_pressure, dead_neurons, outlier_weights]
+        layer:
+          type: string
+        value:
+          type: string
+          description: Observed metric value
+        description:
+          type: string
+        recommendation:
+          type: string
+
+    # ── Quantization ──
+    QuantizationRequest:
+      type: object
+      required: [target_format]
+      properties:
+        target_format:
+          $ref: '#/components/schemas/QuantFormatEnum'
+        calibration_dataset:
+          type: string
+          enum: [c4, wikitext2, ptb, pile, custom]
+          default: c4
+        calibration_samples:
+          type: integer
+          minimum: 64
+          maximum: 4096
+          default: 1024
+        group_size:
+          type: integer
+          enum: [32, 64, 128, -1]
+          default: 64
+          description: "-1 means per-tensor quantization"
+        block_size:
+          type: integer
+          enum: [128, 256, 512, 1024]
+          default: 256
+        zero_point_mode:
+          type: string
+          enum: [symmetric, asymmetric]
+          default: symmetric
+        merge_linear_dequant:
+          type: boolean
+          default: true
+        pack_weights:
+          type: boolean
+          default: true
+        per_layer_overrides:
+          type: array
+          description: Override format for specific layers
+          items:
+            $ref: '#/components/schemas/LayerFormatOverride'
+
+    LayerFormatOverride:
+      type: object
+      required: [layer_name, format]
+      properties:
+        layer_name:
+          type: string
+          example: "model.layers.11.self_attn.q_proj"
+        format:
+          oneOf:
+            - $ref: '#/components/schemas/QuantFormatEnum'
+            - type: string
+              enum: [SKIP]
+          description: Quantization format or SKIP to leave in original dtype
+
+    QuantizationJob:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        model_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [queued, loading, calibrating, analyzing, quantizing, verifying, exporting, done, failed, cancelled]
+        current_step:
+          type: string
+        progress:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        target_format:
+          $ref: '#/components/schemas/QuantFormatEnum'
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        result:
+          $ref: '#/components/schemas/QuantizationResult'
+          nullable: true
+        error:
+          type: string
+          nullable: true
+        logs:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogEntry'
+
+    QuantizationResult:
+      type: object
+      properties:
+        original_size_mb:
+          type: number
+          format: float
+        quantized_size_mb:
+          type: number
+          format: float
+        compression_ratio:
+          type: number
+          format: float
+        ppl_delta:
+          type: number
+          format: float
+        quality_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+        download_url:
+          type: string
+          format: uri
+        expires_at:
+          type: string
+          format: date-time
+
+    QuantFormat:
+      type: object
+      properties:
+        name:
+          $ref: '#/components/schemas/QuantFormatEnum'
+        bits:
+          type: integer
+        compression_ratio:
+          type: number
+          format: float
+        estimated_size_mb:
+          type: number
+          format: float
+        estimated_ppl_delta:
+          type: number
+          format: float
+        quality_score:
+          type: number
+          format: float
+        recommended_use:
+          type: string
+
+    LayerSensitivity:
+      type: object
+      properties:
+        layer_name:
+          type: string
+        sensitivity_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        recommended_format:
+          $ref: '#/components/schemas/QuantFormatEnum'
+        estimated_mse:
+          type: number
+          format: float
+        protected:
+          type: boolean
+          description: True if sensitivity is too high for the target format
+
+    LogEntry:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        level:
+          type: string
+          enum: [info, ok, warn, error]
+        message:
+          type: string
+
+    # ── Tensors ──
+    TensorMeta:
+      type: object
+      properties:
+        name:
+          type: string
+        shape:
+          type: array
+          items:
+            type: integer
+        rank:
+          type: integer
+        num_elements:
+          type: integer
+        size_mb:
+          type: number
+          format: float
+        dtype:
+          type: string
+        category:
+          type: string
+          enum: [embed, attn, ffn, norm, pos, head, other]
+        requires_grad:
+          type: boolean
+        is_contiguous:
+          type: boolean
+
+    TensorDetail:
+      allOf:
+        - $ref: '#/components/schemas/TensorMeta'
+        - type: object
+          properties:
+            mean:
+              type: number
+              format: float
+            std:
+              type: number
+              format: float
+            min:
+              type: number
+              format: float
+            max:
+              type: number
+              format: float
+            l2_norm:
+              type: number
+              format: float
+            frobenius_norm:
+              type: number
+              format: float
+            sparsity_pct:
+              type: number
+              format: float
+            kurtosis:
+              type: number
+              format: float
+            skewness:
+              type: number
+              format: float
+            spectral_norm:
+              type: number
+              format: float
+              nullable: true
+            stable_rank:
+              type: integer
+              nullable: true
+            top_singular_values:
+              type: array
+              items:
+                type: number
+                format: float
+              nullable: true
+              maxItems: 64
+
+    TensorSlice:
+      type: object
+      properties:
+        tensor_name:
+          type: string
+        row_range:
+          type: string
+        col_range:
+          type: string
+        shape:
+          type: array
+          items:
+            type: integer
+        values:
+          type: array
+          description: Row-major flat array of values
+          items:
+            type: number
+            format: float
+
+    AttentionLayerTensors:
+      type: object
+      properties:
+        layer_index:
+          type: integer
+        num_heads:
+          type: integer
+        head_dim:
+          type: integer
+        q_proj:
+          $ref: '#/components/schemas/TensorDetail'
+        k_proj:
+          $ref: '#/components/schemas/TensorDetail'
+        v_proj:
+          $ref: '#/components/schemas/TensorDetail'
+        o_proj:
+          $ref: '#/components/schemas/TensorDetail'
+        head_norms:
+          type: array
+          items:
+            type: number
+            format: float
+          description: L2 norm per attention head
+
+    EmbeddingStats:
+      type: object
+      properties:
+        shape:
+          type: array
+          items:
+            type: integer
+          example: [50257, 768]
+        vocab_size:
+          type: integer
+        embedding_dim:
+          type: integer
+        mean:
+          type: number
+          format: float
+        std:
+          type: number
+          format: float
+        avg_l2_norm:
+          type: number
+          format: float
+        sparsity_pct:
+          type: number
+          format: float
+        dtype:
+          type: string
+        dimension_variance:
+          type: array
+          items:
+            type: number
+            format: float
+          description: Variance per embedding dimension (first 64)
+        top_norm_tokens:
+          type: array
+          items:
+            type: object
+            properties:
+              token:
+                type: string
+              norm:
+                type: number
+                format: float
+
+    PositionalEncoding:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [absolute, rope, alibi, learned, sinusoidal]
+        max_seq_len:
+          type: integer
+        rope_base_theta:
+          type: number
+          format: float
+          nullable: true
+        head_dim:
+          type: integer
+        frequency_bands:
+          type: array
+          items:
+            type: number
+            format: float
+          description: RoPE frequency per dimension pair
+
+    # ── Embeddings ──
+    EmbeddingQueryRequest:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+          description: Token or short phrase to query
+          example: "king"
+        top_k:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 10
+        metric:
+          $ref: '#/components/schemas/SimilarityMetricEnum'
+        exclude:
+          type: array
+          items:
+            type: string
+          description: Tokens to exclude from results
+
+    EmbeddingQueryResult:
+      type: object
+      properties:
+        query:
+          type: string
+        metric:
+          $ref: '#/components/schemas/SimilarityMetricEnum'
+        elapsed_ms:
+          type: number
+          format: float
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SimilarityResult'
+
+    SimilarityResult:
+      type: object
+      properties:
+        rank:
+          type: integer
+        token:
+          type: string
+        score:
+          type: number
+          format: float
+        token_id:
+          type: integer
+
+    TokenVector:
+      type: object
+      properties:
+        token:
+          type: string
+        token_id:
+          type: integer
+        vector:
+          type: array
+          items:
+            type: number
+            format: float
+        dim:
+          type: integer
+        l2_norm:
+          type: number
+          format: float
+        mean:
+          type: number
+          format: float
+        top_dimensions:
+          type: array
+          items:
+            type: object
+            properties:
+              dim_index:
+                type: integer
+              value:
+                type: number
+                format: float
+
+    VectorArithmeticRequest:
+      type: object
+      required: [operands]
+      properties:
+        operands:
+          type: array
+          description: List of tokens with signs (+1 or -1)
+          minItems: 2
+          maxItems: 10
+          items:
+            type: object
+            required: [token, sign]
+            properties:
+              token:
+                type: string
+              sign:
+                type: integer
+                enum: [1, -1]
+        top_k:
+          type: integer
+          default: 10
+        metric:
+          $ref: '#/components/schemas/SimilarityMetricEnum'
+        exclude_operands:
+          type: boolean
+          default: true
+
+    AnalogyRequest:
+      type: object
+      required: [a, b, c]
+      properties:
+        a:
+          type: string
+          description: Source word (e.g. "king")
+        b:
+          type: string
+          description: Source relation word (e.g. "man")
+        c:
+          type: string
+          description: Target word (e.g. "woman")
+        top_k:
+          type: integer
+          default: 10
+        metric:
+          $ref: '#/components/schemas/SimilarityMetricEnum'
+
+    ProjectionRequest:
+      type: object
+      properties:
+        tokens:
+          type: array
+          items:
+            type: string
+          minItems: 2
+          maxItems: 500
+          description: Tokens to project; omit to use a default vocabulary sample
+        method:
+          $ref: '#/components/schemas/ProjectionMethodEnum'
+        perplexity:
+          type: number
+          format: float
+          description: t-SNE perplexity (ignored for PCA/UMAP)
+          default: 30.0
+        n_components:
+          type: integer
+          enum: [2, 3]
+          default: 2
+
+    ProjectionResult:
+      type: object
+      properties:
+        method:
+          $ref: '#/components/schemas/ProjectionMethodEnum'
+        dimensions:
+          type: integer
+        points:
+          type: array
+          items:
+            type: object
+            properties:
+              token:
+                type: string
+              token_id:
+                type: integer
+              x:
+                type: number
+                format: float
+              y:
+                type: number
+                format: float
+              z:
+                type: number
+                format: float
+                nullable: true
+              cluster:
+                type: string
+                nullable: true
+
+    SimilarityMatrix:
+      type: object
+      properties:
+        tokens:
+          type: array
+          items:
+            type: string
+        metric:
+          $ref: '#/components/schemas/SimilarityMetricEnum'
+        matrix:
+          type: array
+          description: Row-major N×N similarity matrix
+          items:
+            type: array
+            items:
+              type: number
+              format: float
+
+    # ── Evaluation ──
+    EvalRequest:
+      type: object
+      required: [formats]
+      properties:
+        formats:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuantFormatEnum'
+          minItems: 1
+          maxItems: 9
+        benchmarks:
+          type: object
+          properties:
+            perplexity:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                  default: true
+                datasets:
+                  type: array
+                  items:
+                    type: string
+                    enum: [wikitext2, c4, ptb, lambada, pile]
+                  default: [wikitext2, c4]
+            tasks:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                  default: true
+                tasks:
+                  type: array
+                  items:
+                    type: string
+                    enum: [hellaswag, arc, mmlu, truthfulqa, gsm8k, winogrande]
+                  default: [hellaswag, arc, mmlu]
+            speed:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                  default: true
+                batch_sizes:
+                  type: array
+                  items:
+                    type: integer
+                  default: [1, 8]
+                prompt_length:
+                  type: integer
+                  default: 128
+                generation_length:
+                  type: integer
+                  default: 128
+            layer_error:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                  default: true
+        ppl_threshold:
+          type: number
+          format: float
+          description: Maximum acceptable PPL delta for a format to pass
+          default: 5.0
+        metric_weights:
+          type: object
+          description: Weights for composite leaderboard score (must sum to 1.0)
+          properties:
+            ppl:
+              type: number
+              format: float
+              default: 0.30
+            accuracy:
+              type: number
+              format: float
+              default: 0.25
+            speed:
+              type: number
+              format: float
+              default: 0.25
+            size:
+              type: number
+              format: float
+              default: 0.20
+
+    EvalJob:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        model_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [queued, running, done, failed]
+        formats:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuantFormatEnum'
+        progress:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        current_format:
+          type: string
+          nullable: true
+        current_benchmark:
+          type: string
+          nullable: true
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    PerplexityResults:
+      type: object
+      properties:
+        baseline_fp32:
+          type: object
+          additionalProperties:
+            type: number
+            format: float
+          description: FP32 baseline PPL per dataset
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              format:
+                $ref: '#/components/schemas/QuantFormatEnum'
+              datasets:
+                type: object
+                additionalProperties:
+                  type: number
+                  format: float
+                description: PPL per dataset name
+              avg_ppl:
+                type: number
+                format: float
+              avg_delta:
+                type: number
+                format: float
+              pass:
+                type: boolean
+
+    TaskAccuracyResults:
+      type: object
+      properties:
+        baseline_fp32:
+          type: object
+          additionalProperties:
+            type: number
+            format: float
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              format:
+                $ref: '#/components/schemas/QuantFormatEnum'
+              tasks:
+                type: object
+                additionalProperties:
+                  type: number
+                  format: float
+                description: Accuracy % per task name
+              avg_accuracy:
+                type: number
+                format: float
+              avg_delta_pp:
+                type: number
+                format: float
+
+    LayerErrorResults:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              format:
+                $ref: '#/components/schemas/QuantFormatEnum'
+              layers:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    layer_name:
+                      type: string
+                    layer_type:
+                      type: string
+                    mse:
+                      type: number
+                      format: float
+                    max_abs_error:
+                      type: number
+                      format: float
+
+    SpeedResults:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              format:
+                $ref: '#/components/schemas/QuantFormatEnum'
+              model_size_gb:
+                type: number
+                format: float
+              vram_gb:
+                type: number
+                format: float
+              load_time_s:
+                type: number
+                format: float
+              tokens_per_sec:
+                type: object
+                additionalProperties:
+                  type: integer
+                description: Throughput keyed by batch size (e.g. "1", "8")
+              latency_p50_ms:
+                type: number
+                format: float
+              latency_p99_ms:
+                type: number
+                format: float
+              gpu_utilization_pct:
+                type: number
+                format: float
+
+    Leaderboard:
+      type: object
+      properties:
+        metric_weights:
+          type: object
+          properties:
+            ppl:
+              type: number
+              format: float
+            accuracy:
+              type: number
+              format: float
+            speed:
+              type: number
+              format: float
+            size:
+              type: number
+              format: float
+        rankings:
+          type: array
+          items:
+            type: object
+            properties:
+              rank:
+                type: integer
+              format:
+                $ref: '#/components/schemas/QuantFormatEnum'
+              composite_score:
+                type: number
+                format: float
+              component_scores:
+                type: object
+                properties:
+                  ppl_score:
+                    type: number
+                    format: float
+                  accuracy_score:
+                    type: number
+                    format: float
+                  speed_score:
+                    type: number
+                    format: float
+                  size_score:
+                    type: number
+                    format: float
+              recommendation:
+                type: string
+                nullable: true
+                description: Use-case recommendation (e.g. "Best for edge deployment")
+
+    # ── Shared ──
+    Error:
+      type: object
+      required: [code, error, message]
+      properties:
+        code:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+          nullable: true
+
+# ─────────────────────────────────────────────
+# SECURITY (global)
+# ─────────────────────────────────────────────
+security:
+  - BearerAuth: []
