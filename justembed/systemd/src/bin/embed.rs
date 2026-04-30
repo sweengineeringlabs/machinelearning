@@ -95,14 +95,40 @@ async fn run_serve(verbosity: VerbosityArgs) -> Result<()> {
         log::info!("  - {}", src);
     }
 
-    let gguf_path = resolve_model_path(&loaded.app)?;
-    let embedding_state = load_gguf(&gguf_path)?;
-    let model_id = embedding_state.model_id.clone();
+    // No-model mode (issue #10): an empty `gguf_path` no longer hard-exits
+    // at startup. The daemon boots, registers the gRPC service, but every
+    // Embed call returns FailedPrecondition. Operators / orchestrators
+    // see "service up, model not loaded" through grpc.health.v1.Health
+    // rather than connection-refused. Loaded mode is the production path
+    // and stays unchanged.
+    let state = match resolve_model_path(&loaded.app) {
+        Some(gguf_path) => {
+            let embedding_state = load_gguf(&gguf_path)?;
+            let model_id = embedding_state.model_id.clone();
+            log::info!(
+                "embed: model loaded — '{}' from {}",
+                model_id,
+                gguf_path.display()
+            );
+            Some(Arc::new(embedding_state))
+        }
+        None => {
+            log::warn!(
+                "embed: no [embedding.model].gguf_path set — running in NO-MODEL mode. \
+                 EmbedService is reachable but every Embed RPC will return \
+                 FailedPrecondition until a model is configured + the daemon is \
+                 restarted. Set the path in your XDG overlay to switch to loaded mode."
+            );
+            None
+        }
+    };
+    let model_label = state
+        .as_ref()
+        .map(|s| s.model_id.clone())
+        .unwrap_or_else(|| "<no-model>".to_string());
 
-    let state = Arc::new(embedding_state);
-
-    let grpc = start_grpc_server(Arc::clone(&state), &loaded.app.embedding.grpc).await?;
-    log::info!("embed: serving '{}' on {} (gRPC)", model_id, grpc.addr);
+    let grpc = start_grpc_server(state, &loaded.app.embedding.grpc).await?;
+    log::info!("embed: serving '{}' on {} (gRPC)", model_label, grpc.addr);
 
     // Block on the gRPC server task; SIGINT shuts down via the runtime.
     match grpc.task.await {
@@ -111,13 +137,15 @@ async fn run_serve(verbosity: VerbosityArgs) -> Result<()> {
     }
 }
 
-fn resolve_model_path(cfg: &AppConfig) -> Result<PathBuf> {
-    let path = &cfg.embedding.model.gguf_path;
+/// Returns `Some(path)` when a GGUF was configured, `None` for the
+/// no-model degraded boot path. Empty / whitespace-only / absent
+/// `gguf_path` values all map to `None` so operators don't get caught
+/// out by accidental whitespace.
+fn resolve_model_path(cfg: &AppConfig) -> Option<PathBuf> {
+    let path = cfg.embedding.model.gguf_path.trim();
     if path.is_empty() {
-        bail!(
-            "[embedding.model].gguf_path is not set. Edit application.toml or provide \
-             an XDG override with the path to your embedding GGUF file."
-        );
+        None
+    } else {
+        Some(PathBuf::from(path))
     }
-    Ok(PathBuf::from(path))
 }

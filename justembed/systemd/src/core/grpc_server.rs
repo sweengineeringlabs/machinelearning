@@ -106,7 +106,7 @@ fn encode_embed_response(resp: &EmbedResponse) -> Vec<u8> {
 /// is wired up returns a startup error rather than appearing to enforce
 /// auth that doesn't exist.
 pub async fn start_grpc_server(
-    state: Arc<EmbeddingState>,
+    state: Option<Arc<EmbeddingState>>,
     cfg:   &EmbeddingGrpcConfig,
 ) -> Result<EmbedGrpcServer> {
     if !cfg.allow_unauthenticated {
@@ -121,10 +121,15 @@ pub async fn start_grpc_server(
     // handler through the upstream `GrpcHandlerAdapter`.  The adapter
     // forwards the inner handler's `id()` (the gRPC method path) to the
     // registry, so the dispatcher routes by URI path automatically.
+    //
+    // `state = None` runs the daemon in no-model mode: the service is
+    // reachable, Embed calls return FailedPrecondition, health reports
+    // not-serving. See `EmbedHandler` doc.
+    let no_model = state.is_none();
     let registry: Arc<HandlerRegistry<Vec<u8>, Vec<u8>>> =
         Arc::new(HandlerRegistry::new());
     let embed_handler: Arc<dyn edge_domain::Handler<EmbedRequest, EmbedResponse>> =
-        Arc::new(EmbedHandler::new(Arc::clone(&state)));
+        Arc::new(EmbedHandler::new(state));
     let adapter = GrpcHandlerAdapter::new(
         embed_handler,
         decode_embed_request,
@@ -135,12 +140,22 @@ pub async fn start_grpc_server(
     let dispatcher: Arc<HandlerRegistryDispatcher> =
         Arc::new(HandlerRegistryDispatcher::new(Arc::clone(&registry)));
 
-    // Health service — overall + per-service slot.  Both start SERVING
-    // because the model is fully loaded before we reach this code path
-    // (`load_gguf` returns the populated state synchronously).
+    // Health service — overall + per-service slot.  Initial status
+    // depends on whether a model is loaded:
+    //   * loaded   → SERVING (model is fully loaded synchronously
+    //                via `load_gguf` before we reach this code path)
+    //   * no-model → NOT_SERVING (Embed RPCs will fail-fast with
+    //                FailedPrecondition; operators see the degraded
+    //                state through grpc.health.v1.Health/Check)
+    // The refresh task below picks up handler-level health changes.
+    let initial_status = if no_model {
+        ServingStatus::NotServing
+    } else {
+        ServingStatus::Serving
+    };
     let health = Arc::new(HealthService::new());
-    health.set_overall_status(ServingStatus::Serving);
-    health.set_status(EMBED_HEALTH_SERVICE_NAME, ServingStatus::Serving);
+    health.set_overall_status(initial_status);
+    health.set_status(EMBED_HEALTH_SERVICE_NAME, initial_status);
 
     // Wire the router that fans out by method-path prefix.
     let router = Arc::new(MethodPathRouter::new(

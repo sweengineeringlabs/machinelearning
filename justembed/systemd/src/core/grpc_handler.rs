@@ -16,13 +16,24 @@ use crate::core::state::EmbeddingState;
 
 /// Domain handler bridging proto-typed [`EmbedRequest`] / [`EmbedResponse`]
 /// to the shared embedding loop.
+///
+/// `state = None` is the **no-model mode** (issue #10): the daemon
+/// boots without a GGUF, registers the gRPC service, but every Embed
+/// call returns `HandlerError::FailedPrecondition` (gRPC code 9). The
+/// health-check correspondingly reports unhealthy so the
+/// `grpc.health.v1.Health/Check` aggregate reflects the degraded state.
+/// Operators see "service up, model not loaded" rather than
+/// "connection refused" — much clearer signal than a hard-exit at boot.
 pub struct EmbedHandler {
-    state: Arc<EmbeddingState>,
+    state: Option<Arc<EmbeddingState>>,
 }
 
 impl EmbedHandler {
     /// Construct an `EmbedHandler` over a shared model state.
-    pub fn new(state: Arc<EmbeddingState>) -> Self {
+    ///
+    /// Pass `None` to run in no-model mode (Embed RPCs will return
+    /// `FailedPrecondition`).
+    pub fn new(state: Option<Arc<EmbeddingState>>) -> Self {
         Self { state }
     }
 
@@ -37,8 +48,24 @@ impl Handler<EmbedRequest, EmbedResponse> for EmbedHandler {
     fn pattern(&self) -> &str { "Embed" }
 
     async fn execute(&self, req: EmbedRequest) -> Result<EmbedResponse, HandlerError> {
-        let model_id = self.state.model_id.clone();
-        let state    = Arc::clone(&self.state);
+        // No-model mode: the daemon is reachable, the gRPC contract is
+        // honoured, but no embedding can be served. Surface as a typed
+        // FailedPrecondition (gRPC code 9 on the wire) with an
+        // operator-actionable message.
+        let state = match &self.state {
+            Some(s) => s,
+            None => {
+                return Err(HandlerError::FailedPrecondition(
+                    "no embedding model loaded; set [embedding.model].gguf_path \
+                     in your XDG overlay (Linux: $XDG_CONFIG_HOME/llminference/, \
+                     Windows: %APPDATA%\\llminference\\) and restart the daemon"
+                        .to_string(),
+                ));
+            }
+        };
+
+        let model_id = state.model_id.clone();
+        let state    = Arc::clone(state);
         let inputs   = req.input;
 
         let outcome = tokio::task::spawn_blocking(move || embed_inputs(state, inputs))
@@ -68,7 +95,10 @@ impl Handler<EmbedRequest, EmbedResponse> for EmbedHandler {
         })
     }
 
-    async fn health_check(&self) -> bool { true }
+    /// Health: serving when a model is loaded, not-serving in no-model
+    /// mode. The grpc_server's health-refresh task propagates this
+    /// into both the overall slot and the per-service slot.
+    async fn health_check(&self) -> bool { self.state.is_some() }
 
     fn as_any(&self) -> &dyn Any { self }
 }
@@ -84,5 +114,41 @@ mod tests {
         // EmbeddingState; the id is defined as a const, so test the const
         // directly.  This guards against accidental rename drift.
         assert_eq!(EmbedHandler::ID, "/justembed.EmbedService/Embed");
+    }
+
+    /// @covers: EmbedHandler — no-model mode returns FailedPrecondition with
+    /// an operator-actionable message that names the config knob to set.
+    #[tokio::test]
+    async fn test_execute_in_no_model_mode_returns_failed_precondition() {
+        let handler = EmbedHandler::new(None);
+        let req = EmbedRequest {
+            model: "irrelevant".to_string(),
+            input: vec!["hello".to_string()],
+        };
+
+        match handler.execute(req).await {
+            Err(HandlerError::FailedPrecondition(msg)) => {
+                assert!(
+                    msg.contains("gguf_path"),
+                    "error must name the config knob to set: {msg}"
+                );
+                assert!(
+                    msg.contains("XDG"),
+                    "error must point operators at the XDG overlay path: {msg}"
+                );
+            }
+            other => panic!("expected FailedPrecondition in no-model mode, got {other:?}"),
+        }
+    }
+
+    /// @covers: EmbedHandler::health_check — reflects whether a model is loaded.
+    #[tokio::test]
+    async fn test_health_check_reflects_no_model_mode() {
+        let handler = EmbedHandler::new(None);
+        assert!(
+            !handler.health_check().await,
+            "no-model mode must report unhealthy so the aggregate health surface \
+             reflects the degraded state"
+        );
     }
 }
