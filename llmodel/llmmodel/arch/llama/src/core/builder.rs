@@ -121,7 +121,12 @@ impl ModelBuilder for LlamaBuilder {
         }
 
         let norm = NormLayer::RMSNorm(RMSNorm::from_weight(get_tensor("norm.weight")?, eps));
-        let output = Linear::from_weights(get_weight("output.weight")?, None)?;
+        // Llama 3.2 and similar use tied embeddings: lm_head weight = token_embd weight.
+        let output = if weights.contains_key("output.weight") {
+            Linear::from_weights(get_weight("output.weight")?, None)?
+        } else {
+            Linear::from_weights(token_embedding.weight().clone(), None)?
+        };
 
         Ok(LlmModel {
             token_embedding,

@@ -105,29 +105,7 @@ impl LoadModel for DefaultLoader {
             }
         }
 
-        // Last-resort fallback: derive a marker from the architecture
-        // when no template was discoverable. The generator's
-        // `build_multi_turn_segments` dispatches on substring matches
-        // (e.g. `template.contains("<start_of_turn>")`), so the marker
-        // alone routes to the right template branch. Older HF caches
-        // downloaded before tokenizer_config.json was requested don't
-        // include it; this keeps existing cached models servable.
-        if config.chat_template.is_none() {
-            let marker = match config.architecture.as_str() {
-                "gemma3" | "gemma3_text" => Some("<start_of_turn>"),
-                "gemma4" | "gemma4_text" => Some("<|turn>"),
-                "qwen2" => Some("<|im_start|>"),
-                "llama" | "mistral" => Some("[INST]"),
-                _ => None,
-            };
-            if let Some(m) = marker {
-                log::info!(
-                    "  Chat template: derived marker '{}' for architecture '{}' (no tokenizer_config.json in cache)",
-                    m, config.architecture
-                );
-                config.chat_template = Some(m.to_string());
-            }
-        }
+        derive_chat_template(&mut config);
 
         let mut model = self.registry
             .build_model(&config, weights)
@@ -247,7 +225,7 @@ impl LoadModel for DefaultLoader {
         let tensors = convert_tensors(loaded_tensors);
 
         let mut model = self.registry
-            .build_model(&config, tensors)
+            .build_model_preremapped(&config, tensors)
             .map_err(|e| LoaderError::Model(format!("Failed to build {} model: {}",
                 config.architecture, e)))?;
         model.set_optimization_profile(profile);
@@ -263,6 +241,8 @@ impl LoadModel for DefaultLoader {
         let (total_params, _) = model.parameter_count();
         log::info!("  Model ready: {:.1}M params", total_params as f64 / 1e6);
 
+        derive_chat_template(&mut config);
+
         let model_id = path
             .file_stem()
             .map(|s| s.to_string_lossy().to_string())
@@ -277,5 +257,29 @@ impl LoadModel for DefaultLoader {
             bos_token_id: config.bos_token_id,
             profile,
         })
+    }
+}
+
+/// Derive a chat template marker from the architecture when none is set.
+///
+/// The generator dispatches on substring matches inside the template string,
+/// so a bare marker is enough to route to the right formatting branch.
+fn derive_chat_template(config: &mut ModelConfig) {
+    if config.chat_template.is_some() {
+        return;
+    }
+    let marker = match config.architecture.as_str() {
+        "gemma3" | "gemma3_text" => Some("<start_of_turn>"),
+        "gemma4" | "gemma4_text" => Some("<|turn>"),
+        "qwen2"                  => Some("<|im_start|>"),
+        "llama" | "mistral"      => Some("[INST]"),
+        _                        => None,
+    };
+    if let Some(m) = marker {
+        log::info!(
+            "  Chat template: derived marker '{}' for architecture '{}'",
+            m, config.architecture
+        );
+        config.chat_template = Some(m.to_string());
     }
 }

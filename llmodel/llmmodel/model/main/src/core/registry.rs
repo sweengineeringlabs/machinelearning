@@ -29,26 +29,40 @@ impl ModelBuilderRegistry {
         self.builders.insert(arch_name.to_string(), builder);
     }
 
-    /// Build a model from config and raw weights.
+    /// Build a model from HuggingFace-named weights.
     ///
-    /// Reads `config.architecture` to select the builder, remaps weights,
-    /// then assembles the model. Returns an error if the architecture is
-    /// not registered.
+    /// Calls `remap_weights` (HF → internal names) then `build`.
     pub fn build_model(
         &self,
         config: &ModelConfig,
         weights: HashMap<String, Tensor>,
     ) -> ModelResult<LlmModel> {
+        let builder = self.get_builder(config)?;
+        let weights = builder.remap_weights(weights, config);
+        builder.build(config, weights)
+    }
+
+    /// Build a model from already-remapped weights (e.g. from the GGUF loader).
+    ///
+    /// Skips `remap_weights` — caller is responsible for providing internal names.
+    pub fn build_model_preremapped(
+        &self,
+        config: &ModelConfig,
+        weights: HashMap<String, Tensor>,
+    ) -> ModelResult<LlmModel> {
+        let builder = self.get_builder(config)?;
+        builder.build(config, weights)
+    }
+
+    fn get_builder(&self, config: &ModelConfig) -> ModelResult<&dyn ModelBuilder> {
         let arch = &config.architecture;
-        let builder = self.builders.get(arch).ok_or_else(|| {
+        self.builders.get(arch).map(|b| b.as_ref()).ok_or_else(|| {
             ModelError::Model(format!(
                 "Unknown architecture '{}'. Registered: {:?}",
                 arch,
                 self.builders.keys().collect::<Vec<_>>()
             ))
-        })?;
-        let weights = builder.remap_weights(weights, config);
-        builder.build(config, weights)
+        })
     }
 
     /// Returns the list of registered architecture names.
