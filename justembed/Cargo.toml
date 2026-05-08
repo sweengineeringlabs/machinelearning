@@ -34,14 +34,14 @@ swe-ml-tensor        = { path = "../main/features/tensor" }
 swe-cli              = { path = "../main/features/cli" }
 
 # llmmodel crates
-swe-llmmodel-model           = { path = "../llmserve/llmmodel/model" }
-swe-llmmodel-arch-nomic-bert = { path = "../llmserve/llmmodel/arch/nomic_bert" }
-swe-llmmodel-gguf            = { path = "../llmserve/llmmodel/gguf" }
-swe-llmmodel-tokenizer       = { path = "../llmserve/llmmodel/tokenizer" }
-swe-llmmodel-layers          = { path = "../llmserve/llmmodel/layers" }
+swe-llmmodel-model           = { path = "../llmodel/llmmodel/model" }
+swe-llmmodel-arch-nomic-bert = { path = "../llmodel/llmmodel/arch/nomic_bert" }
+swe-llmmodel-gguf            = { path = "../llmodel/llmmodel/gguf" }
+swe-llmmodel-tokenizer       = { path = "../llmodel/llmmodel/tokenizer" }
+swe-llmmodel-layers          = { path = "../llmodel/llmmodel/layers" }
 
-# Shared daemon infra (llminference)
-swe-systemd = { path = "../llminference/main/features/systemd" }
+# Shared daemon infra (llmserve)
+swe-systemd = { path = "../llmserve/main/features/systemd" }
 
 # Internal
 swe-ml-embedding = { path = "conversion" }

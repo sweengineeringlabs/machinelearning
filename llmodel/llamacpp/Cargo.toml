@@ -17,8 +17,8 @@ default = []
 llama-cpp = ["dep:llama-cpp-2", "dep:encoding_rs"]
 
 [dependencies]
-swe-inference-backend-api = { path = "../../llminference/main/features/inference/backend-api" }
-swe-inference-generation = { path = "../../llminference/main/features/inference/generation" }
+swe-inference-backend-api = { path = "../../llmserve/main/features/inference/backend-api" }
+swe-inference-generation = { path = "../../llmserve/main/features/inference/generation" }
 swe-llmmodel-tokenizer = { path = "../llmmodel/tokenizer" }
 swe-llmmodel-layers = { path = "../llmmodel/layers" }
 swe-llmmodel-model = { path = "../llmmodel/model" }

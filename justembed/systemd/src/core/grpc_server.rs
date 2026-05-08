@@ -1,5 +1,5 @@
 //! gRPC server orchestration — wires the upstream
-//! [`HandlerRegistryDispatcher`] and [`HealthService`] to the edge gRPC
+//! [`GrpcHandlerRegistryDispatcher`] and [`HealthService`] to the edge gRPC
 //! ingress and runs the tonic listener.
 //!
 //! Returns the bound address and a shutdown channel so callers (the
@@ -12,7 +12,7 @@
 //!         │
 //!         ▼
 //!   MethodPathRouter
-//!     ├── /justembed.EmbedService/*  ──► HandlerRegistryDispatcher
+//!     ├── /justembed.EmbedService/*  ──► GrpcHandlerRegistryDispatcher
 //!     │                                    └── GrpcHandlerAdapter ──► EmbedHandler
 //!     └── /grpc.health.v1.Health/*   ──► HealthService
 //! ```
@@ -32,7 +32,7 @@ use anyhow::{Context, Result};
 use edge_domain::HandlerRegistry;
 use prost::Message;
 use swe_edge_ingress_grpc::{
-    GrpcHandlerAdapter, GrpcInboundError, HandlerRegistryDispatcher, HealthService,
+    GrpcHandlerAdapter, GrpcInboundError, GrpcHandlerRegistryDispatcher, HealthService,
     IngressTlsConfig, ServingStatus, TonicGrpcServer,
 };
 use tokio::net::TcpListener;
@@ -137,8 +137,8 @@ pub async fn start_grpc_server(
     );
     registry.register(Arc::new(adapter));
 
-    let dispatcher: Arc<HandlerRegistryDispatcher> =
-        Arc::new(HandlerRegistryDispatcher::new(Arc::clone(&registry)));
+    let dispatcher: Arc<GrpcHandlerRegistryDispatcher> =
+        Arc::new(GrpcHandlerRegistryDispatcher::new(Arc::clone(&registry)));
 
     // Health service — overall + per-service slot.  Initial status
     // depends on whether a model is loaded:

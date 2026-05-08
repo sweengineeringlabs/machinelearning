@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-    # Foundations — consumed by llminference workspace and any future workspaces.
+    # Foundations — consumed by llmserve workspace and any future workspaces.
     "main/features/tensor",
     "main/features/normalization",
     "main/features/activation",
@@ -9,12 +9,12 @@ members = [
     "main/features/architectures",
     "main/features/training",
     # Developer tools — build-time utilities, not runtime.
-    # Note: devtools/quantize depends on llminference crates (quantizer, gguf, model)
+    # Note: devtools/quantize depends on llmserve crates (quantizer, gguf, model)
     # via cross-workspace path deps. This is the single backward arrow we
     # accept, because it's a tool, not a library.
     "devtools/quantize",
 ]
-exclude = ["llminference", "llmserve"]
+exclude = ["llmserve", "llmodel"]
 
 
 [workspace.package]
@@ -73,22 +73,22 @@ swe-ml-architectures = { path = "main/features/architectures" }
 swe-ml-training      = { path = "main/features/training" }
 
 # Cross-workspace deps to llmmodel — used by devtools/quantize.
-swe-llmmodel-download = { path = "llmserve/llmmodel/download" }
-swe-llmmodel-io       = { path = "llmserve/llmmodel/io" }
-swe-llmmodel-weights  = { path = "llmserve/llmmodel/weights" }
-swe-llmmodel-kernel   = { path = "llmserve/llmmodel/kernel" }
-swe-llmmodel-layers   = { path = "llmserve/llmmodel/layers" }
-swe-llmmodel-gguf     = { path = "llmserve/llmmodel/gguf" }
-swe-llmmodel-model    = { path = "llmserve/llmmodel/model" }
-swe-llmmodel-tokenizer = { path = "llmserve/llmmodel/tokenizer" }
-swe-llmmodel-quantizer = { path = "llmserve/llmmodel/quantizer" }
+swe-llmmodel-download = { path = "llmodel/llmmodel/download" }
+swe-llmmodel-io       = { path = "llmodel/llmmodel/io" }
+swe-llmmodel-weights  = { path = "llmodel/llmmodel/weights" }
+swe-llmmodel-kernel   = { path = "llmodel/llmmodel/kernel" }
+swe-llmmodel-layers   = { path = "llmodel/llmmodel/layers" }
+swe-llmmodel-gguf     = { path = "llmodel/llmmodel/gguf" }
+swe-llmmodel-model    = { path = "llmodel/llmmodel/model" }
+swe-llmmodel-tokenizer = { path = "llmodel/llmmodel/tokenizer" }
+swe-llmmodel-quantizer = { path = "llmodel/llmmodel/quantizer" }
 
-# Cross-workspace deps to llminference — used only by devtools/quantize.
+# Cross-workspace deps to llmserve — used only by devtools/quantize.
 # devtools is a tool, so the backward arrow is acceptable.
-swe-inference-thread-config = { path = "llminference/main/features/inference/thread-config" }
-swe-inference-backend-api = { path = "llminference/main/features/inference/backend-api" }
-swe-inference-generation = { path = "llminference/main/features/inference/generation" }
-swe-llmserver-llamacpp = { path = "llmserve/llamacpp" }
+swe-inference-thread-config = { path = "llmserve/main/features/inference/thread-config" }
+swe-inference-backend-api = { path = "llmserve/main/features/inference/backend-api" }
+swe-inference-generation = { path = "llmserve/main/features/inference/generation" }
+swe-llmserver-llamacpp = { path = "llmodel/llamacpp" }
 
 [profile.release]
 lto = "thin"

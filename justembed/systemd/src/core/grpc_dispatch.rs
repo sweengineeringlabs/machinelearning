@@ -3,7 +3,7 @@
 //! The upstream `swe-edge-ingress-grpc` ships two `GrpcInbound` impls
 //! that we want to use side-by-side:
 //!
-//! * [`HandlerRegistryDispatcher`] — dispatches user-defined RPCs by
+//! * [`GrpcHandlerRegistryDispatcher`] — dispatches user-defined RPCs by
 //!   their fully-qualified method path (here: `/justembed.EmbedService/Embed`).
 //! * [`HealthService`] — owns the standard `grpc.health.v1.Health` service
 //!   (`Check` + `Watch`).
@@ -22,7 +22,7 @@
 //!   and broadcast semantics; the registry adapter only models unary
 //!   request/response pairs.
 //!
-//! [`HandlerRegistryDispatcher`]: swe_edge_ingress_grpc::HandlerRegistryDispatcher
+//! [`GrpcHandlerRegistryDispatcher`]: swe_edge_ingress_grpc::GrpcHandlerRegistryDispatcher
 //! [`HealthService`]: swe_edge_ingress_grpc::HealthService
 //! [`TonicGrpcServer`]: swe_edge_ingress_grpc::TonicGrpcServer
 
